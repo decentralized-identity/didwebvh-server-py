@@ -8,13 +8,15 @@ load_dotenv(os.path.join(basedir, ".env"))
 
 
 class Settings(BaseSettings):
-    PROJECT_TITLE: str = "TDW Server"
+    PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
     SECRET_KEY: str = os.environ["SECRET_KEY"]
 
     DOMAIN: str = os.environ["DOMAIN"]
-    DID_WEB_BASE: str = f"did:web:{DOMAIN}"
+    DID_WEB_PREFIX: str = "did:web:"
+    DID_WEBVH_PREFIX: str = "did:webvh:"
+    DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
     ENDORSER_MULTIKEY: str = os.environ["ENDORSER_MULTIKEY"]
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
@@ -32,7 +34,7 @@ class Settings(BaseSettings):
         logging.info(
             f"Using postgres storage: {POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}"
         )
-        ASKAR_DB: str = f"postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}/tdw-server"
+        ASKAR_DB: str = f"postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}/didwebvh-server"
     else:
         logging.info("Using SQLite database")
 

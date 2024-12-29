@@ -1,6 +1,6 @@
 from app.dependencies import identifier_available
 from app.models.web_schemas import RegisterDID, RegisterInitialLogEntry
-from app.plugins import AskarStorage, AskarVerifier, TrustDidWeb
+from app.plugins import AskarStorage, AskarVerifier, DidWebVH
 from config import settings
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
@@ -78,7 +78,7 @@ async def register_did(
         await AskarStorage().store("didDocument", did, did_document)
         await AskarStorage().store("authorizedKey", did, authorized_key)
 
-        initial_log_entry = TrustDidWeb().create(did_document, authorized_key)
+        initial_log_entry = DidWebVH().create(did_document, authorized_key)
         return JSONResponse(status_code=201, content={"logEntry": initial_log_entry})
 
     raise HTTPException(status_code=400, detail="Missing expected proof.")

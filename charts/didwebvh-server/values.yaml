@@ -1,6 +1,6 @@
 ---
-nameOverride: "tdw-server"
-fullnameOverride: "tdw-server"
+nameOverride: "didwebvh-server"
+fullnameOverride: "didwebvh-server"
 
 selectorLabels: {}
 
@@ -15,7 +15,7 @@ networkPolicy:
 
 server:
   image:
-    repository: ghcr.io/decentralized-identity/trustdidweb-server-py
+    repository: ghcr.io/decentralized-identity/didwebvh-server-py
     tag: 0.1.1
     pullPolicy: IfNotPresent
     pullSecrets: []
@@ -50,8 +50,8 @@ server:
 
 postgresql:
   enabled: true
-  fullnameOverride: "tdw-server-postgresql"
-  nameOverride: "tdw-server-postgresql"
+  fullnameOverride: "didwebvh-server-postgresql"
+  nameOverride: "didwebvh-server-postgresql"
   architecture: standalone
   auth:
     enablePostgresUser: true
@@ -59,7 +59,7 @@ postgresql:
     secretKeys:
       adminPasswordKey: admin-password
       userPasswordKey: database-password
-    username: "tdw-server"
+    username: "didwebvh-server"
 
   ## PostgreSQL Primary parameters
   primary:

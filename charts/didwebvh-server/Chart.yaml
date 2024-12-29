@@ -1,7 +1,7 @@
 apiVersion: v2
-name: trustdidweb-server-py
-icon: https://identity.foundation/trustdidweb/tdw.jpg
-description: An api server to register and serve trusted web dids.
+name: didwebvh-server-py
+icon: https://identity.foundation/didwebvh/didwebvh.jpg
+description: An api server to register and serve web dids with verifiable history.
 type: application
 version: 0.0.10
 appVersion: "0.0.6"
