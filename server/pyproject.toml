@@ -11,7 +11,7 @@ repository = "https://github.com/decentralized-identity/didwebvh-server-py"
 python = "^3.12"
 
 annotated-types = "^0.7.0"
-anyio = "^4.4.0"
+anyio = "^4.6.2"
 aries-askar = "^0.3.2"
 bases = "0.3.0"
 cached-property = "^1.5.2"
