@@ -1,9 +1,9 @@
-# Trust DID Web Server Python
-## A Web Server component for a TDW implementation
+# DID Web with Verifiable History Server Python
+## A Web Server component for a DID WebVH implementation
 
 This server is built with the FastAPI framework.
 
-The TDW spec: [https://identity.foundation/trustdidweb](https://identity.foundation/trustdidweb)
+The DID WebVH spec: [https://identity.foundation/didwebvh](https://identity.foundation/didwebvh)
 
 ## Abstract
 
@@ -46,10 +46,3 @@ sequenceDiagram
 - whois VP support
 - AnonCreds objects support
 - Status lists support
-
-```bash
-In a web where trust is born anew,
-Decentralized keys unlock our view.
-We shape the code, and break the chain,
-Trust in our hands will always reign.
-```

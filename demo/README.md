@@ -1,4 +1,4 @@
-# TDW Server Demo
+# DID WebVH Server Demo
 
 There's 3 ways to run this demo:
 - Using the deployed demo instance of the services through the public Postman workspace.

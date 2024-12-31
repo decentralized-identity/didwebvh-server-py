@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "trustdidweb-server-py"
+name = "didwebvh-server-py"
 version = "0.0.5"
 description = ""
 authors = []
 readme = "../README.md"
 packages = [{ include = "app" }]
-repository = "https://github.com/decentralized-identity/trustdidweb-server-py"
+repository = "https://github.com/decentralized-identity/didwebvh-server-py"
 
 [tool.poetry.dependencies]
 python = "^3.12"

@@ -1,5 +1,5 @@
-name: Publish TDW Server Image
-run-name: Publish TDW Server ${{ inputs.tag || github.event.release.tag_name }} Image
+name: Publish DID WebVH Server Image
+run-name: Publish DID WebVH Server ${{ inputs.tag || github.event.release.tag_name }} Image
 on:
   release:
     types: [published]
@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
 
-    name: Publish TDW Server Image
+    name: Publish DID WebVH Server Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -69,7 +69,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ steps.info.outputs.repo-owner }}/trustdidweb-server-py
+            ghcr.io/${{ steps.info.outputs.repo-owner }}/didwebvh-server-py
           tags: |
             type=raw,value=${{ inputs.tag || github.event.release.tag_name }}
 

@@ -6,10 +6,11 @@ import json
 from multiformats import multihash, multibase
 
 
-class TrustDidWeb:
+class DidWebVH:
     def __init__(self):
-        self.method_version = "did:tdw:0.4"
-        self.did_string_base = r"did:tdw:{SCID}:" + settings.DOMAIN
+        self.prefix = settings.DID_WEBVH_PREFIX
+        self.method_version = f"{self.prefix}0.4"
+        self.did_string_base = self.prefix + r"{SCID}:" + settings.DOMAIN
 
     def _init_parameters(self, update_key, next_key=None, ttl=100):
         # https://identity.foundation/trustdidweb/#generate-scid
@@ -19,7 +20,7 @@ class TrustDidWeb:
         return parameters
 
     def _init_state(self, did_doc):
-        return json.loads(json.dumps(did_doc).replace("did:web:", r"did:tdw:{SCID}:"))
+        return json.loads(json.dumps(did_doc).replace("did:web:", self.prefix + r"{SCID}:"))
 
     def _generate_scid(self, log_entry):
         # https://identity.foundation/trustdidweb/#generate-scid
