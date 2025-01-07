@@ -36,6 +36,13 @@ class DidWebVH:
         encoded = multibase.encode(multihashed, "base58btc")[1:]
         return encoded
 
+    def create_initial_did_doc(self, did_string):
+        did_doc = {
+            '@context': [],
+            'id': did_string
+        }
+        return log_entry
+
     def create(self, did_doc, update_key):
         # https://identity.foundation/trustdidweb/#create-register
         log_entry = InitialLogEntry(
