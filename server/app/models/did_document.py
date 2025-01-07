@@ -50,7 +50,7 @@ class VerificationMethod(BaseModel):
 class JsonWebKey(BaseModel):
     kty: str = Field("OKP")
     crv: str = Field("Ed25519")
-    x: str = Field(example="jihLNQ0eeR8OR-bgVxiUNOTP0tDKs5WKypYN0J5SJ9I")
+    x: str = Field()
 
 
 class VerificationMethodJwk(VerificationMethod):
