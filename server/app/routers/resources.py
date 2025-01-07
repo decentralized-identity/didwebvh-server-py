@@ -23,8 +23,9 @@ async def upload_anoncreds_schema(request_body: SecuredSchema):
     
     storage = AskarStorage()
     tags = {
+        'type': 'AnonCredsSchema',
         'issuer': resource['issuerId'],
-        'type': 'AnonCredsSchema'
+        'schemaName': ''
     }
     await storage.store('resource:anoncreds:schema', '', resource)
 
