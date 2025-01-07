@@ -15,3 +15,16 @@ class RegisterDID(BaseModel):
 
 class RegisterInitialLogEntry(BaseModel):
     logEntry: InitialLogEntry = Field()
+
+
+class ResourceUploadDocument(BaseModel):
+    proof: dict = Field()
+
+class ResourceUploadOptions(BaseModel):
+    type: str = Field()
+    resourceId: str = Field()
+    resourcePath: str = Field()
+
+class ResourceUpload(BaseModel):
+    signedDocument: ResourceUploadDocument = Field()
+    options: ResourceUploadOptions = Field()
