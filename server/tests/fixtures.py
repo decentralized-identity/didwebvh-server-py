@@ -20,7 +20,7 @@ TEST_DID_DOCUMENT = DidDocument(
 ).model_dump()
 
 TEST_DID_DOCUMENT_PROOF = DataIntegrityProof(
-    proofValue='z4NCh2bocHncp9SSpCDETSsWN5ueu7eLPFgaVTNvgCk2RxZvFbVHAN8keGqd8XXbSzrxd3q1VMKQrZuqf672WNncK',
+    proofValue='z5qtizN3eN3nogndvKt2GhLM4pbLceRNJYq7xi1n6yjQmd5yAzDBWrwC9VxbeFXjCoP2i8kLWRFJxGrqjAt1LFLHN',
     verificationMethod=f'did:key:{TEST_AUTHORISED_KEY}#{TEST_AUTHORISED_KEY}'
 ).model_dump()
 
