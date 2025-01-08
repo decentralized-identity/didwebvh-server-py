@@ -14,11 +14,16 @@ from tests.fixtures import (
 )
 import json
 import pytest
+import asyncio
+
+askar = AskarStorage()
+asyncio.run(askar.provision(recreate=True))
+
+verifier = AskarVerifier()
+didwebvh = DidWebVH()
 
 @pytest.mark.asyncio
 async def test_storage():
-    askar = AskarStorage()
-    await askar.provision(recreate=True)
     
     category = 'test'
     key = '01'
@@ -52,7 +57,6 @@ async def test_request_did():
 
 @pytest.mark.asyncio
 async def test_register_did():
-    askar = AskarStorage()
     await askar.store("didDocument", TEST_DID, TEST_DID_DOCUMENT)
     await askar.store("authorizedKey", TEST_DID, TEST_AUTHORISED_KEY)
 
@@ -65,7 +69,7 @@ async def test_resolve_did():
 
 @pytest.mark.asyncio
 async def test_create_log_entry():
-    initial_log_entry = DidWebVH().create(TEST_DID_DOCUMENT, TEST_AUTHORISED_KEY)
+    initial_log_entry = didwebvh.create(TEST_DID_DOCUMENT, TEST_AUTHORISED_KEY)
     assert initial_log_entry.get('versionId')
     assert initial_log_entry.get('versionTime')
     assert initial_log_entry.get('parameters')
@@ -75,5 +79,4 @@ async def test_create_log_entry():
 async def test_verify_di_proof():
     document = TEST_DID_DOCUMENT_SIGNED
     proof = document.pop('proof')
-    verifier = AskarVerifier()
     assert verifier.verify_proof(document, proof)
