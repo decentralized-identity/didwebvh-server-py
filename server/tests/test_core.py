@@ -45,7 +45,6 @@ async def test_storage():
 async def test_request_did():
     did_request = await request_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
     did_request = json.loads(did_request.body.decode())
-    # print(json.dumps(did_request, indent=2))
     assert did_request.get('didDocument').get('id') == TEST_DID
     assert did_request.get('proofOptions').get("type") == TEST_PROOF_OPTIONS['type']
     assert did_request.get('proofOptions').get("cryptosuite") == TEST_PROOF_OPTIONS['cryptosuite']
