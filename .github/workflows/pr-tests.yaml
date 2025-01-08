@@ -1,0 +1,24 @@
+name: Python tests
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./server
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - uses: abatilo/actions-poetry@v4
+      - name: Install dependencies
+        run: |
+          poetry install
+      - name: Test with pytest
+        run: |
+          pytest
