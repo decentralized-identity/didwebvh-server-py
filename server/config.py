@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
-    ENDORSER_MULTIKEY: str = os.environ.get("ENDORSER_MULTIKEY", None)
+    ENDORSER_MULTIKEY: str = os.environ.get("ENDORSER_MULTIKEY", None) or ''
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
