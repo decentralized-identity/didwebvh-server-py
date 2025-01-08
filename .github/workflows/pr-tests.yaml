@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  build:
 
     runs-on: ubuntu-latest
     defaults:
@@ -16,7 +16,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
       - uses: abatilo/actions-poetry@v4
-      - name: Install dependencies and run pytest
+      - name: Install project
         run: |
           poetry install
-          pytest
+      - name: Run pytest
+        run: |
+          poetry run pytest
