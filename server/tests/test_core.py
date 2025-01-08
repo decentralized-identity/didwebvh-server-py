@@ -12,13 +12,13 @@ from tests.fixtures import (
     TEST_AUTHORISED_KEY,
     TEST_PROOF_OPTIONS
 )
-import asyncio
 import json
-import uuid
+import pytest
 
-def test_storage():
+@pytest.mark.asyncio
+async def test_storage():
     askar = AskarStorage()
-    asyncio.run(askar.provision(recreate=True))
+    await askar.provision(recreate=True)
     
     category = 'test'
     key = '01'
@@ -27,17 +27,18 @@ def test_storage():
     value_2 = 'value_2'
     
     data['value'] = value_1
-    asyncio.run(askar.store(category, key, data))
-    fetched_data = asyncio.run(askar.fetch(category, key))
+    await askar.store(category, key, data)
+    fetched_data = await askar.fetch(category, key)
     assert fetched_data['value'] == value_1
     
     data['value'] = value_2
-    asyncio.run(askar.update(category, key, data))
-    fetched_data = asyncio.run(askar.fetch(category, key))
+    await askar.update(category, key, data)
+    fetched_data = await askar.fetch(category, key)
     assert fetched_data['value'] == value_2
 
-def test_request_did():
-    did_request = asyncio.run(request_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER))
+@pytest.mark.asyncio
+async def test_request_did():
+    did_request = await request_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
     did_request = json.loads(did_request.body.decode())
     assert did_request.get('didDocument').get('id') == TEST_DID
     assert did_request.get('proofOptions').get("type") == TEST_PROOF_OPTIONS['type']
@@ -49,25 +50,29 @@ def test_request_did():
         did_request.get('proofOptions').get("expires")
         ) > datetime.now(timezone.utc)
 
-def test_register_did():
+@pytest.mark.asyncio
+async def test_register_did():
     askar = AskarStorage()
-    asyncio.run(askar.store("didDocument", TEST_DID, TEST_DID_DOCUMENT))
-    asyncio.run(askar.store("authorizedKey", TEST_DID, TEST_AUTHORISED_KEY))
+    await askar.store("didDocument", TEST_DID, TEST_DID_DOCUMENT)
+    await askar.store("authorizedKey", TEST_DID, TEST_AUTHORISED_KEY)
 
-def test_resolve_did():
-    did_doc = asyncio.run(get_did_document(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER))
+@pytest.mark.asyncio
+async def test_resolve_did():
+    did_doc = await get_did_document(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
     did_doc = json.loads(did_doc.body.decode())
     assert did_doc == TEST_DID_DOCUMENT
     assert did_doc.get('id') == TEST_DID
 
-def test_create_log_entry():
+@pytest.mark.asyncio
+async def test_create_log_entry():
     initial_log_entry = DidWebVH().create(TEST_DID_DOCUMENT, TEST_AUTHORISED_KEY)
     assert initial_log_entry.get('versionId')
     assert initial_log_entry.get('versionTime')
     assert initial_log_entry.get('parameters')
     assert initial_log_entry.get('state')
     
-def test_verify_di_proof():
+@pytest.mark.asyncio
+async def test_verify_di_proof():
     document = TEST_DID_DOCUMENT_SIGNED
     proof = document.pop('proof')
     verifier = AskarVerifier()
