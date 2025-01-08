@@ -17,6 +17,20 @@ class DataIntegrityProof(BaseModel):
     challenge: str = Field(None)
     created: str = Field(None)
     expires: str = Field(None)
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "type": "DataIntegrityProof",
+                    "cryptosuite": "eddsa-jcs-2022",
+                    "proofPurpose": "assertionMethod",
+                    # "proofValue": "",
+                    # "verificationMethod": "",
+                }
+            ]
+        }
+    }
 
     @field_validator("type")
     @classmethod

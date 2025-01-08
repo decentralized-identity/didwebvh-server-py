@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from config import settings
-from app.models.did_log import LogParameters
+from app.models.did_log import LogParameters, InitialLogEntry
+from app.models.web_schemas import UpdateLogEntry
 from app.plugins import DidWebVH
 
 router = APIRouter(tags=["WebVH"])
 
-@router.post("")
-async def create_did():
+@router.post("/{namespace}/{identifier}")
+async def create_did(namespace: str, identifier: str):
     """
     https://identity.foundation/didwebvh/next/#create-register
     """
@@ -19,22 +20,29 @@ async def create_did():
     )
     pass
 
-@router.get("")
-async def read_did():
+@router.get("/{namespace}/{identifier}/did.json")
+async def read_did(namespace: str, identifier: str):
     """
     https://identity.foundation/didwebvh/next/#read-resolve
     """
     pass
 
-@router.put("")
-async def update_did():
+@router.get("/{namespace}/{identifier}/did.jsonl")
+async def read_did_log(namespace: str, identifier: str):
+    """
+    https://identity.foundation/didwebvh/next/#read-resolve
+    """
+    pass
+
+@router.put("/{namespace}/{identifier}")
+async def update_did(namespace: str, identifier: str, request_body: UpdateLogEntry):
     """
     https://identity.foundation/didwebvh/next/#update-rotate
     """
     pass
 
-@router.delete("")
-async def deactivate_did():
+@router.delete("/{namespace}/{identifier}")
+async def deactivate_did(namespace: str, identifier: str):
     """
     https://identity.foundation/didwebvh/next/#deactivate-revoke
     """

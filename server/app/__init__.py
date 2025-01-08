@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
-from app.routers import identifiers, resolvers
+from app.routers import identifiers, resolvers, webvh
 from config import settings
 
 app = FastAPI(title=settings.PROJECT_TITLE, version=settings.PROJECT_VERSION)
@@ -15,5 +15,6 @@ async def server_status():
 
 api_router.include_router(identifiers.router)
 api_router.include_router(resolvers.router)
+api_router.include_router(webvh.router)
 
 app.include_router(api_router)

@@ -113,6 +113,17 @@ class DidDocument(BaseModel):
     capabilityInvocation: List[Union[str, VerificationMethod]] = Field(None)
     capabilityDelegation: List[Union[str, VerificationMethod]] = Field(None)
     service: List[Service] = Field(None)
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "@context": ["https://www.w3.org/ns/did/v1"],
+                    "id": "",
+                }
+            ]
+        }
+    }
 
     @field_validator("context")
     @classmethod

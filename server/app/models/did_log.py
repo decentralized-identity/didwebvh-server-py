@@ -20,6 +20,21 @@ class WitnessParam(BaseModel):
     witnesses: List[Witness] = Field(None)
 
 
+class WitnessSignature(BaseModel):
+    versionId: str = Field(None)
+    proof: List[DataIntegrityProof] = Field()
+
+
+class InitialLogParameters(BaseModel):
+    method: str = Field('did:webvh:0.5')
+    scid: str = Field()
+    updateKeys: List[str] = Field()
+    prerotation: bool = Field(default=False)
+    portable: bool = Field(default=False)
+    deactivated: bool = Field(False)
+    nextKeyHashes: List[str] = Field(None)
+
+
 class LogParameters(BaseModel):
     prerotation: bool = Field(None)
     portable: bool = Field(None)
@@ -30,6 +45,21 @@ class LogParameters(BaseModel):
     ttl: bool = Field(None)
     method: str = Field(None)
     scid: str = Field(None)
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "method": "",
+                    "scid": "",
+                    "prerotation": True,
+                    "portable": False,
+                    "updateKeys": [],
+                    "nextKeyHashes": [],
+                }
+            ]
+        }
+    }
 
 
 class InitialLogEntry(BaseModel):
