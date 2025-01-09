@@ -139,4 +139,4 @@ class DidDocument(BaseModel):
 
 
 class SecuredDidDocument(DidDocument):
-    proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field(None)
+    proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field()
