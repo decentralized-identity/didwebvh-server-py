@@ -1,14 +1,6 @@
 # DID WebVH Server Demo
 
-There's 3 ways to run this demo:
-- Using the deployed demo instance of the services through the public Postman workspace.
-  - Just head to the [public Postman workspace](https://www.postman.com/bcgov-digital-trust/trust-did-web-server) and follow the instructions.
-  - You can also import this workspace by searching for `Trust DID Web Server` in the public API Network.
-
-- Deploying the project locally and using a desktop installation of Postman to execute the requests.
-  - You will need a **local** installation of the [Postman desktop app](https://www.postman.com/downloads/). Once you have this, you can import the [public workspace](https://www.postman.com/bcgov-digital-trust/trust-did-web-server). The workspace also contains additional documentation for runnig this demo.
-
-- Deploying the project locally and using the OpenAPI web interfaces of each service.
+These are step by step instructions.
 
 ## Setting up you local deployments
 
@@ -34,6 +26,8 @@ curl -H Host:agent.docker.localhost \
 *You can visit the following pages in your browser*
 - http://agent.docker.localhost/api/doc
 - http://server.docker.localhost/docs
+
+You can continue reading to go through the steps of registering a DID. There's also a script available to automate this (`./register.sh`).
 
 ## Create a DID
 
@@ -140,7 +134,7 @@ curl -X 'POST' -H Host:server.docker.localhost \
 
 ```
 
-## Resolve (locally) your new DID
+## Resolve (locally) the DID
 ```bash
 curl -H Host:server.docker.localhost http://127.0.0.1/demo/issuer/did.json | jq .
 ```
@@ -148,9 +142,32 @@ curl -H Host:server.docker.localhost http://127.0.0.1/demo/issuer/did.json | jq 
 ## Initialise the DID Log
 
 ```bash
+# Request the provided helper log entry to sign
 LOG_ENTRY=$(curl -H Host:server.docker.localhost http://127.0.0.1/demo/issuer | jq .logEntry)
+
+# Sign with the controller
 PAYLOAD=$(cat <<EOF 
 {"document": $LOG_ENTRY, "options": $CONTROLLER_PROOF_OPTIONS}
 EOF
 )
+SIGNED_LOG_ENTRY=$(curl -X 'POST' -H Host:agent.docker.localhost \
+  -H 'Content-Type: application/json' \
+  'http://127.0.0.1/vc/di/add-proof' \
+  -d ''"$PAYLOAD"'' | jq .securedDocument)
+
+# Send response to server
+PAYLOAD=$(cat <<EOF 
+{"logEntry": $SIGNED_LOG_ENTRY}
+EOF
+)
+curl -X 'POST' -H Host:server.docker.localhost \
+  -H 'Content-Type: application/json' \
+  'http://127.0.0.1/demo/issuer' \
+  -d ''"$PAYLOAD"'' | jq .
+
+```
+
+## Resolve (locally) the DID Log
+```bash
+curl -H Host:server.docker.localhost http://127.0.0.1/demo/issuer/did.jsonl
 ```
