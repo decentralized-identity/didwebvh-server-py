@@ -26,5 +26,30 @@ class ResourceUploadOptions(BaseModel):
     resourcePath: str = Field()
 
 class ResourceUpload(BaseModel):
-    signedDocument: ResourceUploadDocument = Field()
+    securedResource: ResourceUploadDocument = Field()
     options: ResourceUploadOptions = Field()
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "securedResource": {
+                        'issuerId': 'did:webvh:...:example.com',
+                        'name': 'Person',
+                        'version': '1.0',
+                        'attributes': ['firstName', 'lastName'],
+                        'proof': {
+                            'type': 'DataIntegrityProof',
+                            'cryptosuite': 'DataIntegrityProof',
+                            'proofValue': '...'
+                        }
+                    },
+                    "options": {
+                        'resourceId': '35d2c712-2245-414f-9657-13a8c7965e2b',
+                        'resourceType': 'AnonCredsSchema',
+                        'resourcePath': '/anoncreds/schemas/Person/1.0',
+                    },
+                }
+            ]
+        }
+    }
