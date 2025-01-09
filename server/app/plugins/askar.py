@@ -122,5 +122,6 @@ class AskarVerifier:
                 raise HTTPException(
                     status_code=400, detail="Signature was forged or corrupt."
                 )
+            return True
         except:
             raise HTTPException(status_code=400, detail="Error verifying proof.")
