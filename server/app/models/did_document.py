@@ -24,11 +24,11 @@ class VerificationMethod(BaseModel):
     type: Union[str, List[str]] = Field()
     controller: str = Field()
 
-    @field_validator("id")
-    @classmethod
-    def verification_method_id_validator(cls, value):
-        assert value.startswith(f"did:web:{settings.DOMAIN}")
-        return value
+    # @field_validator("id")
+    # @classmethod
+    # def verification_method_id_validator(cls, value):
+    #     assert value.startswith(f"did:web:{settings.DOMAIN}")
+    #     return value
 
     @field_validator("type")
     @classmethod
@@ -39,12 +39,12 @@ class VerificationMethod(BaseModel):
         ], "Expected type Multikey or JsonWebKey"
         return value
 
-    @field_validator("controller")
-    @classmethod
-    def verification_method_controller_validator(cls, value):
-        assert DID_WEB_REGEX.match(value), "Expected controller to be a DID."
-        assert value.startswith(f"did:web:{settings.DOMAIN}")
-        return value
+    # @field_validator("controller")
+    # @classmethod
+    # def verification_method_controller_validator(cls, value):
+    #     assert DID_WEB_REGEX.match(value), "Expected controller to be a DID."
+    #     assert value.startswith(f"did:web:{settings.DOMAIN}")
+    #     return value
 
 
 class JsonWebKey(BaseModel):
@@ -81,11 +81,11 @@ class Service(BaseModel):
     type: Union[str, List[str]] = Field()
     serviceEndpoint: str = Field()
 
-    @field_validator("id")
-    @classmethod
-    def service_id_validator(cls, value):
-        assert value.startswith(f"did:web:{settings.DOMAIN}")
-        return value
+    # @field_validator("id")
+    # @classmethod
+    # def service_id_validator(cls, value):
+    #     assert value.startswith(f"did:web:{settings.DOMAIN}")
+    #     return value
 
     @field_validator("serviceEndpoint")
     @classmethod
@@ -131,11 +131,11 @@ class DidDocument(BaseModel):
         assert value[0] == "https://www.w3.org/ns/did/v1", "Invalid context."
         return value
 
-    @field_validator("id")
-    @classmethod
-    def id_validator(cls, value):
-        assert DID_WEB_REGEX.match(value), "Expected id to be a DID."
-        return value
+    # @field_validator("id")
+    # @classmethod
+    # def id_validator(cls, value):
+    #     assert DID_WEB_REGEX.match(value), "Expected id to be a DID."
+    #     return value
 
 
 class SecuredDidDocument(DidDocument):

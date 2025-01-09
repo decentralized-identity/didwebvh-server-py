@@ -2,6 +2,9 @@ from config import settings
 from app.models.did_document import DidDocument, SecuredDidDocument
 from app.models.di_proof import DataIntegrityProof
 
+TEST_SEED = 'ixUwS8A2SYzmPiGor7t08wgg1ifNABrB'
+TEST_AUTHORISED_KEY = 'z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV'
+TEST_AUTHORISED_JWK = 'QvGYHF-i-RTVnJlSDsYkSffG1GUZasgGt1yhRdv4rgI'
 TEST_DOMAIN = settings.DOMAIN
 TEST_DID_NAMESPACE = 'test'
 TEST_DID_IDENTIFIER = '01'
@@ -11,21 +14,8 @@ TEST_PROOF_OPTIONS = {
     'cryptosuite': 'eddsa-jcs-2022',
     'proofPurpose': 'assertionMethod'
 }
-TEST_AUTHORISED_KEY = 'z6Mkj8h3kzWZrPiucoyY9LGCTpXhCqBoX3doDmHz5MaPxnvi'
-TEST_AUTHORISED_JWK = 'RYirjVOuAh9BXxQaxozaDLK_JqrKPicZeq9bl3Fg8xc'
 
 TEST_DID_DOCUMENT = DidDocument(
     context=['https://www.w3.org/ns/did/v1'],
     id=TEST_DID
-).model_dump()
-
-TEST_DID_DOCUMENT_PROOF = DataIntegrityProof(
-    proofValue='z5qtizN3eN3nogndvKt2GhLM4pbLceRNJYq7xi1n6yjQmd5yAzDBWrwC9VxbeFXjCoP2i8kLWRFJxGrqjAt1LFLHN',
-    verificationMethod=f'did:key:{TEST_AUTHORISED_KEY}#{TEST_AUTHORISED_KEY}'
-).model_dump()
-
-TEST_DID_DOCUMENT_SIGNED = SecuredDidDocument(
-    context=['https://www.w3.org/ns/did/v1'],
-    id=TEST_DID,
-    proof=TEST_DID_DOCUMENT_PROOF
 ).model_dump()
