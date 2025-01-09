@@ -1,5 +1,4 @@
-from app.routers.identifiers import request_did
-from app.routers.resolvers import get_did_document
+from app.routers.identifiers import request_did, read_did
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
 from datetime import datetime, timezone
 from tests.fixtures import (
@@ -62,7 +61,7 @@ async def test_register_did():
 
 @pytest.mark.asyncio
 async def test_resolve_did():
-    did_doc = await get_did_document(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
+    did_doc = await read_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
     did_doc = json.loads(did_doc.body.decode())
     assert did_doc == TEST_DID_DOCUMENT
     assert did_doc.get('id') == TEST_DID
