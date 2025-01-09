@@ -1,13 +1,15 @@
 from app.dependencies import identifier_available
-from app.models.web_schemas import RegisterDID, RegisterInitialLogEntry
+from app.models.web_schemas import RegisterDID, RegisterInitialLogEntry, UpdateLogEntry
+from app.models.did_document import DidDocument
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
 from config import settings
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse
+import json
 
 router = APIRouter(tags=["Identifiers"])
 
-
+# DIDWeb
 @router.get("/")
 async def request_did(
     namespace: str = None,
@@ -19,10 +21,9 @@ async def request_did(
         return JSONResponse(
             status_code=200,
             content={
-                "didDocument": {
-                    "@context": ["https://www.w3.org/ns/did/v1"],
-                    "id": did,
-                },
+                "didDocument": DidDocument(
+                    id=did
+                ).model_dump(),
                 "proofOptions": AskarVerifier().create_proof_config(did),
             },
         )
@@ -77,6 +78,7 @@ async def register_did(
         # Store document and authorized key
         await AskarStorage().store("didDocument", did, did_document)
         await AskarStorage().store("authorizedKey", did, authorized_key)
+        return JSONResponse(status_code=201, content={})
 
         initial_log_entry = DidWebVH().create(did_document, authorized_key)
         return JSONResponse(status_code=201, content={"logEntry": initial_log_entry})
@@ -84,8 +86,9 @@ async def register_did(
     raise HTTPException(status_code=400, detail="Missing expected proof.")
 
 
+# DIDWebVH
 @router.post("/{namespace}/{identifier}")
-async def initial_log_entry(
+async def create_didwebvh(
     namespace: str,
     identifier: str,
     request_body: RegisterInitialLogEntry,
@@ -114,3 +117,41 @@ async def initial_log_entry(
     did_document["alsoKnownAs"] = [log_entry["state"]["id"]]
     await AskarStorage().update("didDocument", did, did_document)
     return JSONResponse(status_code=201, content=log_entry)
+
+
+@router.get("/{namespace}/{identifier}/did.json")
+async def read_did(namespace: str, identifier: str):
+    """
+    https://identity.foundation/didwebvh/next/#read-resolve
+    """
+    did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
+    did_doc = await AskarStorage().fetch("didDocument", did)
+    if did_doc:
+        return Response(json.dumps(did_doc), media_type="application/did+ld+json")
+    raise HTTPException(status_code=404, detail="Ressource not found.")
+
+@router.get("/{namespace}/{identifier}/did.jsonl")
+async def read_did_log(namespace: str, identifier: str):
+    """
+    https://identity.foundation/didwebvh/next/#read-resolve
+    """
+    did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
+    log_entries = await AskarStorage().fetch("logEntries", did)
+    if log_entries:
+        log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries])
+        return Response(log_entries, media_type="text/jsonl")
+    raise HTTPException(status_code=404, detail="Ressource not found.")
+
+@router.put("/{namespace}/{identifier}")
+async def update_did(namespace: str, identifier: str, request_body: UpdateLogEntry):
+    """
+    https://identity.foundation/didwebvh/next/#update-rotate
+    """
+    pass
+
+@router.delete("/{namespace}/{identifier}")
+async def deactivate_did(namespace: str, identifier: str):
+    """
+    https://identity.foundation/didwebvh/next/#deactivate-revoke
+    """
+    pass
