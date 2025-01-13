@@ -103,7 +103,7 @@ class AskarVerifier:
 
     def verify_proof(self, document, proof):
         self.validate_proof(proof)
-        
+
         multikey = proof["verificationMethod"].split("#")[-1]
 
         key = Key(LocalKeyHandle()).from_public_bytes(
@@ -122,5 +122,6 @@ class AskarVerifier:
                 raise HTTPException(
                     status_code=400, detail="Signature was forged or corrupt."
                 )
+            return True
         except:
             raise HTTPException(status_code=400, detail="Error verifying proof.")

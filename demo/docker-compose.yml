@@ -1,21 +1,5 @@
 ---
 services:
-  frontend:
-    build:
-      context: frontend
-      dockerfile: Dockerfile
-    environment:
-      DOMAIN: server.${DOMAIN}
-      SECRET_KEY: ${SECRET_KEY}
-      ENDORSER_MULTIKEY: ${ENDORSER_MULTIKEY}
-      TDW_SERVER_URL: http://server:8000
-      AGENT_ADMIN_URL: http://agent:8020
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.frontend.rule=Host(`demo.${DOMAIN}`)
-      - traefik.http.routers.frontend.entrypoints=web
-      - traefik.http.services.frontend.loadbalancer.server.port=5000
-
   server:
     build:
       context: ../server

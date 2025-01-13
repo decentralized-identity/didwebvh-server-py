@@ -11,13 +11,14 @@ class Settings(BaseSettings):
     PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
-    SECRET_KEY: str = os.environ["SECRET_KEY"]
+    SECRET_KEY: str = os.environ.get("SECRET_KEY", "s3cret")
+    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "0.4")
 
-    DOMAIN: str = os.environ["DOMAIN"]
+    DOMAIN: str = os.environ.get("DOMAIN", "localhost")
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
-    ENDORSER_MULTIKEY: str = os.environ["ENDORSER_MULTIKEY"]
+    ENDORSER_MULTIKEY: str = os.environ.get("ENDORSER_MULTIKEY", "")
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")

@@ -27,7 +27,7 @@ class VerificationMethod(BaseModel):
     @field_validator("id")
     @classmethod
     def verification_method_id_validator(cls, value):
-        assert value.startswith(f"did:web:{settings.DOMAIN}")
+        assert value.startswith("did:")
         return value
 
     @field_validator("type")
@@ -42,15 +42,14 @@ class VerificationMethod(BaseModel):
     @field_validator("controller")
     @classmethod
     def verification_method_controller_validator(cls, value):
-        assert DID_WEB_REGEX.match(value), "Expected controller to be a DID."
-        assert value.startswith(f"did:web:{settings.DOMAIN}")
+        assert value.startswith("did:")
         return value
 
 
 class JsonWebKey(BaseModel):
     kty: str = Field("OKP")
     crv: str = Field("Ed25519")
-    x: str = Field(example="jihLNQ0eeR8OR-bgVxiUNOTP0tDKs5WKypYN0J5SJ9I")
+    x: str = Field()
 
 
 class VerificationMethodJwk(VerificationMethod):
@@ -84,7 +83,7 @@ class Service(BaseModel):
     @field_validator("id")
     @classmethod
     def service_id_validator(cls, value):
-        assert value.startswith(f"did:web:{settings.DOMAIN}")
+        assert value.startswith("did:")
         return value
 
     @field_validator("serviceEndpoint")
@@ -96,7 +95,7 @@ class Service(BaseModel):
 
 class DidDocument(BaseModel):
     context: Union[str, List[str]] = Field(
-        ["https://www.w3.org/ns/did/v1", "https://w3id.org/security/multikey/v1"],
+        ["https://www.w3.org/ns/did/v1"],
         alias="@context",
     )
     id: str = Field()
@@ -106,13 +105,24 @@ class DidDocument(BaseModel):
     alsoKnownAs: List[str] = Field(None)
     verificationMethod: List[
         Union[VerificationMethodMultikey, VerificationMethodJwk]
-    ] = Field()
-    authentication: List[Union[str, VerificationMethod]] = Field()
-    assertionMethod: List[Union[str, VerificationMethod]] = Field()
+    ] = Field(None)
+    authentication: List[Union[str, VerificationMethod]] = Field(None)
+    assertionMethod: List[Union[str, VerificationMethod]] = Field(None)
     keyAgreement: List[Union[str, VerificationMethod]] = Field(None)
     capabilityInvocation: List[Union[str, VerificationMethod]] = Field(None)
     capabilityDelegation: List[Union[str, VerificationMethod]] = Field(None)
     service: List[Service] = Field(None)
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "@context": ["https://www.w3.org/ns/did/v1"],
+                    "id": "",
+                }
+            ]
+        }
+    }
 
     @field_validator("context")
     @classmethod
@@ -123,33 +133,9 @@ class DidDocument(BaseModel):
     @field_validator("id")
     @classmethod
     def id_validator(cls, value):
-        assert DID_WEB_REGEX.match(value), "Expected id to be a DID."
-        return value
-
-    @field_validator("authentication")
-    @classmethod
-    def authentication_validator(cls, value):
-        assert len(value) >= 1, "Expected at least one authentication method."
-        return value
-
-    @field_validator("assertionMethod")
-    @classmethod
-    def assertion_method_validator(cls, value):
-        assert len(value) >= 1, "Expected at least one assertion method."
-        return value
-
-    @field_validator("verificationMethod")
-    @classmethod
-    def verification_method_validator(cls, value):
-        assert len(value) >= 1, "Expected at least one verification method."
+        assert value.startswith("did:")
         return value
 
 
 class SecuredDidDocument(DidDocument):
-    proof: List[DataIntegrityProof] = Field(None)
-
-    @field_validator("proof")
-    @classmethod
-    def proof_validator(cls, value):
-        assert len(value) == 2, "Expected proof set."
-        return value
+    proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field()
