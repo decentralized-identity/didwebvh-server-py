@@ -116,7 +116,7 @@ async def create_didwebvh(
 
     # Assert proof set
     proof = log_entry.pop("proof", None)
-    proof = proof if isinstance(proof, dict) else [proof]
+    proof = proof if isinstance(proof, list) else [proof]
     if len(proof) != 1:
         raise HTTPException(
             status_code=400, detail="Expecting singular proof from controller."
