@@ -20,7 +20,9 @@ class DidWebVH:
         return parameters
 
     def _init_state(self, did_doc):
-        return json.loads(json.dumps(did_doc).replace("did:web:", self.prefix + r"{SCID}:"))
+        return json.loads(
+            json.dumps(did_doc).replace("did:web:", self.prefix + r"{SCID}:")
+        )
 
     def _generate_scid(self, log_entry):
         # https://identity.foundation/trustdidweb/#generate-scid
@@ -37,10 +39,7 @@ class DidWebVH:
         return encoded
 
     def create_initial_did_doc(self, did_string):
-        did_doc = {
-            '@context': [],
-            'id': did_string
-        }
+        did_doc = {"@context": [], "id": did_string}
         return log_entry
 
     def create(self, did_doc, update_key):

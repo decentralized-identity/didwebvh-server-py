@@ -9,6 +9,7 @@ import json
 
 router = APIRouter(tags=["Identifiers"])
 
+
 # DIDWeb
 @router.get("/")
 async def request_did(
@@ -16,20 +17,20 @@ async def request_did(
     identifier: str = None,
 ):
     if namespace and identifier:
-        client_id = f'{namespace}:{identifier}'
+        client_id = f"{namespace}:{identifier}"
         did = f"{settings.DID_WEB_BASE}:{client_id}"
         await identifier_available(did)
         return JSONResponse(
             status_code=200,
             content={
-                "didDocument": DidDocument(
-                    id=did
-                ).model_dump(),
+                "didDocument": DidDocument(id=did).model_dump(),
                 "proofOptions": AskarVerifier().create_proof_config(did),
             },
         )
 
-    raise HTTPException(status_code=400, detail="Bad Request")
+    raise HTTPException(
+        status_code=400, detail="Missing namespace or identifier query."
+    )
 
 
 @router.post("/")
@@ -44,7 +45,9 @@ async def register_did(
     # Assert proof set
     proof_set = did_document.pop("proof", None)
     if len(proof_set) != 2:
-        raise HTTPException(status_code=400, detail="Bad Request")
+        raise HTTPException(
+            status_code=400, detail="Expecting proof set from controller and endorser."
+        )
 
     # Find proof matching endorser
     endorser_proof = next(
@@ -84,16 +87,13 @@ async def register_did(
         initial_log_entry = DidWebVH().create(did_document, authorized_key)
         return JSONResponse(status_code=201, content={"logEntry": initial_log_entry})
 
-    raise HTTPException(status_code=400, detail="Bad Request")
+    raise HTTPException(status_code=400, detail="Bad Request, something went wrong.")
 
 
 # DIDWebVH
 @router.get("/{namespace}/{identifier}")
-async def get_log_state(
-    namespace: str,
-    identifier: str
-):
-    client_id = f'{namespace}:{identifier}'
+async def get_log_state(namespace: str, identifier: str):
+    client_id = f"{namespace}:{identifier}"
     log_entry = await AskarStorage().fetch("logEntries", client_id)
     if not log_entry:
         did = f"{settings.DID_WEB_BASE}:{client_id}"
@@ -102,22 +102,25 @@ async def get_log_state(
         initial_log_entry = DidWebVH().create(did_document, authorized_key)
         return JSONResponse(status_code=200, content={"logEntry": initial_log_entry})
     return JSONResponse(status_code=200, content={})
-    
-    
+
+
 @router.post("/{namespace}/{identifier}")
 async def create_didwebvh(
     namespace: str,
     identifier: str,
     request_body: RegisterInitialLogEntry,
 ):
-    client_id = f'{namespace}:{identifier}'
+    client_id = f"{namespace}:{identifier}"
     log_entry = request_body.model_dump()["logEntry"]
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
 
     # Assert proof set
     proof = log_entry.pop("proof", None)
+    proof = proof if isinstance(proof, dict) else [proof]
     if len(proof) != 1:
-        raise HTTPException(status_code=400, detail="Bad Request")
+        raise HTTPException(
+            status_code=400, detail="Expecting singular proof from controller."
+        )
 
     # Verify proofs
     proof = proof[0]
@@ -130,9 +133,9 @@ async def create_didwebvh(
 
     AskarVerifier().verify_proof(log_entry, proof)
     log_entry["proof"] = [proof]
-    
+
     await AskarStorage().store("logEntries", client_id, [log_entry])
-    
+
     did_document = await AskarStorage().fetch("didDocument", did)
     did_document["alsoKnownAs"] = [log_entry["state"]["id"]]
     await AskarStorage().update("didDocument", did, did_document)
@@ -144,31 +147,33 @@ async def read_did(namespace: str, identifier: str):
     """
     https://identity.foundation/didwebvh/next/#read-resolve
     """
-    client_id = f'{namespace}:{identifier}'
+    client_id = f"{namespace}:{identifier}"
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
     did_doc = await AskarStorage().fetch("didDocument", did)
     if did_doc:
         return Response(json.dumps(did_doc), media_type="application/did+ld+json")
     raise HTTPException(status_code=404, detail="Not Found")
 
+
 @router.get("/{namespace}/{identifier}/did.jsonl", include_in_schema=False)
 async def read_did_log(namespace: str, identifier: str):
     """
     https://identity.foundation/didwebvh/next/#read-resolve
     """
-    client_id = f'{namespace}:{identifier}'
+    client_id = f"{namespace}:{identifier}"
     log_entries = await AskarStorage().fetch("logEntries", client_id)
     if log_entries:
         log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries])
         return Response(log_entries, media_type="text/jsonl")
     raise HTTPException(status_code=404, detail="Not Found")
 
+
 @router.put("/{namespace}/{identifier}")
 async def update_did(namespace: str, identifier: str, request_body: UpdateLogEntry):
     """
     https://identity.foundation/didwebvh/next/#update-rotate
     """
-    client_id = f'{namespace}:{identifier}'
+    client_id = f"{namespace}:{identifier}"
     raise HTTPException(status_code=501, detail="Not Implemented")
 
 
@@ -177,5 +182,5 @@ async def deactivate_did(namespace: str, identifier: str):
     """
     https://identity.foundation/didwebvh/next/#deactivate-revoke
     """
-    client_id = f'{namespace}:{identifier}'
+    client_id = f"{namespace}:{identifier}"
     raise HTTPException(status_code=501, detail="Not Implemented")

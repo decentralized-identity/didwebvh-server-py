@@ -27,7 +27,7 @@ class VerificationMethod(BaseModel):
     @field_validator("id")
     @classmethod
     def verification_method_id_validator(cls, value):
-        assert value.startswith('did:')
+        assert value.startswith("did:")
         return value
 
     @field_validator("type")
@@ -42,7 +42,7 @@ class VerificationMethod(BaseModel):
     @field_validator("controller")
     @classmethod
     def verification_method_controller_validator(cls, value):
-        assert value.startswith('did:')
+        assert value.startswith("did:")
         return value
 
 
@@ -83,7 +83,7 @@ class Service(BaseModel):
     @field_validator("id")
     @classmethod
     def service_id_validator(cls, value):
-        assert value.startswith('did:')
+        assert value.startswith("did:")
         return value
 
     @field_validator("serviceEndpoint")
@@ -112,7 +112,7 @@ class DidDocument(BaseModel):
     capabilityInvocation: List[Union[str, VerificationMethod]] = Field(None)
     capabilityDelegation: List[Union[str, VerificationMethod]] = Field(None)
     service: List[Service] = Field(None)
-    
+
     model_config = {
         "json_schema_extra": {
             "examples": [
@@ -133,7 +133,7 @@ class DidDocument(BaseModel):
     @field_validator("id")
     @classmethod
     def id_validator(cls, value):
-        assert value.startswith('did:')
+        assert value.startswith("did:")
         return value
 
 

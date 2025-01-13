@@ -17,7 +17,7 @@ class DataIntegrityProof(BaseModel):
     challenge: str = Field(None)
     created: str = Field(None)
     expires: str = Field(None)
-    
+
     model_config = {
         "json_schema_extra": {
             "examples": [

@@ -21,7 +21,7 @@ class RegisterInitialLogEntry(BaseModel):
 class UpdateLogEntry(BaseModel):
     logEntry: LogEntry = Field()
     witnessProof: List[DataIntegrityProof] = Field(None)
-    
+
     # model_config = {
     #     "json_schema_extra": {
     #         "examples": [

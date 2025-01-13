@@ -103,7 +103,7 @@ class AskarVerifier:
 
     def verify_proof(self, document, proof):
         self.validate_proof(proof)
-        
+
         multikey = proof["verificationMethod"].split("#")[-1]
 
         key = Key(LocalKeyHandle()).from_public_bytes(

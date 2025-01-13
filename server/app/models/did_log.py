@@ -2,6 +2,7 @@ from typing import Union, List, Dict, Any
 from pydantic import BaseModel, Field
 from .did_document import DidDocument
 from .di_proof import DataIntegrityProof
+from config import settings
 
 
 class BaseModel(BaseModel):
@@ -26,7 +27,7 @@ class WitnessSignature(BaseModel):
 
 
 class InitialLogParameters(BaseModel):
-    method: str = Field('did:webvh:0.5')
+    method: str = Field(f"did:webvh:{settings.WEBVH_VERSION}")
     scid: str = Field()
     updateKeys: List[str] = Field()
     prerotation: bool = Field(default=False)
@@ -45,7 +46,7 @@ class LogParameters(BaseModel):
     ttl: bool = Field(None)
     method: str = Field(None)
     scid: str = Field(None)
-    
+
     model_config = {
         "json_schema_extra": {
             "examples": [
