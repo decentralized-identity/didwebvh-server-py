@@ -6,6 +6,7 @@ authors = []
 readme = "../README.md"
 packages = [{ include = "app" }]
 repository = "https://github.com/decentralized-identity/didwebvh-server-py"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -44,4 +45,5 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

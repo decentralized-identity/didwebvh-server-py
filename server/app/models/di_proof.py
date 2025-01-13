@@ -18,6 +18,20 @@ class DataIntegrityProof(BaseModel):
     created: str = Field(None)
     expires: str = Field(None)
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "type": "DataIntegrityProof",
+                    "cryptosuite": "eddsa-jcs-2022",
+                    "proofPurpose": "assertionMethod",
+                    # "proofValue": "",
+                    # "verificationMethod": "",
+                }
+            ]
+        }
+    }
+
     @field_validator("type")
     @classmethod
     def validate_type(cls, value):

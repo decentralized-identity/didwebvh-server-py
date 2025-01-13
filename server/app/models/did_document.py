@@ -27,7 +27,7 @@ class VerificationMethod(BaseModel):
     @field_validator("id")
     @classmethod
     def verification_method_id_validator(cls, value):
-        assert value.startswith(f"did:web:{settings.DOMAIN}")
+        assert value.startswith("did:")
         return value
 
     @field_validator("type")
@@ -42,8 +42,7 @@ class VerificationMethod(BaseModel):
     @field_validator("controller")
     @classmethod
     def verification_method_controller_validator(cls, value):
-        assert DID_WEB_REGEX.match(value), "Expected controller to be a DID."
-        assert value.startswith(f"did:web:{settings.DOMAIN}")
+        assert value.startswith("did:")
         return value
 
 
@@ -84,7 +83,7 @@ class Service(BaseModel):
     @field_validator("id")
     @classmethod
     def service_id_validator(cls, value):
-        assert value.startswith(f"did:web:{settings.DOMAIN}")
+        assert value.startswith("did:")
         return value
 
     @field_validator("serviceEndpoint")
@@ -114,6 +113,17 @@ class DidDocument(BaseModel):
     capabilityDelegation: List[Union[str, VerificationMethod]] = Field(None)
     service: List[Service] = Field(None)
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "@context": ["https://www.w3.org/ns/did/v1"],
+                    "id": "",
+                }
+            ]
+        }
+    }
+
     @field_validator("context")
     @classmethod
     def context_validator(cls, value):
@@ -123,9 +133,9 @@ class DidDocument(BaseModel):
     @field_validator("id")
     @classmethod
     def id_validator(cls, value):
-        assert DID_WEB_REGEX.match(value), "Expected id to be a DID."
+        assert value.startswith("did:")
         return value
 
 
 class SecuredDidDocument(DidDocument):
-    proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field(None)
+    proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field()
