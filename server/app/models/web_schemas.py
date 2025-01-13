@@ -24,6 +24,7 @@ class ResourceUploadOptions(BaseModel):
     type: str = Field()
     resourceId: str = Field()
     resourcePath: str = Field()
+    resourceDigest: str = Field()
 
 class ResourceUpload(BaseModel):
     securedResource: ResourceUploadDocument = Field()
@@ -33,21 +34,10 @@ class ResourceUpload(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "securedResource": {
-                        'issuerId': 'did:webvh:...:example.com',
-                        'name': 'Person',
-                        'version': '1.0',
-                        'attributes': ['firstName', 'lastName'],
-                        'proof': {
-                            'type': 'DataIntegrityProof',
-                            'cryptosuite': 'DataIntegrityProof',
-                            'proofValue': '...'
-                        }
-                    },
+                    "securedResource": {},
                     "options": {
                         'resourceId': '35d2c712-2245-414f-9657-13a8c7965e2b',
-                        'resourceType': 'AnonCredsSchema',
-                        'resourcePath': '/anoncreds/schemas/Person/1.0',
+                        'resourceType': 'AnonCredsSchema'
                     },
                 }
             ]
