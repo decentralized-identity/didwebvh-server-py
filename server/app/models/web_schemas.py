@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from .did_document import SecuredDidDocument
 from .did_log import InitialLogEntry, LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
+from config import settings
 
 
 class BaseModel(BaseModel):
@@ -21,15 +22,38 @@ class RegisterInitialLogEntry(BaseModel):
 class ResourceUploadDocument(BaseModel):
     proof: dict = Field()
 
-class ResourceUploadOptions(BaseModel):
-    type: str = Field()
+class ResourceOptions(BaseModel):
     resourceId: str = Field()
-    resourcePath: str = Field()
-    resourceDigest: str = Field()
+    resourceType: str = Field()
+
+class ResourceTemplate(BaseModel):
+    resourceContent: dict = Field()
+    options: ResourceOptions = Field()
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "resourceContent": {
+                        "issuerId": "did:webvh:",
+                        "name": "Example",
+                        "version": "1.0",
+                        "attributes": ["firstName", "lastName"]    
+                    },
+                    "options": {
+                        'resourceCollectionId': r'{SCID}' + f':{settings.DOMAIN}:example:identifier',
+                        'resourceId': 'z123',
+                        'resourceName': 'Example',
+                        'resourceType': 'AnonCredsSchema'
+                    },
+                }
+            ]
+        }
+    }
 
 class ResourceUpload(BaseModel):
     securedResource: ResourceUploadDocument = Field()
-    options: ResourceUploadOptions = Field()
+    options: ResourceOptions = Field()
     
     model_config = {
         "json_schema_extra": {
@@ -37,7 +61,6 @@ class ResourceUpload(BaseModel):
                 {
                     "securedResource": {},
                     "options": {
-                        'resourceId': '35d2c712-2245-414f-9657-13a8c7965e2b',
                         'resourceType': 'AnonCredsSchema'
                     },
                 }
