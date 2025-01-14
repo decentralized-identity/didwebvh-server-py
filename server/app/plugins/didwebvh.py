@@ -1,13 +1,20 @@
-from config import settings
-from datetime import datetime
-from app.models.did_log import LogParameters, InitialLogEntry
-import canonicaljson
+"""DID Web Verifiable History (DID WebVH) plugin."""
+
 import json
-from multiformats import multihash, multibase
+from datetime import datetime
+
+import canonicaljson
+from multiformats import multibase, multihash
+
+from app.models.did_log import InitialLogEntry, LogParameters
+from config import settings
 
 
 class DidWebVH:
+    """DID Web Verifiable History (DID WebVH) plugin."""
+
     def __init__(self):
+        """Initialize the DID WebVH plugin."""
         self.prefix = settings.DID_WEBVH_PREFIX
         self.method_version = f"{self.prefix}0.4"
         self.did_string_base = self.prefix + r"{SCID}:" + settings.DOMAIN
@@ -20,9 +27,7 @@ class DidWebVH:
         return parameters
 
     def _init_state(self, did_doc):
-        return json.loads(
-            json.dumps(did_doc).replace("did:web:", self.prefix + r"{SCID}:")
-        )
+        return json.loads(json.dumps(did_doc).replace("did:web:", self.prefix + r"{SCID}:"))
 
     def _generate_scid(self, log_entry):
         # https://identity.foundation/trustdidweb/#generate-scid
@@ -39,10 +44,12 @@ class DidWebVH:
         return encoded
 
     def create_initial_did_doc(self, did_string):
+        """Create an initial DID document."""
         did_doc = {"@context": [], "id": did_string}
-        return log_entry
+        return did_doc
 
     def create(self, did_doc, update_key):
+        """Create a new DID WebVH log."""
         # https://identity.foundation/trustdidweb/#create-register
         log_entry = InitialLogEntry(
             versionId=r"{SCID}",

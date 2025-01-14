@@ -1,9 +1,11 @@
 from hashlib import sha256
+
 import canonicaljson
-from multiformats import multibase
 from aries_askar import Key, KeyAlg
 from aries_askar.bindings import LocalKeyHandle
-from tests.fixtures import TEST_SEED, TEST_PROOF_OPTIONS
+from multiformats import multibase
+
+from tests.fixtures import TEST_PROOF_OPTIONS, TEST_SEED
 
 
 def sign(document, options=TEST_PROOF_OPTIONS):
