@@ -44,6 +44,8 @@ ruff = "^0.9.1"
 lint.select = ["B006", "C", "D", "E", "F"]
 line-length = 100
 
+# https://www.pydocstyle.org/en/2.1.1/error_codes.html
+# https://docs.astral.sh/ruff/rules/#pydocstyle-d
 lint.ignore = [
     # Google Python Doc Style
     "D203",
