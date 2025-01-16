@@ -1,13 +1,18 @@
-from pydantic_settings import BaseSettings
-import os
-from dotenv import load_dotenv
+"""App configuration."""
+
 import logging
+import os
+
+from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
 
 
 class Settings(BaseSettings):
+    """App settings."""
+
     PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
@@ -26,15 +31,8 @@ class Settings(BaseSettings):
     POSTGRES_SERVER_PORT: str = os.getenv("POSTGRES_SERVER_PORT", "")
 
     ASKAR_DB: str = "sqlite://app.db"
-    if (
-        POSTGRES_USER
-        and POSTGRES_PASSWORD
-        and POSTGRES_SERVER_NAME
-        and POSTGRES_SERVER_PORT
-    ):
-        logging.info(
-            f"Using postgres storage: {POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}"
-        )
+    if POSTGRES_USER and POSTGRES_PASSWORD and POSTGRES_SERVER_NAME and POSTGRES_SERVER_PORT:
+        logging.info(f"Using postgres storage: {POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}")
         ASKAR_DB: str = f"postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}/didwebvh-server"
     else:
         logging.info("Using SQLite database")

@@ -1,5 +1,6 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import APIRouter, FastAPI
 from fastapi.responses import JSONResponse
+
 from app.routers import identifiers
 from config import settings
 
@@ -10,6 +11,7 @@ api_router = APIRouter()
 
 @api_router.get("/server/status", tags=["Server"], include_in_schema=False)
 async def server_status():
+    """Server status endpoint."""
     return JSONResponse(status_code=200, content={"status": "ok"})
 
 
