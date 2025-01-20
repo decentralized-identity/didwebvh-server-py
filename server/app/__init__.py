@@ -1,11 +1,19 @@
 from fastapi import FastAPI, APIRouter, Response
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from app.routers import identifiers, resources
 from app.contexts import AttestedResourceCtx
 import json
 from config import settings
 
 app = FastAPI(title=settings.PROJECT_TITLE, version=settings.PROJECT_VERSION)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 api_router = APIRouter()
 
