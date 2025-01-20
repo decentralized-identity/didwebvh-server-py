@@ -94,6 +94,10 @@ async def register_did(
 @router.get("/{namespace}/{identifier}")
 async def get_log_state(namespace: str, identifier: str):
     client_id = f"{namespace}:{identifier}"
+    did = f"{settings.DID_WEB_BASE}:{client_id}"
+    did_doc = await AskarStorage().fetch("didDocument", did)
+    if not did_doc:
+        raise HTTPException(status_code=404, detail="Identifier not found")
     log_entry = await AskarStorage().fetch("logEntries", client_id)
     if not log_entry:
         did = f"{settings.DID_WEB_BASE}:{client_id}"

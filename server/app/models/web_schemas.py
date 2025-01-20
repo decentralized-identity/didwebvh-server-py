@@ -20,11 +20,18 @@ class RegisterInitialLogEntry(BaseModel):
 
 
 class ResourceUploadDocument(BaseModel):
+    context: List[str] = Field(alias="@context")
+    type: List[str] = Field()
+    id: str = Field()
+    resourceContent: dict = Field()
+    resourceMetadata: dict = Field()
+    relatedResource: List[dict] = Field(None)
     proof: dict = Field()
 
 class ResourceOptions(BaseModel):
-    resourceId: str = Field()
-    resourceType: str = Field()
+    resourceId: str = Field(None)
+    resourceType: str = Field(None)
+    resourceCollectionId: str = Field(None)
 
 class ResourceTemplate(BaseModel):
     resourceContent: dict = Field()
