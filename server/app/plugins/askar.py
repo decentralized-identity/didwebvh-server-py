@@ -33,19 +33,19 @@ class AskarStorage:
         except:
             return None
 
-    async def store(self, category, data_key, data):
+    async def store(self, category, data_key, data, tags={}):
         store = await self.open()
         try:
             async with store.session() as session:
-                await session.insert(category, data_key, json.dumps(data))
+                await session.insert(category, data_key, json.dumps(data), tags)
         except:
             raise HTTPException(status_code=404, detail="Couldn't store record.")
 
-    async def update(self, category, data_key, data):
+    async def update(self, category, data_key, data, tags={}):
         store = await self.open()
         try:
             async with store.session() as session:
-                await session.replace(category, data_key, json.dumps(data))
+                await session.replace(category, data_key, json.dumps(data), tags)
         except:
             raise HTTPException(status_code=404, detail="Couldn't update record.")
 

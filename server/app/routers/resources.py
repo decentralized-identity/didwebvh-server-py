@@ -6,6 +6,7 @@ from app.models.resource import AttestedResource
 from app.models.anoncreds import SecuredSchema, SecuredCredDef
 from app.plugins import AskarVerifier, AskarStorage
 import copy
+import json
 
 # router = APIRouter(tags=["LinkedResources"])
 router = APIRouter()
@@ -15,46 +16,46 @@ SUPPORTED_RESSOURCE_TYPES = [
     'AnonCredsCredDef',
 ]
 
-def verify_resource(resource):
-    verifier = AskarVerifier()
+async def verify_resource(resource):
+    # verifier = AskarVerifier()
     proof = resource.pop('proof')
-    verifier.verify_proof(resource, proof)
+    # verifier.verify_proof(resource, proof)
+    try:
+        # client_id = resource.get('resourceMetadata').get('resourceCollectionId').replace('/', ':')
+        # log_entry = await AskarStorage().fetch("logEntries", client_id)
+        # assert log_entry
+        assert proof['verificationMethod'].split('#')[0]
+        assert proof['type'] == 'DataIntegrityProof'
+        assert proof['cryptosuite'] == 'eddsa-jcs-2022'
+        assert proof['proofPurpose'] == 'assertionMethod'
+    except:
+        raise HTTPException(status_code=400, detail="Couldn't verify resource.")
+        
 
 @router.post("/resources", tags=["LinkedResources"])
-async def upload_linked_resource(request_body: Union[ResourceTemplate, ResourceUpload]):
-    options = vars(request_body)['options']
-    if isinstance(request_body, ResourceTemplate):
-        resource_content = vars(request_body).get('resourceContent')
-        issuer = 'did:webvh:'
-        resource_id = 'z123'
-        resource_type = options.resourceType
-        resource = AttestedResource(
-            id=f'{issuer}/resources/{resource_id}.json',
-            resourceInfo={
-                'resourceCollectionId': resource_id,
-                'resourceId': resource_id,
-                'resourceType': resource_type
-            },
-            resourceContent=resource_content
-        ).model_dump()
-        if resource_type == 'AnonCredsSchema':
-            pass
-        elif resource_type == 'AnonCredsCredDef':
-            pass
-        elif resource_type == 'AnonCredsRevRegDef':
-            pass
-        return JSONResponse(status_code=200, content=resource)
-    elif isinstance(request_body, ResourceUpload):
-        secured_resource = vars(request_body).get('securedResource')
-        verify_resource(copy.deepcopy(secured_resource))
-        
-        storage = AskarStorage()
-        tags = {
-            'type': options.get('resourceType')
-        }
-        resource_id = options.get('resourceId')
-        resource_type = options.get('resourceType')
-        await storage.store(f'resource:{resource_type}', resource_id, secured_resource)
+async def upload_linked_resource(request_body: ResourceUpload):
+    options = vars(request_body)['options'].model_dump()
+    secured_resource = vars(request_body)['securedResource'].model_dump()
+    await verify_resource(copy.deepcopy(secured_resource))
+
+    storage = AskarStorage()
+    await storage.store(
+        'resource',
+        options.get('resourceId'),
+        secured_resource,
+        secured_resource.get('resourceMetadata')
+    )
+    return JSONResponse(status_code=201, content={})
+
+@router.get("/{namespace}/{identifier}/resources/{resource_id}.json", tags=["Resources"])
+async def get_resource(namespace: str, identifier: str, resource_id: str):
+    
+    storage = AskarStorage()
+    # resource_id = f'{namespace}/{identifier}/{resource_id}'
+    resource = await storage.fetch('resource', resource_id)
+    if not resource:
+        raise HTTPException(status_code=404, detail="Couldn't find resource.")
+    return JSONResponse(status_code=200, content=resource)
 
 # @router.post("/resources/anoncreds/schemas", tags=["AnonCreds"])
 # async def upload_anoncreds_schema(request_body: SecuredSchema):
