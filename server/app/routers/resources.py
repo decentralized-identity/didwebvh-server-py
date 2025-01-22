@@ -47,7 +47,7 @@ async def upload_linked_resource(request_body: ResourceUpload):
     )
     return JSONResponse(status_code=201, content={})
 
-@router.get("/{namespace}/{identifier}/resources/{resource_id}.json", tags=["Resources"])
+@router.get("/{namespace}/{identifier}/resources/{resource_id}", tags=["Resources"])
 async def get_resource(namespace: str, identifier: str, resource_id: str):
     
     storage = AskarStorage()

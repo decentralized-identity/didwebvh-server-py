@@ -29,7 +29,8 @@ class ResourceUploadDocument(BaseModel):
     proof: dict = Field()
 
 class ResourceOptions(BaseModel):
-    resourceId: str = Field(None)
+    resourceId: str = Field()
+    resourceName: str = Field(None)
     resourceType: str = Field(None)
     resourceCollectionId: str = Field(None)
 
