@@ -1,8 +1,30 @@
 from app.models.did_document import DidDocument
 from config import settings
 from app.plugins import AskarVerifier, AskarStorage
+import jcs
+from multiformats import multibase, multihash
 from fastapi import HTTPException
 
+
+def is_webvh_did(did):
+    try:
+        assert did.split(':')[0] == 'did'
+        assert did.split(':')[1] == 'webvh'
+        assert did.split(':')[3] # SCID
+        assert did.split(':')[4] == settings.DOMAIN
+        assert did.split(':')[5] # namespace
+        assert did.split(':')[6] # identifier
+        return True
+    except:
+        return False
+
+def digest_multibase(content):
+    digest_multihash = multihash.digest(
+        jcs.canonicalize(content), "sha2-256"
+    )
+    digest_multibase = multibase.encode(digest_multihash, "base58btc")
+    return digest_multibase
+    
 
 def to_did_web(namespace: str, identifier: str):
     return f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
@@ -87,3 +109,6 @@ def find_proof(proof_set, kid):
         (proof for proof in proof_set if proof["verificationMethod"] == kid),
         None,
     )
+
+def first_proof(proof):
+    return proof if isinstance(proof, dict) else proof[0]

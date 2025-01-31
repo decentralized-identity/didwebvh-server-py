@@ -7,22 +7,29 @@ class BaseModel(BaseModel):
     def model_dump(self, **kwargs) -> Dict[str, Any]:
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
 
-class RelatedResource(BaseModel):
+class ResourceMetadata(BaseModel):
+    resourceId: str = Field(None)
+    resourceType: str = Field(None)
+    resourceName: str = Field(None)
+    resourceCollectionId: str = Field(None)
+
+class RelatedLinks(BaseModel):
     id: str = Field()
     type: str = Field()
-    digestMultibase: str = Field()
+    timestamp: str = Field(None)
+    digestMultibase: str = Field(None)
 
 class AttestedResource(BaseModel):
     context: List[str] = Field(
         alias='@context',
         default=[
-            f'https://{settings.DOMAIN}/attested-resource/v1',
-            'https://w3id.org/security/data-integrity/v2'
+            'https://w3id.org/security/data-integrity/v2',
+            f'https://{settings.DOMAIN}/attested-resource/v1'
         ]
     )
     type: List[str] = Field(default=['AttestedResource'])
     id: str = Field()
-    resourceInfo: dict = Field()
-    resourceContent: dict = Field()
-    relatedResource: Union[RelatedResource, List[RelatedResource]] = Field(None)
+    content: dict = Field()
+    metadata: ResourceMetadata = Field(None)
+    links: List[RelatedLinks] = Field(None)
     proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field(None)

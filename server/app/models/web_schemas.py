@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 from pydantic import BaseModel, Field
 from .did_document import SecuredDidDocument
+from .resource import AttestedResource
 from .did_log import InitialLogEntry, LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
 from config import settings
@@ -17,50 +18,16 @@ class RegisterDID(BaseModel):
 
 class RegisterInitialLogEntry(BaseModel):
     logEntry: InitialLogEntry = Field()
-
-
-class ResourceUploadDocument(BaseModel):
-    context: List[str] = Field(alias="@context")
-    type: List[str] = Field()
-    id: str = Field()
-    resourceContent: dict = Field()
-    resourceMetadata: dict = Field()
-    relatedResource: List[dict] = Field(None)
-    proof: dict = Field()
+    
 
 class ResourceOptions(BaseModel):
-    resourceId: str = Field()
+    resourceId: str = Field(None)
     resourceName: str = Field(None)
     resourceType: str = Field(None)
     resourceCollectionId: str = Field(None)
 
-class ResourceTemplate(BaseModel):
-    resourceContent: dict = Field()
-    options: ResourceOptions = Field()
-    
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "resourceContent": {
-                        "issuerId": "did:webvh:",
-                        "name": "Example",
-                        "version": "1.0",
-                        "attributes": ["firstName", "lastName"]    
-                    },
-                    "options": {
-                        'resourceCollectionId': r'{SCID}' + f':{settings.DOMAIN}:example:identifier',
-                        'resourceId': 'z123',
-                        'resourceName': 'Example',
-                        'resourceType': 'AnonCredsSchema'
-                    },
-                }
-            ]
-        }
-    }
-
 class ResourceUpload(BaseModel):
-    securedResource: ResourceUploadDocument = Field()
+    attestedResource: AttestedResource = Field()
     options: ResourceOptions = Field()
     
     model_config = {
@@ -78,24 +45,3 @@ class ResourceUpload(BaseModel):
 class UpdateLogEntry(BaseModel):
     logEntry: LogEntry = Field()
     witnessProof: List[DataIntegrityProof] = Field(None)
-
-    # model_config = {
-    #     "json_schema_extra": {
-    #         "examples": [
-    #             {
-    #                 "logEntry": {},
-    #                 "witnessProof": [
-    #                     DataIntegrityProof(
-    #                         proofValue='',
-    #                         verificationMethod=''
-    #                     ).model_dump()
-    #                 ]
-    #             }
-    #         ]
-    #     }
-    # }
-
-
-# class DeactivateLogEntry(BaseModel):
-#     logEntry: LogEntry = Field()
-#     witnessProof: WitnessSignature = Field()
