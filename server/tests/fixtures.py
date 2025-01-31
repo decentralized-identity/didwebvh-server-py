@@ -1,10 +1,12 @@
 from config import settings
-from app.models.did_document import DidDocument, SecuredDidDocument
+from app.models.did_document import DidDocument, VerificationMethod
 from app.models.di_proof import DataIntegrityProof
 
-TEST_SEED = "ixUwS8A2SYzmPiGor7t08wgg1ifNABrB"
-TEST_AUTHORISED_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
-TEST_AUTHORISED_JWK = "QvGYHF-i-RTVnJlSDsYkSffG1GUZasgGt1yhRdv4rgI"
+TEST_WITNESS_SEED = "ixUwS8A2SYzmPiGor7t08wgg1ifNABrB"
+
+TEST_UPDATE_SEED = "ixUwS8A2SYzmPiGor7t08wgg1ifNABrB"
+TEST_UPDATE_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
+TEST_UPDATE_JWK = "QvGYHF-i-RTVnJlSDsYkSffG1GUZasgGt1yhRdv4rgI"
 TEST_DOMAIN = settings.DOMAIN
 TEST_DID_NAMESPACE = "test"
 TEST_DID_IDENTIFIER = "01"
@@ -16,5 +18,12 @@ TEST_PROOF_OPTIONS = {
 }
 
 TEST_DID_DOCUMENT = DidDocument(
-    context=["https://www.w3.org/ns/did/v1"], id=TEST_DID
+    context=["https://www.w3.org/ns/did/v1"],
+    id=TEST_DID,
+    verificationMethod=[VerificationMethod(
+        id=f'{TEST_DID}#key-0',
+        type='Multikey',
+        controller=TEST_DID,
+        publicKeyMultibase=TEST_UPDATE_KEY
+    )]
 ).model_dump()

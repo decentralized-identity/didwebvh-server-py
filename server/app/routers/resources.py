@@ -1,14 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Union
-from app.models.web_schemas import ResourceUpload, ResourceTemplate
-from app.models.resource import AttestedResource
-from app.models.anoncreds import SecuredSchema, SecuredCredDef
+from app.models.web_schemas import ResourceUpload
 from app.plugins import AskarVerifier, AskarStorage, DidWebVH
-from app.utilities import digest_multibase, is_webvh_did, first_proof
+from app.utilities import first_proof
 from config import settings
 import copy
-import json
 
 # router = APIRouter(tags=["LinkedResources"])
 router = APIRouter()

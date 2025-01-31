@@ -34,7 +34,7 @@ class ResourceUpload(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "securedResource": {},
+                    "attestedResource": {},
                     "options": {
                         'resourceType': 'AnonCredsSchema'
                     },

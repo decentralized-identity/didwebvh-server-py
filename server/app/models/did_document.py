@@ -19,10 +19,18 @@ class BaseModel(BaseModel):
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
 
 
+
+class JsonWebKey(BaseModel):
+    kty: str = Field("OKP")
+    crv: str = Field("Ed25519")
+    x: str = Field()
+
 class VerificationMethod(BaseModel):
     id: str = Field()
     type: Union[str, List[str]] = Field()
     controller: str = Field()
+    publicKeyJwk: JsonWebKey = Field(None)
+    publicKeyMultibase: str = Field(None)
 
     @field_validator("id")
     @classmethod
@@ -44,36 +52,6 @@ class VerificationMethod(BaseModel):
     def verification_method_controller_validator(cls, value):
         assert value.startswith("did:")
         return value
-
-
-class JsonWebKey(BaseModel):
-    kty: str = Field("OKP")
-    crv: str = Field("Ed25519")
-    x: str = Field()
-
-
-class VerificationMethodJwk(VerificationMethod):
-    publicKeyJwk: JsonWebKey = Field()
-
-    @field_validator("publicKeyJwk")
-    @classmethod
-    def verification_method_public_key_validator(cls, value):
-        # TODO decode b64
-        return value
-
-
-class VerificationMethodMultikey(VerificationMethod):
-    publicKeyMultibase: str = Field()
-
-    @field_validator("publicKeyMultibase")
-    @classmethod
-    def verification_method_public_key_validator(cls, value):
-        try:
-            multibase.decode(value)
-        except:
-            assert False, f"Unable to decode public key multibase value {value}"
-        return value
-
 
 class Service(BaseModel):
     id: str = Field()
@@ -103,15 +81,14 @@ class DidDocument(BaseModel):
     description: str = Field(None)
     controller: str = Field(None)
     alsoKnownAs: List[str] = Field(None)
-    verificationMethod: List[
-        Union[VerificationMethodMultikey, VerificationMethodJwk]
-    ] = Field(None)
+    verificationMethod: List[VerificationMethod] = Field(None)
     authentication: List[Union[str, VerificationMethod]] = Field(None)
     assertionMethod: List[Union[str, VerificationMethod]] = Field(None)
     keyAgreement: List[Union[str, VerificationMethod]] = Field(None)
     capabilityInvocation: List[Union[str, VerificationMethod]] = Field(None)
     capabilityDelegation: List[Union[str, VerificationMethod]] = Field(None)
     service: List[Service] = Field(None)
+    proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field(None)
 
     model_config = {
         "json_schema_extra": {

@@ -77,14 +77,14 @@ async def register_did(
         AskarVerifier().verify_proof(did_document, client_proof)
         AskarVerifier().validate_challenge(endorser_proof, did_document["id"])
         AskarVerifier().verify_proof(did_document, endorser_proof)
-        authorized_key = client_proof["verificationMethod"].split("#")[-1]
+        update_key = client_proof["verificationMethod"].split("#")[-1]
 
         # Store document and authorized key
         await AskarStorage().store("didDocument", did, did_document)
-        await AskarStorage().store("authorizedKey", did, authorized_key)
+        await AskarStorage().store("updateKey", did, update_key)
         return JSONResponse(status_code=201, content={})
 
-        initial_log_entry = DidWebVH().create(did_document, authorized_key)
+        initial_log_entry = DidWebVH().create(did_document, update_key)
         return JSONResponse(status_code=201, content={"logEntry": initial_log_entry})
 
     raise HTTPException(status_code=400, detail="Bad Request, something went wrong.")
@@ -102,8 +102,8 @@ async def get_log_state(namespace: str, identifier: str):
     if not log_entry:
         did = f"{settings.DID_WEB_BASE}:{client_id}"
         did_document = await AskarStorage().fetch("didDocument", did)
-        authorized_key = await AskarStorage().fetch("authorizedKey", did)
-        initial_log_entry = DidWebVH().create(did_document, authorized_key)
+        update_key = await AskarStorage().fetch("updatekey", did)
+        initial_log_entry = DidWebVH().create(did_document, update_key)
         return JSONResponse(status_code=200, content={"logEntry": initial_log_entry})
     return JSONResponse(status_code=200, content={})
 
@@ -128,10 +128,10 @@ async def create_didwebvh(
 
     # Verify proofs
     proof = proof[0]
-    authorized_key = proof["verificationMethod"].split("#")[-1]
+    update_key = proof["verificationMethod"].split("#")[-1]
     if (
-        authorized_key != await AskarStorage().fetch("authorizedKey", did)
-        or authorized_key != log_entry["parameters"]["updateKeys"][0]
+        update_key != await AskarStorage().fetch("updateKey", did)
+        or update_key != log_entry["parameters"]["updateKeys"][0]
     ):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
