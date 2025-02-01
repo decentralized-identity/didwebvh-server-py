@@ -81,7 +81,7 @@ class DidWebVH:
     
     def validate_resource(self, resource):
         proof = resource.pop('proof')
-        verification_method = proof.get['verificationMethod']
+        verification_method = proof.get('verificationMethod')
         did = verification_method.split('#')[0]
         
         provided_id = resource.get('id')

@@ -7,7 +7,7 @@ from app.utilities import first_proof
 from config import settings
 import copy
 
-# router = APIRouter(tags=["LinkedResources"])
+# router = APIRouter(tags=["Resources"])
 router = APIRouter()
 
 SUPPORTED_RESSOURCE_TYPES = [
@@ -31,9 +31,9 @@ async def get_resource(namespace: str, identifier: str, resource_id: str):
     return JSONResponse(status_code=200, content=resource)
         
 
-@router.post("/resources", tags=["LinkedResources"])
-async def upload_linked_resource(request_body: ResourceUpload):
-    secured_resource = vars(request_body)['securedResource'].model_dump()
+@router.post("/resources", tags=["Resources"])
+async def upload_attested_resource(request_body: ResourceUpload):
+    secured_resource = vars(request_body)['attestedResource'].model_dump()
     secured_resource['proof'] = first_proof(secured_resource['proof'])
     
     options = vars(request_body)['options'].model_dump()
@@ -59,8 +59,8 @@ async def upload_linked_resource(request_body: ResourceUpload):
     #     raise HTTPException(status_code=400, detail="Unable to store resource.")
 
 @router.put("/{namespace}/{identifier}/resources/{resource_id}", tags=["Resources"])
-async def update_resource(namespace: str, identifier: str, resource_id: str, request_body: ResourceUpload):
-    secured_resource = vars(request_body)['securedResource'].model_dump()
+async def update_attested_resource(namespace: str, identifier: str, resource_id: str, request_body: ResourceUpload):
+    secured_resource = vars(request_body)['attestedResource'].model_dump()
     secured_resource['proof'] = first_proof(secured_resource['proof'])
     
     options = vars(request_body)['options'].model_dump()

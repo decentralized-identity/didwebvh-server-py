@@ -2,13 +2,17 @@ from app.plugins import AskarStorage, AskarVerifier, DidWebVH
 import json
 import pytest
 import asyncio
-from tests.signer import sign
+from tests.fixtures import (
+    TEST_DID_DOCUMENT,
+)
+from tests.mock_agents import ControllerAgent
 
 askar = AskarStorage()
 asyncio.run(askar.provision(recreate=True))
 
 verifier = AskarVerifier()
 didwebvh = DidWebVH()
+controller = ControllerAgent()
 
 
 @pytest.mark.asyncio
@@ -30,9 +34,8 @@ async def test_storage():
     assert fetched_data["value"] == value_2
 
 
-# @pytest.mark.asyncio
-# async def test_verify_di_proof():
-#     document = await askar.fetch("didDocument", TEST_DID)
-#     signed_document = sign(document)
-#     proof = signed_document.pop("proof")
-#     assert verifier.verify_proof(signed_document, proof)
+@pytest.mark.asyncio
+async def test_verify_di_proof():
+    signed_document = controller.sign_log(TEST_DID_DOCUMENT)
+    proof = signed_document.pop("proof")
+    assert verifier.verify_proof(signed_document, proof)
