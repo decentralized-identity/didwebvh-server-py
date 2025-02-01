@@ -106,7 +106,7 @@ class AskarVerifier:
         if (
             proof.get('type') != self.type
             or proof.get('cryptosuite') != self.cryptosuite
-            or proof.get('assertionMethod') != self.assertionMethod
+            or proof.get('proofPurpose') != self.purpose
         ):
             raise HTTPException(status_code=400, detail='Invalid proof options')
         

@@ -13,10 +13,10 @@ class ResourceMetadata(BaseModel):
     resourceName: str = Field(None)
     resourceCollectionId: str = Field(None)
 
-class RelatedLinks(BaseModel):
+class RelatedLink(BaseModel):
     id: str = Field()
     type: str = Field()
-    timestamp: str = Field(None)
+    timestamp: int = Field(None)
     digestMultibase: str = Field(None)
 
 class AttestedResource(BaseModel):
@@ -31,5 +31,5 @@ class AttestedResource(BaseModel):
     id: str = Field()
     content: dict = Field()
     metadata: ResourceMetadata = Field(None)
-    links: List[RelatedLinks] = Field(None)
+    links: List[RelatedLink] = Field(None)
     proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field(None)
