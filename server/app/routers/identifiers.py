@@ -168,7 +168,7 @@ async def read_did_log(namespace: str, identifier: str):
     log_entries = await AskarStorage().fetch("logEntries", client_id)
     if log_entries:
         log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries])
-        return Response(log_entries, media_type="text/jsonl")
+        return Response(log_entries+'\n', media_type="text/jsonl")
     raise HTTPException(status_code=404, detail="Not Found")
 
 
