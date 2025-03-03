@@ -17,6 +17,20 @@ def verify_resource(resource):
     proof = resource.pop('proof')
     verifier.verify_proof(resource, proof)
 
+@router.post("/resources", tags=["LinkedResources"])
+async def upload_linked_resource(request_body: ResourceUpload):
+    secured_resource = vars(request_body).get('securedResource')
+    options = vars(request_body).get('options')
+    verify_resource(copy.deepcopy(secured_resource))
+    
+    storage = AskarStorage()
+    tags = {
+        'type': options.get('resourceType')
+    }
+    resource_id = options.get('resourceId')
+    resource_type = options.get('resourceType')
+    await storage.store(f'resource:{resource_type}', resource_id, secured_resource)
+
 @router.post("/resources/anoncreds/schemas", tags=["AnonCreds"])
 async def upload_anoncreds_schema(request_body: SecuredSchema):
     resource = vars(request_body)
@@ -37,16 +51,3 @@ async def upload_anoncreds_definition(request_body: SecuredCredDef):
     
     storage = AskarStorage()
     await storage.store('resource:anoncreds:creDef', '', resource)
-
-@router.post("/resources", tags=["LinkedResources"])
-async def upload_linked_resource(request_body: ResourceUpload):
-    resource = vars(request_body)
-    verify_resource(copy.deepcopy(resource))
-    
-    storage = AskarStorage()
-    tags = {
-        'type': 'AnonCredsSchema',
-        'issuer': resource['issuerId'],
-        'schemaName': ''
-    }
-    await storage.store('resource:anoncreds:schema', '', resource)

@@ -32,6 +32,7 @@ class ResourceUploadOptions(BaseModel):
     type: str = Field()
     resourceId: str = Field()
     resourcePath: str = Field()
+    resourceDigest: str = Field()
 
 class ResourceUpload(BaseModel):
     securedResource: ResourceUploadDocument = Field()
