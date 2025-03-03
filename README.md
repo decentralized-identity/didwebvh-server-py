@@ -16,33 +16,37 @@ This also enables system architects to create rigid governance rules around publ
 ## How it works
 *For a demonstration, please see the demo directory*
 
-- An issuer requests an identifier location from the server.
-    - The server returns a configuration if the location is available.
-- The issuer generates a verification method and signs a did document with it.
-    - Using the provided proof configuration from the server.
-- The issuer request an endorser signature.
-    - Using the provided proof configuration from the server.
-- The issuer sends this request back to the server.
+- A controller requests an identifier from the server.
+- The server returns a configuration if the requested identifier is available.
+- The controller generates an update key and signs a did document for the requested identifier.
+- The controller request an endorsement signature from a witness known to the server.
+- The controller sends the did document along with the proof set back to the server.
+- The controller generates the preliminary DID log entry, transforms and signs it.
+- The controller sends the initial log entry to the server.
 
 ### Registering a new DID
 ```mermaid
 sequenceDiagram
-    participant Trust DID Web Server
-    participant Issuer Client
-    participant Endorser Agent
-    Issuer Client->>Trust DID Web Server: Request an identifier namespace.
-    Trust DID Web Server->>Issuer Client: Provide a DID document and a proof configuration.
-    Issuer Client->>Issuer Client: Create new verification method.
-    Issuer Client->>Issuer Client: Sign DID document.
-    Issuer Client->>Endorser Agent: Request endorser signature.
-    Endorser Agent->>Endorser Agent: Verify and sign DID document.
-    Endorser Agent->>Issuer Client: Return endorsed DID document.
-    Issuer Client->>Trust DID Web Server: Send endorsed DID document.
-    Trust DID Web Server->>Trust DID Web Server: Verify endorsed DID document.
+    participant WebVH Server
+    participant Controller
+    participant Witness
+    Controller->>WebVH Server: Request an identifier namespace.
+    WebVH Server->>Controller: Provide a DID document and a proof configuration.
+    Controller->>Controller: Create new verification method.
+    Controller->>Controller: Sign DID document.
+    Controller->>Witness: Request endorsement signature.
+    Witness->>Witness: Verify and sign DID document.
+    Witness->>Controller: Return endorsed DID document.
+    Controller->>WebVH Server: Send endorsed DID document.
+    WebVH Server->>WebVH Server: Verify endorsed DID document.
+    Controller->>Controller: Generate preliminary DID log entry.
+    Controller->>Controller: Transform and sign initial DID log entry.
+    Controller->>WebVH Server: Send initial DID log entry.
 ```
 
+### AnonCreds Objects (AttestedResources)
+
+An attested resource is
+
 ## Roadmap
-- DID log support
 - whois VP support
-- AnonCreds objects support
-- Status lists support

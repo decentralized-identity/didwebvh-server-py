@@ -4,31 +4,26 @@ ATTESTED_RESOURCE = {
         "@protected": True,
         "id": "@id",
         "type": "@type",
-        "vocab": "https://#",
         "digestMultibase": {
           "@id": "https://w3id.org/security#digestMultibase",
           "@type": "https://w3id.org/security#multibase"
         },
-        "mirrorLink": {
-          "@id": "vocab:mirrorLink",
-          "@type": "@id"
-        },
         "AttestedResource": {
-            "@id": "vocab:AttestedResource",
+            "@id": "https://www.w3.org/ns/credentials/undefined-term#AttestedResource",
             "@protected": True,
             "@context": {
-                "resourceContent": {
-                  "@id": "https:///#resourceContent",
+                "content": {
+                  "@id": "https://www.w3.org/ns/credentials/undefined-term#content",
                   "@type": "@id",
                   "@vocab": "vocab"
                 },
-                "resourceMetadata": {
-                  "@id": "https://w3c-ccg.github.io/DID-Linked-Resources/#resourcemetadata",
+                "metadata": {
+                  "@id": "https://www.w3.org/ns/credentials/undefined-term#metadata",
                   "@type": "@id",
                   "@vocab": "vocab"
                 },
-                "relatedResource": {
-                  "@id": "https://www.w3.org/2018/credentials#relatedResource",
+                "links": {
+                  "@id": "https://www.w3.org/ns/credentials/undefined-term#links",
                   "@type": "@id"
                 }
             }
