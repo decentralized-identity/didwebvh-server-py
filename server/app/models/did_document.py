@@ -1,31 +1,37 @@
-from typing import Union, List, Dict, Any
-from pydantic import BaseModel, Field, field_validator
-from .di_proof import DataIntegrityProof
-from multiformats import multibase
-from config import settings
-import re
-import validators
+"""DID Document model."""
 
+import re
+from typing import Any, Dict, List, Union
+
+import validators
+from multiformats import multibase
+from pydantic import BaseModel, Field, field_validator
+
+from .di_proof import DataIntegrityProof
 
 DID_WEB_REGEX = re.compile("did:web:((?:[a-zA-Z0-9._%-]*:)*[a-zA-Z0-9._%-]+)")
 
-DID_WEB_ID_REGEX = re.compile(
-    "did:web:((?:[a-zA-Z0-9._%-]*:)*[a-zA-Z0-9._%-]+)#([a-z0-9._%-]+)"
-)
+DID_WEB_ID_REGEX = re.compile("did:web:((?:[a-zA-Z0-9._%-]*:)*[a-zA-Z0-9._%-]+)#([a-z0-9._%-]+)")
 
 
 class BaseModel(BaseModel):
+    """Base model for all models in the application."""
+
     def model_dump(self, **kwargs) -> Dict[str, Any]:
+        """Dump the model to a dictionary."""
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
 
 
 
 class JsonWebKey(BaseModel):
+    """JsonWebKey model."""
     kty: str = Field("OKP")
     crv: str = Field("Ed25519")
     x: str = Field()
 
 class VerificationMethod(BaseModel):
+    """VerificationMethod model."""
+
     id: str = Field()
     type: Union[str, List[str]] = Field()
     controller: str = Field()
@@ -35,12 +41,14 @@ class VerificationMethod(BaseModel):
     @field_validator("id")
     @classmethod
     def verification_method_id_validator(cls, value):
+        """Validate the id field."""
         assert value.startswith("did:")
         return value
 
     @field_validator("type")
     @classmethod
     def verification_method_type_validator(cls, value):
+        """Validate the type field."""
         assert value in [
             "Multikey",
             "JsonWebKey",
@@ -50,10 +58,51 @@ class VerificationMethod(BaseModel):
     @field_validator("controller")
     @classmethod
     def verification_method_controller_validator(cls, value):
+        """Validate the controller field."""
         assert value.startswith("did:")
         return value
 
+
+class JsonWebKey(BaseModel):
+    """JsonWebKey model."""
+
+    kty: str = Field("OKP")
+    crv: str = Field("Ed25519")
+    x: str = Field()
+
+
+class VerificationMethodJwk(VerificationMethod):
+    """VerificationMethodJwk model."""
+
+    publicKeyJwk: JsonWebKey = Field()
+
+    @field_validator("publicKeyJwk")
+    @classmethod
+    def verification_method_public_key_validator(cls, value):
+        """Validate the public key field."""
+        # TODO decode b64
+        return value
+
+
+class VerificationMethodMultikey(VerificationMethod):
+    """VerificationMethodMultikey model."""
+
+    publicKeyMultibase: str = Field()
+
+    @field_validator("publicKeyMultibase")
+    @classmethod
+    def verification_method_public_key_validator(cls, value):
+        """Validate the public key field."""
+        try:
+            multibase.decode(value)
+        except Exception:
+            assert False, f"Unable to decode public key multibase value {value}"
+        return value
+
+
 class Service(BaseModel):
+    """Service model."""
+
     id: str = Field()
     type: Union[str, List[str]] = Field()
     serviceEndpoint: str = Field()
@@ -61,17 +110,21 @@ class Service(BaseModel):
     @field_validator("id")
     @classmethod
     def service_id_validator(cls, value):
+        """Validate the id field."""
         assert value.startswith("did:")
         return value
 
     @field_validator("serviceEndpoint")
     @classmethod
     def service_endpoint_validator(cls, value):
+        """Validate the service endpoint field."""
         assert validators.url(value), f"Invalid service endpoint {value}."
         return value
 
 
 class DidDocument(BaseModel):
+    """DID Document model."""
+
     context: Union[str, List[str]] = Field(
         ["https://www.w3.org/ns/did/v1"],
         alias="@context",
@@ -81,7 +134,7 @@ class DidDocument(BaseModel):
     description: str = Field(None)
     controller: str = Field(None)
     alsoKnownAs: List[str] = Field(None)
-    verificationMethod: List[VerificationMethod] = Field(None)
+    verificationMethod: List[Union[VerificationMethodMultikey, VerificationMethodJwk]] = Field(None)
     authentication: List[Union[str, VerificationMethod]] = Field(None)
     assertionMethod: List[Union[str, VerificationMethod]] = Field(None)
     keyAgreement: List[Union[str, VerificationMethod]] = Field(None)
@@ -104,15 +157,19 @@ class DidDocument(BaseModel):
     @field_validator("context")
     @classmethod
     def context_validator(cls, value):
+        """Validate the context field."""
         assert value[0] == "https://www.w3.org/ns/did/v1", "Invalid context."
         return value
 
     @field_validator("id")
     @classmethod
     def id_validator(cls, value):
+        """Validate the id field."""
         assert value.startswith("did:")
         return value
 
 
 class SecuredDidDocument(DidDocument):
+    """Secured DID Document model."""
+
     proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field()

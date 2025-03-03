@@ -20,11 +20,13 @@ api_router = APIRouter()
 
 @api_router.get("/server/status", tags=["Server"], include_in_schema=False)
 async def server_status():
+    """Server status endpoint."""
     return JSONResponse(status_code=200, content={"status": "ok"})
 
 
 @api_router.get("/attested-resource/v1", tags=["Context"], include_in_schema=False)
 async def get_attested_resource_ctx():
+    """Attested Resource Context."""
     ctx = json.dumps(AttestedResourceCtx, indent=2)
     return Response(ctx, media_type="application/ld+json")
 

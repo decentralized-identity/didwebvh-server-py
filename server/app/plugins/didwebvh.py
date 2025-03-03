@@ -1,15 +1,21 @@
+"""DID Web Verifiable History (DID WebVH) plugin."""
 from fastapi import HTTPException
 from config import settings
 from datetime import datetime
+from multiformats import multibase, multihash
 from app.models.did_log import LogParameters, InitialLogEntry
-from app.utilities import digest_multibase, is_webvh_did
+from app.utilities import digest_multibase
 import canonicaljson
 import json
-from multiformats import multihash, multibase
+
+
 
 
 class DidWebVH:
+    """DID Web Verifiable History (DID WebVH) plugin."""
+
     def __init__(self):
+        """Initialize the DID WebVH plugin."""
         self.prefix = settings.DID_WEBVH_PREFIX
         self.method_version = f"{self.prefix}0.4"
         self.did_string_base = self.prefix + r"{SCID}:" + settings.DOMAIN
@@ -22,9 +28,7 @@ class DidWebVH:
         return parameters
 
     def _init_state(self, did_doc):
-        return json.loads(
-            json.dumps(did_doc).replace("did:web:", self.prefix + r"{SCID}:")
-        )
+        return json.loads(json.dumps(did_doc).replace("did:web:", self.prefix + r"{SCID}:"))
 
     def _generate_scid(self, log_entry):
         # https://identity.foundation/trustdidweb/#generate-scid
@@ -41,10 +45,12 @@ class DidWebVH:
         return encoded
 
     def create_initial_did_doc(self, did_string):
+        """Create an initial DID document."""
         did_doc = {"@context": [], "id": did_string}
         return did_doc
 
     def create(self, did_doc, update_key):
+        """Create a new DID WebVH log."""
         # https://identity.foundation/trustdidweb/#create-register
         log_entry = InitialLogEntry(
             versionId=r"{SCID}",
@@ -59,6 +65,7 @@ class DidWebVH:
         return log_entry
     
     def verify_resource(self, secured_resource):
+        """Verify resource."""
         # verifier = AskarVerifier()
         proof = secured_resource.pop('proof')
         proof = proof if isinstance(proof, dict) else [proof]
@@ -80,6 +87,7 @@ class DidWebVH:
 
     
     def validate_resource(self, resource):
+        """Validate resource."""
         proof = resource.pop('proof')
         verification_method = proof.get('verificationMethod')
         did = verification_method.split('#')[0]
@@ -107,6 +115,7 @@ class DidWebVH:
             raise HTTPException(status_code=400, detail="Missing resource type.")
     
     def compare_resource(self, old_resource, new_resource):
+        """Compare resource."""
         if old_resource.get('id') != new_resource.get('id'):
             raise HTTPException(status_code=400, detail="Invalid resource id.")
         if (
@@ -126,6 +135,7 @@ class DidWebVH:
             raise HTTPException(status_code=400, detail="Invalid verification method.")
         
     def resource_store_id(self, resource):
+        """Generate resource id for storage."""
         resource_id = resource.get('id')
         did = resource_id.split('/')[0]
         namespace = did.split(':')[4]

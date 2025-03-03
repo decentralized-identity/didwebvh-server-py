@@ -1,11 +1,15 @@
-from app.dependencies import identifier_available
-from app.models.web_schemas import RegisterDID, RegisterInitialLogEntry, UpdateLogEntry
-from app.models.did_document import DidDocument
-from app.plugins import AskarStorage, AskarVerifier, DidWebVH
-from config import settings
+"""Identifier endpoints for DIDWeb and DIDWebVH."""
+
+import json
+
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse
-import json
+
+from app.dependencies import identifier_available
+from app.models.did_document import DidDocument
+from app.models.web_schemas import RegisterDID, RegisterInitialLogEntry, UpdateLogEntry
+from app.plugins import AskarStorage, AskarVerifier, DidWebVH
+from config import settings
 
 router = APIRouter(tags=["Identifiers"])
 
@@ -16,6 +20,7 @@ async def request_did(
     namespace: str = None,
     identifier: str = None,
 ):
+    """Request a DID document and proof options for a given namespace and identifier."""
     if namespace and identifier:
         client_id = f"{namespace}:{identifier}"
         did = f"{settings.DID_WEB_BASE}:{client_id}"
@@ -28,15 +33,14 @@ async def request_did(
             },
         )
 
-    raise HTTPException(
-        status_code=400, detail="Missing namespace or identifier query."
-    )
+    raise HTTPException(status_code=400, detail="Missing namespace or identifier query.")
 
 
 @router.post("/")
 async def register_did(
     request_body: RegisterDID,
 ):
+    """Register a DID document and proof set."""
     did_document = request_body.model_dump()["didDocument"]
     did = did_document["id"]
 
@@ -97,6 +101,7 @@ async def register_did(
 # DIDWebVH
 @router.get("/{namespace}/{identifier}")
 async def get_log_state(namespace: str, identifier: str):
+    """Get the current state of the log for a given namespace and identifier."""
     client_id = f"{namespace}:{identifier}"
     did = f"{settings.DID_WEB_BASE}:{client_id}"
     did_document = await AskarStorage().fetch("didDocument", did)
@@ -117,6 +122,7 @@ async def create_didwebvh(
     identifier: str,
     request_body: RegisterInitialLogEntry,
 ):
+    """Create a new log entry for a given namespace and identifier."""
     client_id = f"{namespace}:{identifier}"
     log_entry = request_body.model_dump()["logEntry"]
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
@@ -125,9 +131,7 @@ async def create_didwebvh(
     proof = log_entry.pop("proof", None)
     proof = proof if isinstance(proof, list) else [proof]
     if len(proof) != 1:
-        raise HTTPException(
-            status_code=400, detail="Expecting singular proof from controller."
-        )
+        raise HTTPException(status_code=400, detail="Expecting singular proof from controller.")
 
     # Verify proofs
     proof = proof[0]
@@ -151,10 +155,7 @@ async def create_didwebvh(
 
 @router.get("/{namespace}/{identifier}/did.json", include_in_schema=False)
 async def read_did(namespace: str, identifier: str):
-    """
-    https://identity.foundation/didwebvh/next/#read-resolve
-    """
-    client_id = f"{namespace}:{identifier}"
+    """See https://identity.foundation/didwebvh/next/#read-resolve."""
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
     did_doc = await AskarStorage().fetch("didDocument", did)
     if did_doc:
@@ -164,9 +165,7 @@ async def read_did(namespace: str, identifier: str):
 
 @router.get("/{namespace}/{identifier}/did.jsonl", include_in_schema=False)
 async def read_did_log(namespace: str, identifier: str):
-    """
-    https://identity.foundation/didwebvh/next/#read-resolve
-    """
+    """See https://identity.foundation/didwebvh/next/#read-resolve."""
     client_id = f"{namespace}:{identifier}"
     log_entries = await AskarStorage().fetch("logEntries", client_id)
     if log_entries:
@@ -177,17 +176,11 @@ async def read_did_log(namespace: str, identifier: str):
 
 @router.put("/{namespace}/{identifier}")
 async def update_did(namespace: str, identifier: str, request_body: UpdateLogEntry):
-    """
-    https://identity.foundation/didwebvh/next/#update-rotate
-    """
-    client_id = f"{namespace}:{identifier}"
+    """See https://identity.foundation/didwebvh/next/#update-rotate."""
     raise HTTPException(status_code=501, detail="Not Implemented")
 
 
 @router.delete("/{namespace}/{identifier}")
 async def deactivate_did(namespace: str, identifier: str):
-    """
-    https://identity.foundation/didwebvh/next/#deactivate-revoke
-    """
-    client_id = f"{namespace}:{identifier}"
+    """See https://identity.foundation/didwebvh/next/#deactivate-revoke."""
     raise HTTPException(status_code=501, detail="Not Implemented")

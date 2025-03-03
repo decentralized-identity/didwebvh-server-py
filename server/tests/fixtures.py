@@ -1,5 +1,6 @@
+from app.models.did_document import DidDocument
 from config import settings
-from app.models.did_document import DidDocument, VerificationMethod
+from app.models.did_document import DidDocument, VerificationMethodMultikey
 from app.models.di_proof import DataIntegrityProof
 
 TEST_WITNESS_SEED = "R9b6JZegNAOyV6Tz0ysIIemZv4cd0VjW"
@@ -24,7 +25,7 @@ TEST_PROOF_OPTIONS = {
 TEST_DID_DOCUMENT = DidDocument(
     context=["https://www.w3.org/ns/did/v1"],
     id=TEST_DID,
-    verificationMethod=[VerificationMethod(
+    verificationMethod=[VerificationMethodMultikey(
         id=f'{TEST_DID}#key-0',
         type='Multikey',
         controller=TEST_DID,

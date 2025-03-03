@@ -1,12 +1,17 @@
-from app.routers.identifiers import request_did, read_did, read_did_log, create_didwebvh
-from app.plugins import AskarStorage, AskarVerifier, DidWebVH
-from app.models.web_schemas import RegisterInitialLogEntry
-from app.models.did_log import LogEntry
+import asyncio
+import json
 from datetime import datetime, timezone
+
+import pytest
+
+from app.models.did_log import LogEntry
+from app.models.web_schemas import RegisterInitialLogEntry
+from app.plugins import AskarStorage, AskarVerifier, DidWebVH
+from app.routers.identifiers import create_didwebvh, read_did, read_did_log, request_did
 from tests.fixtures import (
-    TEST_DOMAIN,
-    TEST_DID_NAMESPACE,
     TEST_DID_IDENTIFIER,
+    TEST_DID_NAMESPACE,
+    TEST_DOMAIN,
     TEST_DID,
     TEST_DID_DOCUMENT,
     TEST_UPDATE_KEY,
@@ -33,19 +38,13 @@ async def test_request_did():
     did_request = json.loads(did_request.body.decode())
     assert did_request.get("didDocument").get("id") == TEST_DID
     assert did_request.get("proofOptions").get("type") == TEST_PROOF_OPTIONS["type"]
-    assert (
-        did_request.get("proofOptions").get("cryptosuite")
-        == TEST_PROOF_OPTIONS["cryptosuite"]
-    )
-    assert (
-        did_request.get("proofOptions").get("proofPurpose")
-        == TEST_PROOF_OPTIONS["proofPurpose"]
-    )
+    assert did_request.get("proofOptions").get("cryptosuite") == TEST_PROOF_OPTIONS["cryptosuite"]
+    assert did_request.get("proofOptions").get("proofPurpose") == TEST_PROOF_OPTIONS["proofPurpose"]
     assert did_request.get("proofOptions").get("domain") == TEST_DOMAIN
     assert did_request.get("proofOptions").get("challenge")
-    assert datetime.fromisoformat(
-        did_request.get("proofOptions").get("expires")
-    ) > datetime.now(timezone.utc)
+    assert datetime.fromisoformat(did_request.get("proofOptions").get("expires")) > datetime.now(
+        timezone.utc
+    )
 
 
 @pytest.mark.asyncio
@@ -84,9 +83,7 @@ async def test_register_log_entry():
     signed_log_entry = sign(log_entry)
     signed_log_entry["proof"] = [signed_log_entry["proof"]]
     log_request = RegisterInitialLogEntry.model_validate({"logEntry": signed_log_entry})
-    response = await create_didwebvh(
-        TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, log_request
-    )
+    response = await create_didwebvh(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, log_request)
     log_entry = response.body.decode()
     LogEntry.model_validate(json.loads(log_entry))
 

@@ -1,32 +1,48 @@
-from typing import Union, List, Dict, Any
+"""DID Log models."""
+
+from typing import Any, Dict, List, Union
+
 from pydantic import BaseModel, Field
-from .did_document import DidDocument
-from .di_proof import DataIntegrityProof
+
 from config import settings
+
+from .di_proof import DataIntegrityProof
+from .did_document import DidDocument
 
 
 class BaseModel(BaseModel):
+    """Base model for all models in the application."""
+
     def model_dump(self, **kwargs) -> Dict[str, Any]:
+        """Dump the model to a dictionary."""
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
 
 
 class Witness(BaseModel):
+    """Witness model."""
+
     id: str = Field(None)
     weight: int = Field(None)
 
 
 class WitnessParam(BaseModel):
+    """WitnessParam model."""
+
     threshold: int = Field(None)
     selfWeight: int = Field(None)
     witnesses: List[Witness] = Field(None)
 
 
 class WitnessSignature(BaseModel):
+    """WitnessSignature model."""
+
     versionId: str = Field(None)
     proof: List[DataIntegrityProof] = Field()
 
 
 class InitialLogParameters(BaseModel):
+    """InitialLogParameters model."""
+
     method: str = Field(f"did:webvh:{settings.WEBVH_VERSION}")
     scid: str = Field()
     updateKeys: List[str] = Field()
@@ -37,6 +53,8 @@ class InitialLogParameters(BaseModel):
 
 
 class LogParameters(BaseModel):
+    """LogParameters model."""
+
     prerotation: bool = Field(None)
     portable: bool = Field(None)
     updateKeys: List[str] = Field(None)
@@ -64,6 +82,8 @@ class LogParameters(BaseModel):
 
 
 class InitialLogEntry(BaseModel):
+    """InitialLogEntry model."""
+
     versionId: str = Field()
     versionTime: str = Field()
     parameters: LogParameters = Field()
@@ -72,6 +92,8 @@ class InitialLogEntry(BaseModel):
 
 
 class LogEntry(BaseModel):
+    """LogEntry model."""
+
     versionId: str = Field()
     versionTime: str = Field()
     parameters: LogParameters = Field()
