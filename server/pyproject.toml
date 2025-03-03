@@ -36,6 +36,7 @@ uvicorn = "0.30.6"
 validators = "^0.34.0"
 jsonlines = "^4.0.0"
 pytest-asyncio = "^0.25.2"
+jcs = "^0.2.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.8"
