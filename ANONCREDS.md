@@ -40,10 +40,10 @@ This resource MUST be signed with a `DataIntegrityProof` using the `eddsa-jcs-20
 - Set the `@context` property to `["https://w3id.org/security/data-integrity/v2"]`
 - Set the `content` property to the json object you wish to publish, such as an AnonCreds Schema.
 - Generate the `AttestedResource` `id`:
-    - Calculate the `digestMultibase` of the `content` property from 
+    - Calculate the `digestMultibase` of the `content` property.
     - Add a `/resources` path to the issuer's did then join the `digestMultibase` from the previous step as the resource identifier.
-        - ex: `did:webvh:{SCID}:example.com/resources/{digestMultibase}`
-    - Set the `id` property of the `AttestedResource` to the `digestMultibase` value.
+        - ex: `did:webvh:{SCID}:example.com:{namespace}:{identifier}/resources/{digestMultibase}`
+    - Set the `id` property of the `AttestedResource` to this value.
 - (Optional) Generate the `AttestedResource` `metadata`:
     - Set the `metadata` property to an empty object:
     - Add a `resourceId` property, and set it to the `digestMultibase` value calculated previously.
