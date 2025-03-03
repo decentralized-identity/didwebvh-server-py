@@ -50,7 +50,7 @@ async def register_did(
         )
 
     # Find proof matching endorser
-    endorser_proof = next(
+    witness_proof = next(
         (
             proof
             for proof in proof_set
@@ -71,21 +71,25 @@ async def register_did(
         None,
     )
 
-    if client_proof and endorser_proof:
+    if client_proof and witness_proof:
         # Verify proofs
-        AskarVerifier().validate_challenge(client_proof, did_document["id"])
-        AskarVerifier().verify_proof(did_document, client_proof)
-        AskarVerifier().validate_challenge(endorser_proof, did_document["id"])
-        AskarVerifier().verify_proof(did_document, endorser_proof)
+        verifier = AskarVerifier()
+        
+        # Witness proof
+        verifier.validate_challenge(witness_proof, did_document["id"])
+        verifier.verify_proof(did_document, witness_proof)
+        
+        # Controller proof
+        verifier.validate_challenge(client_proof, did_document["id"])
+        verifier.verify_proof(did_document, client_proof)
+        
         update_key = client_proof["verificationMethod"].split("#")[-1]
 
         # Store document and authorized key
         await AskarStorage().store("didDocument", did, did_document)
         await AskarStorage().store("updateKey", did, update_key)
+        
         return JSONResponse(status_code=201, content={})
-
-        initial_log_entry = DidWebVH().create(did_document, update_key)
-        return JSONResponse(status_code=201, content={"logEntry": initial_log_entry})
 
     raise HTTPException(status_code=400, detail="Bad Request, something went wrong.")
 
@@ -95,13 +99,12 @@ async def register_did(
 async def get_log_state(namespace: str, identifier: str):
     client_id = f"{namespace}:{identifier}"
     did = f"{settings.DID_WEB_BASE}:{client_id}"
-    did_doc = await AskarStorage().fetch("didDocument", did)
-    if not did_doc:
+    did_document = await AskarStorage().fetch("didDocument", did)
+    if not did_document:
         raise HTTPException(status_code=404, detail="Identifier not found")
+
     log_entry = await AskarStorage().fetch("logEntries", client_id)
     if not log_entry:
-        did = f"{settings.DID_WEB_BASE}:{client_id}"
-        did_document = await AskarStorage().fetch("didDocument", did)
         update_key = await AskarStorage().fetch("updatekey", did)
         initial_log_entry = DidWebVH().create(did_document, update_key)
         return JSONResponse(status_code=200, content={"logEntry": initial_log_entry})

@@ -7,31 +7,10 @@ from app.utilities import first_proof
 from config import settings
 import copy
 
-# router = APIRouter(tags=["Resources"])
-router = APIRouter()
-
-SUPPORTED_RESSOURCE_TYPES = [
-    'AnonCredsSchema',
-    'AnonCredsCredDef',
-]
-
-@router.get("/{namespace}/{identifier}/resources/{resource_id}", tags=["Resources"])
-async def get_resource(namespace: str, identifier: str, resource_id: str):
-    
-    storage = AskarStorage()
-    store_id = f'{namespace}:{identifier}:{resource_id}'
-    resource = await storage.fetch(
-        'resource', 
-        store_id
-    )
-    
-    if not resource:
-        raise HTTPException(status_code=404, detail="Couldn't find resource.")
-    
-    return JSONResponse(status_code=200, content=resource)
+router = APIRouter(tags=["Attested Resources"])
         
 
-@router.post("/resources", tags=["Resources"])
+@router.post("/resources")
 async def upload_attested_resource(request_body: ResourceUpload):
     secured_resource = vars(request_body)['attestedResource'].model_dump()
     secured_resource['proof'] = first_proof(secured_resource['proof'])
@@ -58,7 +37,7 @@ async def upload_attested_resource(request_body: ResourceUpload):
     # except:
     #     raise HTTPException(status_code=400, detail="Unable to store resource.")
 
-@router.put("/{namespace}/{identifier}/resources/{resource_id}", tags=["Resources"])
+@router.put("/{namespace}/{identifier}/resources/{resource_id}")
 async def update_attested_resource(namespace: str, identifier: str, resource_id: str, request_body: ResourceUpload):
     secured_resource = vars(request_body)['attestedResource'].model_dump()
     secured_resource['proof'] = first_proof(secured_resource['proof'])
@@ -91,3 +70,19 @@ async def update_attested_resource(namespace: str, identifier: str, resource_id:
         secured_resource.get('resourceMetadata')
     )
     return JSONResponse(status_code=200, content=secured_resource)
+
+
+@router.get("/{namespace}/{identifier}/resources/{resource_id}")
+async def get_resource(namespace: str, identifier: str, resource_id: str):
+    
+    storage = AskarStorage()
+    store_id = f'{namespace}:{identifier}:{resource_id}'
+    resource = await storage.fetch(
+        'resource', 
+        store_id
+    )
+    
+    if not resource:
+        raise HTTPException(status_code=404, detail="Couldn't find resource.")
+    
+    return JSONResponse(status_code=200, content=resource)
