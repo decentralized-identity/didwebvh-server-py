@@ -17,33 +17,14 @@ class RegisterDID(BaseModel):
 class RegisterInitialLogEntry(BaseModel):
     logEntry: InitialLogEntry = Field()
 
-
-<<<<<<< HEAD
 class UpdateLogEntry(BaseModel):
     logEntry: LogEntry = Field()
     witnessProof: List[DataIntegrityProof] = Field(None)
 
-    # model_config = {
-    #     "json_schema_extra": {
-    #         "examples": [
-    #             {
-    #                 "logEntry": {},
-    #                 "witnessProof": [
-    #                     DataIntegrityProof(
-    #                         proofValue='',
-    #                         verificationMethod=''
-    #                     ).model_dump()
-    #                 ]
-    #             }
-    #         ]
-    #     }
-    # }
+class DeactivateLogEntry(BaseModel):
+    logEntry: LogEntry = Field()
+    witnessProof: WitnessSignature = Field()
 
-
-# class DeactivateLogEntry(BaseModel):
-#     logEntry: LogEntry = Field()
-#     witnessProof: WitnessSignature = Field()
-=======
 class ResourceUploadDocument(BaseModel):
     proof: dict = Field()
 
@@ -53,6 +34,5 @@ class ResourceUploadOptions(BaseModel):
     resourcePath: str = Field()
 
 class ResourceUpload(BaseModel):
-    signedDocument: ResourceUploadDocument = Field()
+    securedResource: ResourceUploadDocument = Field()
     options: ResourceUploadOptions = Field()
->>>>>>> afa8647 (anoncreds object models and routes)
