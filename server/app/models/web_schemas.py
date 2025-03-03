@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from .did_document import SecuredDidDocument
 from .did_log import InitialLogEntry, LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
+from config import settings
 
 
 class BaseModel(BaseModel):
@@ -28,12 +29,14 @@ class DeactivateLogEntry(BaseModel):
 class ResourceUploadDocument(BaseModel):
     proof: dict = Field()
 
-class ResourceUploadOptions(BaseModel):
-    type: str = Field()
+class ResourceOptions(BaseModel):
     resourceId: str = Field()
-    resourcePath: str = Field()
-    resourceDigest: str = Field()
+    resourceType: str = Field()
+
+class ResourceTemplate(BaseModel):
+    resourceContent: dict = Field()
+    options: ResourceOptions = Field()
 
 class ResourceUpload(BaseModel):
     securedResource: ResourceUploadDocument = Field()
-    options: ResourceUploadOptions = Field()
+    options: ResourceOptions = Field()
