@@ -93,9 +93,9 @@ class AskarVerifier:
             if proof.get("domain"):
                 assert proof["domain"] == settings.DOMAIN, "Domain mismatch."
             if proof.get("challenge"):
-                assert proof["challenge"] == self.create_challenge(
-                    did + proof["expires"]
-                ), "Challenge mismatch."
+                assert proof["challenge"] == self.create_challenge(did + proof["expires"]), (
+                    "Challenge mismatch."
+                )
         except AssertionError as msg:
             raise HTTPException(status_code=400, detail=str(msg))
 
@@ -103,13 +103,13 @@ class AskarVerifier:
         """Validate the proof."""
         try:
             if proof.get("expires"):
-                assert datetime.fromisoformat(proof["expires"]) > datetime.now(
-                    timezone.utc
-                ), "Proof expired."
+                assert datetime.fromisoformat(proof["expires"]) > datetime.now(timezone.utc), (
+                    "Proof expired."
+                )
             assert proof["type"] == self.type, f"Expected {self.type} proof type."
-            assert (
-                proof["cryptosuite"] == self.cryptosuite
-            ), f"Expected {self.cryptosuite} proof cryptosuite."
+            assert proof["cryptosuite"] == self.cryptosuite, (
+                f"Expected {self.cryptosuite} proof cryptosuite."
+            )
             assert proof["proofPurpose"] == self.purpose, f"Expected {self.purpose} proof purpose."
         except AssertionError as msg:
             raise HTTPException(status_code=400, detail=str(msg))

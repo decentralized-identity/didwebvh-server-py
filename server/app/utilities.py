@@ -54,12 +54,12 @@ async def valid_did_registration(did_document):
         # assert (
         #     did_document["id"] == f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
         # ), "Id mismatch between DID Document and requested endpoint."
-        assert (
-            len(did_document["verificationMethod"]) >= 1
-        ), "DID Document must contain at least 1 verificationMethod."
-        assert (
-            isinstance(proofs, list) and len(proofs) == 2
-        ), "Insufficient proofs, must contain a client and an endorser proof."
+        assert len(did_document["verificationMethod"]) >= 1, (
+            "DID Document must contain at least 1 verificationMethod."
+        )
+        assert isinstance(proofs, list) and len(proofs) == 2, (
+            "Insufficient proofs, must contain a client and an endorser proof."
+        )
     except AssertionError as msg:
         raise HTTPException(status_code=400, detail=str(msg))
 
