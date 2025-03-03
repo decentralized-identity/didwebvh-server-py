@@ -22,12 +22,13 @@ class BaseModel(BaseModel):
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
 
 
-
 class JsonWebKey(BaseModel):
     """JsonWebKey model."""
+
     kty: str = Field("OKP")
     crv: str = Field("Ed25519")
     x: str = Field()
+
 
 class VerificationMethod(BaseModel):
     """VerificationMethod model."""

@@ -28,7 +28,7 @@ class RegisterInitialLogEntry(BaseModel):
     """RegisterInitialLogEntry model."""
 
     logEntry: InitialLogEntry = Field()
-    
+
 
 class UpdateLogEntry(BaseModel):
     """UpdateLogEntry model."""
@@ -36,13 +36,17 @@ class UpdateLogEntry(BaseModel):
     logEntry: LogEntry = Field()
     witnessProof: List[DataIntegrityProof] = Field(None)
 
+
 class DeactivateLogEntry(BaseModel):
     """DeactivateLogEntry model."""
+
     logEntry: LogEntry = Field()
     witnessProof: WitnessSignature = Field()
 
+
 class ResourceUploadDocument(BaseModel):
     """ResourceUploadDocument model."""
+
     context: List[str] = Field(alias="@context")
     type: List[str] = Field()
     id: str = Field()
@@ -51,19 +55,25 @@ class ResourceUploadDocument(BaseModel):
     relatedResource: List[dict] = Field(None)
     proof: dict = Field()
 
+
 class ResourceOptions(BaseModel):
     """ResourceOptions model."""
+
     resourceId: str = Field(None)
     resourceName: str = Field(None)
     resourceType: str = Field(None)
     resourceCollectionId: str = Field(None)
 
+
 class ResourceTemplate(BaseModel):
     """ResourceTemplate model."""
+
     resourceContent: dict = Field()
     options: ResourceOptions = Field()
 
+
 class ResourceUpload(BaseModel):
     """ResourceUpload model."""
+
     attestedResource: AttestedResource = Field()
     options: ResourceOptions = Field()

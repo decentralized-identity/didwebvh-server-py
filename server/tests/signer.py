@@ -6,6 +6,7 @@ from aries_askar.bindings import LocalKeyHandle
 from tests.fixtures import TEST_UPDATE_SEED, TEST_PROOF_OPTIONS
 from multiformats import multibase
 
+
 def sign(document, options=TEST_PROOF_OPTIONS):
     key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_UPDATE_SEED)
     pub_key_multi = multibase.encode(

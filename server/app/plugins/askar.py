@@ -93,9 +93,9 @@ class AskarVerifier:
             if proof.get("domain"):
                 assert proof["domain"] == settings.DOMAIN, "Domain mismatch."
             if proof.get("challenge"):
-                assert proof["challenge"] == self.create_challenge(did + proof["expires"]), (
-                    "Challenge mismatch."
-                )
+                assert proof["challenge"] == self.create_challenge(
+                    did + proof["expires"]
+                ), "Challenge mismatch."
         except AssertionError as msg:
             raise HTTPException(status_code=400, detail=str(msg))
 
@@ -103,42 +103,44 @@ class AskarVerifier:
         """Validate the proof."""
         try:
             if proof.get("expires"):
-                assert datetime.fromisoformat(proof["expires"]) > datetime.now(timezone.utc), (
-                    "Proof expired."
-                )
+                assert datetime.fromisoformat(proof["expires"]) > datetime.now(
+                    timezone.utc
+                ), "Proof expired."
             assert proof["type"] == self.type, f"Expected {self.type} proof type."
-            assert proof["cryptosuite"] == self.cryptosuite, (
-                f"Expected {self.cryptosuite} proof cryptosuite."
-            )
+            assert (
+                proof["cryptosuite"] == self.cryptosuite
+            ), f"Expected {self.cryptosuite} proof cryptosuite."
             assert proof["proofPurpose"] == self.purpose, f"Expected {self.purpose} proof purpose."
         except AssertionError as msg:
             raise HTTPException(status_code=400, detail=str(msg))
 
     async def verify_resource_proof(self, resource):
         """Verify the proof."""
-        proof = resource.pop('proof')
+        proof = resource.pop("proof")
         if (
-            proof.get('type') != self.type
-            or proof.get('cryptosuite') != self.cryptosuite
-            or proof.get('proofPurpose') != self.purpose
+            proof.get("type") != self.type
+            or proof.get("cryptosuite") != self.cryptosuite
+            or proof.get("proofPurpose") != self.purpose
         ):
-            raise HTTPException(status_code=400, detail='Invalid proof options')
-        
-        did = proof.get('verificationMethod').split('#')[0]
-        namespace = did.split(':')[4]
-        identifier = did.split(':')[5]
-        profile_id = f'{namespace}:{identifier}'
-        issuer_log = await AskarStorage().fetch('logEntries', profile_id)
-        
+            raise HTTPException(status_code=400, detail="Invalid proof options")
+
+        did = proof.get("verificationMethod").split("#")[0]
+        namespace = did.split(":")[4]
+        identifier = did.split(":")[5]
+        profile_id = f"{namespace}:{identifier}"
+        issuer_log = await AskarStorage().fetch("logEntries", profile_id)
+
         if not issuer_log:
-            raise HTTPException(status_code=400, detail='Unknown controller')
-        
-        did_document = issuer_log[-1].get('state')
+            raise HTTPException(status_code=400, detail="Unknown controller")
+
+        did_document = issuer_log[-1].get("state")
         multikey = next(
             (
-                vm['publicKeyMultibase'] for vm in did_document['verificationMethod'] 
-                if vm['id'] == proof.get('verificationMethod')
-            ), None
+                vm["publicKeyMultibase"]
+                for vm in did_document["verificationMethod"]
+                if vm["id"] == proof.get("verificationMethod")
+            ),
+            None,
         )
         key = Key(LocalKeyHandle()).from_public_bytes(
             alg="ed25519", public=bytes(bytearray(multibase.decode(multikey))[2:])
@@ -149,9 +151,7 @@ class AskarVerifier:
             + sha256(canonicaljson.encode_canonical_json(resource)).digest()
         )
         if not key.verify_signature(message=hash_data, signature=signature):
-            raise HTTPException(
-                status_code=400, detail="Signature was forged or corrupt."
-            )
+            raise HTTPException(status_code=400, detail="Signature was forged or corrupt.")
 
     def verify_proof(self, document, proof):
         """Verify the proof."""

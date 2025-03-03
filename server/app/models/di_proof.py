@@ -41,8 +41,10 @@ class DataIntegrityProofOptions(BaseModel):
         assert value in ["assertionMethod", "authentication"]
         return value
 
+
 class DataIntegrityProof(DataIntegrityProofOptions):
     """DataIntegrityProof model."""
+
     proofValue: str = Field()
     verificationMethod: str = Field()
     domain: str = Field(None)

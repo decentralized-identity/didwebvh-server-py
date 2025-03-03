@@ -25,17 +25,15 @@ TEST_PROOF_OPTIONS = {
 TEST_DID_DOCUMENT = DidDocument(
     context=["https://www.w3.org/ns/did/v1"],
     id=TEST_DID,
-    verificationMethod=[VerificationMethodMultikey(
-        id=f'{TEST_DID}#key-0',
-        type='Multikey',
-        controller=TEST_DID,
-        publicKeyMultibase=TEST_SIGNING_KEY
-    )]
+    verificationMethod=[
+        VerificationMethodMultikey(
+            id=f"{TEST_DID}#key-0",
+            type="Multikey",
+            controller=TEST_DID,
+            publicKeyMultibase=TEST_SIGNING_KEY,
+        )
+    ],
 ).model_dump()
 
 
-TEST_ANONCREDS_SCHEMA = {
-    'name': 'test',
-    'version': '1.0',
-    'attributes': ['test_attribute']
-}
+TEST_ANONCREDS_SCHEMA = {"name": "test", "version": "1.0", "attributes": ["test_attribute"]}

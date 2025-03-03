@@ -1,4 +1,5 @@
 """DID Web Verifiable History (DID WebVH) plugin."""
+
 from fastapi import HTTPException
 from config import settings
 from datetime import datetime
@@ -7,8 +8,6 @@ from app.models.did_log import LogParameters, InitialLogEntry
 from app.utilities import digest_multibase
 import canonicaljson
 import json
-
-
 
 
 class DidWebVH:
@@ -63,83 +62,77 @@ class DidWebVH:
         log_entry_hash = self._generate_entry_hash(log_entry)
         log_entry["versionId"] = f"1-{log_entry_hash}"
         return log_entry
-    
+
     def verify_resource(self, secured_resource):
         """Verify resource."""
         # verifier = AskarVerifier()
-        proof = secured_resource.pop('proof')
+        proof = secured_resource.pop("proof")
         proof = proof if isinstance(proof, dict) else [proof]
         # verifier.verify_proof(resource, proof)
         if (
-            not proof.get('verificationMethod')
-            or not proof.get('proofValue')
-            or proof.get('type') != 'DataIntegrityProof'
-            or proof.get('cryptosuite') == 'eddsa-jcs-2022'
-            or proof.get('proofPurpose') == 'assertionMethod'
+            not proof.get("verificationMethod")
+            or not proof.get("proofValue")
+            or proof.get("type") != "DataIntegrityProof"
+            or proof.get("cryptosuite") == "eddsa-jcs-2022"
+            or proof.get("proofPurpose") == "assertionMethod"
         ):
             raise HTTPException(status_code=400, detail="Invalid proof options.")
-        
-        did = proof.get('verificationMethod').split('#')[0]
-        namespace = did.split(':')[4]
-        identifier = did.split(':')[5]
-        # issuer_log = await AskarStorage().fetch('logEntries', f'{namespace}:{identifier}')
-        
 
-    
+        did = proof.get("verificationMethod").split("#")[0]
+        namespace = did.split(":")[4]
+        identifier = did.split(":")[5]
+        # issuer_log = await AskarStorage().fetch('logEntries', f'{namespace}:{identifier}')
+
     def validate_resource(self, resource):
         """Validate resource."""
-        proof = resource.pop('proof')
-        verification_method = proof.get('verificationMethod')
-        did = verification_method.split('#')[0]
-        
-        provided_id = resource.get('id')
-        
-        content = resource.get('content')
+        proof = resource.pop("proof")
+        verification_method = proof.get("verificationMethod")
+        did = verification_method.split("#")[0]
+
+        provided_id = resource.get("id")
+
+        content = resource.get("content")
         content_digest = digest_multibase(content)
-        
-        metadata = resource.get('metadata')
-        
-        if settings.DOMAIN != did.split(':')[3]:
+
+        metadata = resource.get("metadata")
+
+        if settings.DOMAIN != did.split(":")[3]:
             raise HTTPException(status_code=400, detail="Invalid resource id.")
-        
-        if did != provided_id.split('/')[0]:
+
+        if did != provided_id.split("/")[0]:
             raise HTTPException(status_code=400, detail="Invalid resource id.")
-        
-        if content_digest != provided_id.split('/')[-1].split('.')[0]:
+
+        if content_digest != provided_id.split("/")[-1].split(".")[0]:
             raise HTTPException(status_code=400, detail="Invalid resource id.")
-        
-        if not metadata.get('resourceId') or content_digest != metadata.get('resourceId'):
+
+        if not metadata.get("resourceId") or content_digest != metadata.get("resourceId"):
             raise HTTPException(status_code=400, detail="Invalid resource id.")
-        
-        if not metadata.get('resourceType'):
+
+        if not metadata.get("resourceType"):
             raise HTTPException(status_code=400, detail="Missing resource type.")
-    
+
     def compare_resource(self, old_resource, new_resource):
         """Compare resource."""
-        if old_resource.get('id') != new_resource.get('id'):
+        if old_resource.get("id") != new_resource.get("id"):
             raise HTTPException(status_code=400, detail="Invalid resource id.")
-        if (
-            digest_multibase(old_resource.get('content')) 
-            != digest_multibase(new_resource.get('content'))
-            ):
+        if digest_multibase(old_resource.get("content")) != digest_multibase(
+            new_resource.get("content")
+        ):
             raise HTTPException(status_code=400, detail="Invalid resource content.")
-        if (
-            digest_multibase(old_resource.get('metadata').get('resourceType')) 
-            != digest_multibase(new_resource.get('metadata').get('resourceType'))
-            ):
+        if digest_multibase(old_resource.get("metadata").get("resourceType")) != digest_multibase(
+            new_resource.get("metadata").get("resourceType")
+        ):
             raise HTTPException(status_code=400, detail="Invalid resource type.")
-        if (
-            digest_multibase(old_resource.get('proof').get('verificationMethod').split('#')[0]) 
-            != digest_multibase(new_resource.get('proof').get('verificationMethod').split('#')[0])
-            ):
+        if digest_multibase(
+            old_resource.get("proof").get("verificationMethod").split("#")[0]
+        ) != digest_multibase(new_resource.get("proof").get("verificationMethod").split("#")[0]):
             raise HTTPException(status_code=400, detail="Invalid verification method.")
-        
+
     def resource_store_id(self, resource):
         """Generate resource id for storage."""
-        resource_id = resource.get('id')
-        did = resource_id.split('/')[0]
-        namespace = did.split(':')[4]
-        identifier = did.split(':')[5]
-        content_digest = resource_id.split('/')[-1]
-        return f'{namespace}:{identifier}:{content_digest}'
-        
+        resource_id = resource.get("id")
+        did = resource_id.split("/")[0]
+        namespace = did.split(":")[4]
+        identifier = did.split(":")[5]
+        content_digest = resource_id.split("/")[-1]
+        return f"{namespace}:{identifier}:{content_digest}"

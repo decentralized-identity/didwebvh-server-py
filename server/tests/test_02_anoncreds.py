@@ -28,77 +28,78 @@ didwebvh = DidWebVH()
 witness = WitnessAgent()
 controller = ControllerAgent()
 
+
 async def get_mock_issuer():
     did_logs = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    return json.loads(did_logs.body.decode()).get('state').get('id')
+    return json.loads(did_logs.body.decode()).get("state").get("id")
+
 
 def decode_response(response):
     return json.loads(response.body.decode())
+
 
 @pytest.mark.asyncio
 async def test_anoncreds():
     controller.issuer_id = await get_mock_issuer()
 
     schema = Schema.create(
-        TEST_ANONCREDS_SCHEMA['name'], 
-        TEST_ANONCREDS_SCHEMA['version'], 
-        controller.issuer_id, 
-        TEST_ANONCREDS_SCHEMA['attributes']
+        TEST_ANONCREDS_SCHEMA["name"],
+        TEST_ANONCREDS_SCHEMA["version"],
+        controller.issuer_id,
+        TEST_ANONCREDS_SCHEMA["attributes"],
     )
-    
-    attested_schema, schema_id = controller.attest_resource(
-        schema.to_dict(), 'anonCredsSchema'
-    )
-    
+
+    attested_schema, schema_id = controller.attest_resource(schema.to_dict(), "anonCredsSchema")
+
     await upload_attested_resource(
         ResourceUpload(
             attestedResource=AttestedResource.model_validate(attested_schema),
-            options=ResourceOptions()
+            options=ResourceOptions(),
         ),
     )
-    fetched_schema = decode_response(await get_resource(
-        TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, schema_id.split('/')[-1]
-    ))
-    assert fetched_schema.get('id') == schema_id
-    
+    fetched_schema = decode_response(
+        await get_resource(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, schema_id.split("/")[-1])
+    )
+    assert fetched_schema.get("id") == schema_id
+
     cred_def_pub, cred_def_priv, cred_def_correctness = CredentialDefinition.create(
         schema_id, schema, controller.issuer_id, "tag", "CL", support_revocation=True
     )
-    
+
     attested_cred_def, cred_def_id = controller.attest_resource(
-        cred_def_pub.to_dict(), 'anonCredsCredDef'
+        cred_def_pub.to_dict(), "anonCredsCredDef"
     )
-    
+
     await upload_attested_resource(
         ResourceUpload(
             attestedResource=AttestedResource.model_validate(attested_cred_def),
-            options=ResourceOptions()
+            options=ResourceOptions(),
         ),
     )
-    fetched_cred_def = decode_response(await get_resource(
-        TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, cred_def_id.split('/')[-1]
-    ))
-    assert fetched_cred_def.get('id') == cred_def_id
-    
+    fetched_cred_def = decode_response(
+        await get_resource(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, cred_def_id.split("/")[-1])
+    )
+    assert fetched_cred_def.get("id") == cred_def_id
+
     (rev_reg_def_pub, rev_reg_def_private) = RevocationRegistryDefinition.create(
         cred_def_id, cred_def_pub, controller.issuer_id, "some_tag", "CL_ACCUM", 10
     )
-    
+
     attested_rev_reg_def, rev_reg_def_id = controller.attest_resource(
-        rev_reg_def_pub.to_dict(), 'anonCredsRevRegDef'
+        rev_reg_def_pub.to_dict(), "anonCredsRevRegDef"
     )
-    
+
     await upload_attested_resource(
         ResourceUpload(
             attestedResource=AttestedResource.model_validate(attested_rev_reg_def),
-            options=ResourceOptions()
+            options=ResourceOptions(),
         ),
     )
-    fetched_rev_reg_def = decode_response(await get_resource(
-        TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, rev_reg_def_id.split('/')[-1]
-    ))
-    assert fetched_rev_reg_def.get('id') == rev_reg_def_id
-    
+    fetched_rev_reg_def = decode_response(
+        await get_resource(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, rev_reg_def_id.split("/")[-1])
+    )
+    assert fetched_rev_reg_def.get("id") == rev_reg_def_id
+
     time_create_rev_status_list = 12
     revocation_status_list = RevocationStatusList.create(
         cred_def_pub,
@@ -109,42 +110,49 @@ async def test_anoncreds():
         True,
         time_create_rev_status_list,
     )
-    
+
     attested_rev_reg_entry, rev_reg_entry_id = controller.attest_resource(
-        revocation_status_list.to_dict(), 'anonCredsRevRegEntry'
+        revocation_status_list.to_dict(), "anonCredsRevRegEntry"
     )
-    
+
     await upload_attested_resource(
         ResourceUpload(
             attestedResource=AttestedResource.model_validate(attested_rev_reg_entry),
-            options=ResourceOptions()
+            options=ResourceOptions(),
         ),
     )
-    fetched_rev_reg_entry = decode_response(await get_resource(
-        TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, rev_reg_entry_id.split('/')[-1]
-    ))
-    assert fetched_rev_reg_entry.get('id') == rev_reg_entry_id
-    
-    fetched_rev_reg_def.pop('proof')
-    updated_rev_reg_def = controller.sign(
-        fetched_rev_reg_def | {'links': [{
-            'id': rev_reg_entry_id,
-            'type': 'anonCredsRevRegEntry',
-            'timestamp': attested_rev_reg_entry['content']['timestamp']
-        }]}
+    fetched_rev_reg_entry = decode_response(
+        await get_resource(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, rev_reg_entry_id.split("/")[-1])
     )
-    
+    assert fetched_rev_reg_entry.get("id") == rev_reg_entry_id
+
+    fetched_rev_reg_def.pop("proof")
+    updated_rev_reg_def = controller.sign(
+        fetched_rev_reg_def
+        | {
+            "links": [
+                {
+                    "id": rev_reg_entry_id,
+                    "type": "anonCredsRevRegEntry",
+                    "timestamp": attested_rev_reg_entry["content"]["timestamp"],
+                }
+            ]
+        }
+    )
+
     await update_attested_resource(
         TEST_DID_NAMESPACE,
         TEST_DID_IDENTIFIER,
-        rev_reg_def_id.split('/')[-1],
+        rev_reg_def_id.split("/")[-1],
         ResourceUpload(
             attestedResource=AttestedResource.model_validate(updated_rev_reg_def),
-            options=ResourceOptions()
+            options=ResourceOptions(),
         ),
     )
     fetched_updated_rev_reg_def = await get_resource(
-        TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, rev_reg_def_id.split('/')[-1]
+        TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, rev_reg_def_id.split("/")[-1]
     )
-    assert decode_response(fetched_updated_rev_reg_def).get('id') == rev_reg_def_id
-    assert decode_response(fetched_updated_rev_reg_def).get('links')[0].get('id') == rev_reg_entry_id
+    assert decode_response(fetched_updated_rev_reg_def).get("id") == rev_reg_def_id
+    assert (
+        decode_response(fetched_updated_rev_reg_def).get("links")[0].get("id") == rev_reg_entry_id
+    )

@@ -78,21 +78,21 @@ async def register_did(
     if client_proof and witness_proof:
         # Verify proofs
         verifier = AskarVerifier()
-        
+
         # Witness proof
         verifier.validate_challenge(witness_proof, did_document["id"])
         verifier.verify_proof(did_document, witness_proof)
-        
+
         # Controller proof
         verifier.validate_challenge(client_proof, did_document["id"])
         verifier.verify_proof(did_document, client_proof)
-        
+
         update_key = client_proof["verificationMethod"].split("#")[-1]
 
         # Store document and authorized key
         await AskarStorage().store("didDocument", did, did_document)
         await AskarStorage().store("updateKey", did, update_key)
-        
+
         return JSONResponse(status_code=201, content={})
 
     raise HTTPException(status_code=400, detail="Bad Request, something went wrong.")
@@ -170,7 +170,7 @@ async def read_did_log(namespace: str, identifier: str):
     log_entries = await AskarStorage().fetch("logEntries", client_id)
     if log_entries:
         log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries])
-        return Response(log_entries+'\n', media_type="text/jsonl")
+        return Response(log_entries + "\n", media_type="text/jsonl")
     raise HTTPException(status_code=404, detail="Not Found")
 
 
