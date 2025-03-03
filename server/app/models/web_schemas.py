@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 from pydantic import BaseModel, Field
 from .did_document import SecuredDidDocument
+from .resource import AttestedResource
 from .did_log import InitialLogEntry, LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
 from config import settings
@@ -36,7 +37,7 @@ class ResourceUploadDocument(BaseModel):
     proof: dict = Field()
 
 class ResourceOptions(BaseModel):
-    resourceId: str = Field()
+    resourceId: str = Field(None)
     resourceName: str = Field(None)
     resourceType: str = Field(None)
     resourceCollectionId: str = Field(None)
@@ -46,5 +47,5 @@ class ResourceTemplate(BaseModel):
     options: ResourceOptions = Field()
 
 class ResourceUpload(BaseModel):
-    securedResource: ResourceUploadDocument = Field()
+    attestedResource: AttestedResource = Field()
     options: ResourceOptions = Field()
