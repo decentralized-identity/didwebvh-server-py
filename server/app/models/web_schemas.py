@@ -18,6 +18,7 @@ class RegisterDID(BaseModel):
 
 class RegisterInitialLogEntry(BaseModel):
     logEntry: InitialLogEntry = Field()
+    
 
 class UpdateLogEntry(BaseModel):
     logEntry: LogEntry = Field()
