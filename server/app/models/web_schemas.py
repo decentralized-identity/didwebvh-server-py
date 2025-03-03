@@ -18,6 +18,7 @@ class RegisterInitialLogEntry(BaseModel):
     logEntry: InitialLogEntry = Field()
 
 
+<<<<<<< HEAD
 class UpdateLogEntry(BaseModel):
     logEntry: LogEntry = Field()
     witnessProof: List[DataIntegrityProof] = Field(None)
@@ -42,3 +43,16 @@ class UpdateLogEntry(BaseModel):
 # class DeactivateLogEntry(BaseModel):
 #     logEntry: LogEntry = Field()
 #     witnessProof: WitnessSignature = Field()
+=======
+class ResourceUploadDocument(BaseModel):
+    proof: dict = Field()
+
+class ResourceUploadOptions(BaseModel):
+    type: str = Field()
+    resourceId: str = Field()
+    resourcePath: str = Field()
+
+class ResourceUpload(BaseModel):
+    signedDocument: ResourceUploadDocument = Field()
+    options: ResourceUploadOptions = Field()
+>>>>>>> afa8647 (anoncreds object models and routes)

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
-from app.routers import identifiers
+from app.routers import identifiers, resources
 from config import settings
 
 app = FastAPI(title=settings.PROJECT_TITLE, version=settings.PROJECT_VERSION)
@@ -14,5 +14,6 @@ async def server_status():
 
 
 api_router.include_router(identifiers.router)
+api_router.include_router(resources.router)
 
 app.include_router(api_router)
