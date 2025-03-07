@@ -41,12 +41,12 @@ async def update_attested_resource(
     secured_resource["proof"] = first_proof(secured_resource["proof"])
 
     verifier = AskarVerifier()
-    # This will ensure the verification method is registered 
+    # This will ensure the verification method is registered
     # on the server and that the proof is valid
     await verifier.verify_resource_proof(copy.deepcopy(secured_resource))
 
     webvh = DidWebVH()
-    # This will ensure that the resource is properly assigned 
+    # This will ensure that the resource is properly assigned
     # to it's issuer and double check the digested path
     webvh.validate_resource(copy.deepcopy(secured_resource))
 

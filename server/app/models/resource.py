@@ -8,6 +8,7 @@ from config import settings
 
 class BaseModel(BaseModel):
     """Overwrite BaseModel dumping behavior."""
+
     def model_dump(self, **kwargs) -> Dict[str, Any]:
         """Transform the class into a python dict with some defaults."""
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
@@ -15,6 +16,7 @@ class BaseModel(BaseModel):
 
 class ResourceMetadata(BaseModel):
     """ResourceMetadata Field."""
+
     resourceId: str = Field(None)
     resourceType: str = Field(None)
     resourceName: str = Field(None)
@@ -23,6 +25,7 @@ class ResourceMetadata(BaseModel):
 
 class RelatedLink(BaseModel):
     """RelatedLink Field."""
+
     id: str = Field()
     type: str = Field()
     timestamp: int = Field(None)
@@ -31,6 +34,7 @@ class RelatedLink(BaseModel):
 
 class AttestedResource(BaseModel):
     """AttestedResource Object."""
+
     context: List[str] = Field(
         alias="@context",
         default=[
