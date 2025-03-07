@@ -55,7 +55,6 @@ class DataIntegrityProof(BaseModel):
     created: str = Field(None)
     expires: str = Field(None)
 
-
     @field_validator("type")
     @classmethod
     def validate_type(cls, value):
