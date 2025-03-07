@@ -57,3 +57,11 @@ class DataIntegrityProof(DataIntegrityProofOptions):
     def validate_expires(cls, value):
         """Validate the expires field."""
         return value
+
+    @field_validator("verificationMethod")
+    @classmethod
+    def validate_verification_method(cls, value):
+        """Validate the expires field."""
+        assert len(value.split("#")) == 2
+        assert value.split("#")[0].startswith('did:')
+        return value

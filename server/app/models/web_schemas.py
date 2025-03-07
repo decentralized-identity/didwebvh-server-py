@@ -7,7 +7,6 @@ from .did_document import SecuredDidDocument
 from .resource import AttestedResource
 from .did_log import InitialLogEntry, LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
-from config import settings
 
 
 class BaseModel(BaseModel):

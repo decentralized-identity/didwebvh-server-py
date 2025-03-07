@@ -51,9 +51,6 @@ async def valid_did_registration(did_document):
     did_document
     proofs = did_document.pop("proof")
     try:
-        # assert (
-        #     did_document["id"] == f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
-        # ), "Id mismatch between DID Document and requested endpoint."
         assert len(did_document["verificationMethod"]) >= 1, (
             "DID Document must contain at least 1 verificationMethod."
         )

@@ -17,7 +17,7 @@ For more detail please refer to the AnonCreds specification.
 
 Each object will be namespaced to the issuer of the resource.
 
-## Uploading a ressource
+## Uploading a resource
 
 To upload a resource, you will need an existing DID with a valid `verificationMethod` of type `Multikey`.
 

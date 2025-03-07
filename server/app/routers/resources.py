@@ -1,3 +1,5 @@
+"""Ressource management endpoints."""
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Union
@@ -12,11 +14,10 @@ router = APIRouter(tags=["Attested Resources"])
 
 @router.post("/resources")
 async def upload_attested_resource(request_body: ResourceUpload):
+    """Upload an attested resource."""
     secured_resource = vars(request_body)["attestedResource"].model_dump()
     secured_resource["proof"] = first_proof(secured_resource["proof"])
 
-    options = vars(request_body)["options"].model_dump()
-    # try:
     verifier = AskarVerifier()
     # This will ensure the verification method is registered on the server and that the proof is valid
     await verifier.verify_resource_proof(copy.deepcopy(secured_resource))
@@ -29,25 +30,24 @@ async def upload_attested_resource(request_body: ResourceUpload):
     store_id = webvh.resource_store_id(copy.deepcopy(secured_resource))
     await storage.store("resource", store_id, secured_resource, secured_resource.get("metadata"))
     return JSONResponse(status_code=201, content=secured_resource)
-    # except:
-    #     raise HTTPException(status_code=400, detail="Unable to store resource.")
 
 
 @router.put("/{namespace}/{identifier}/resources/{resource_id}")
 async def update_attested_resource(
     namespace: str, identifier: str, resource_id: str, request_body: ResourceUpload
 ):
+    """Update an attested resource."""
     secured_resource = vars(request_body)["attestedResource"].model_dump()
     secured_resource["proof"] = first_proof(secured_resource["proof"])
 
-    options = vars(request_body)["options"].model_dump()
-
     verifier = AskarVerifier()
-    # This will ensure the verification method is registered on the server and that the proof is valid
+    # This will ensure the verification method is registered 
+    # on the server and that the proof is valid
     await verifier.verify_resource_proof(copy.deepcopy(secured_resource))
 
     webvh = DidWebVH()
-    # This will ensure that the resource is properly assigned to it's issuer and double check the digested path
+    # This will ensure that the resource is properly assigned 
+    # to it's issuer and double check the digested path
     webvh.validate_resource(copy.deepcopy(secured_resource))
 
     storage = AskarStorage()
@@ -69,6 +69,7 @@ async def update_attested_resource(
 
 @router.get("/{namespace}/{identifier}/resources/{resource_id}")
 async def get_resource(namespace: str, identifier: str, resource_id: str):
+    """Fetch existing resource."""
     storage = AskarStorage()
     store_id = f"{namespace}:{identifier}:{resource_id}"
     resource = await storage.fetch("resource", store_id)

@@ -65,10 +65,8 @@ class DidWebVH:
 
     def verify_resource(self, secured_resource):
         """Verify resource."""
-        # verifier = AskarVerifier()
         proof = secured_resource.pop("proof")
         proof = proof if isinstance(proof, dict) else [proof]
-        # verifier.verify_proof(resource, proof)
         if (
             not proof.get("verificationMethod")
             or not proof.get("proofValue")
@@ -77,11 +75,6 @@ class DidWebVH:
             or proof.get("proofPurpose") == "assertionMethod"
         ):
             raise HTTPException(status_code=400, detail="Invalid proof options.")
-
-        did = proof.get("verificationMethod").split("#")[0]
-        namespace = did.split(":")[4]
-        identifier = did.split(":")[5]
-        # issuer_log = await AskarStorage().fetch('logEntries', f'{namespace}:{identifier}')
 
     def validate_resource(self, resource):
         """Validate resource."""

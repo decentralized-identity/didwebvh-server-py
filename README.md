@@ -19,7 +19,7 @@ This also enables system architects to create rigid governance rules around publ
 - A controller requests an identifier from the server.
 - The server returns a configuration if the requested identifier is available.
 - The controller generates an update key and signs a did document for the requested identifier.
-- The controller request an endorsement signature from a witness known to the server.
+- The controller request an registration signature from a witness known to the server.
 - The controller sends the did document along with the proof set back to the server.
 - The controller generates the preliminary DID log entry, transforms and signs it.
 - The controller sends the initial log entry to the server.
@@ -34,7 +34,7 @@ sequenceDiagram
     WebVH Server->>Controller: Provide a DID document and a proof configuration.
     Controller->>Controller: Create new verification method.
     Controller->>Controller: Sign DID document.
-    Controller->>Witness: Request endorsement signature.
+    Controller->>Witness: Request registration signature.
     Witness->>Witness: Verify and sign DID document.
     Witness->>Controller: Return endorsed DID document.
     Controller->>WebVH Server: Send endorsed DID document.
@@ -46,7 +46,7 @@ sequenceDiagram
 
 ### AnonCreds Objects (AttestedResources)
 
-An attested resource is
+An attested resource is a stored resource cryptographically bound to it's location on the web. See the anoncreds document for more information.
 
 ## Roadmap
 - whois VP support
