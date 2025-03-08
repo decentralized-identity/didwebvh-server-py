@@ -54,7 +54,7 @@ async def register_did(
         )
 
     # Find proof matching endorser
-    endorser_proof = next(
+    witness_proof = next(
         (
             proof
             for proof in proof_set
@@ -75,17 +75,24 @@ async def register_did(
         None,
     )
 
-    if client_proof and endorser_proof:
+    if client_proof and witness_proof:
         # Verify proofs
-        AskarVerifier().validate_challenge(client_proof, did_document["id"])
-        AskarVerifier().verify_proof(did_document, client_proof)
-        AskarVerifier().validate_challenge(endorser_proof, did_document["id"])
-        AskarVerifier().verify_proof(did_document, endorser_proof)
-        authorized_key = client_proof["verificationMethod"].split("#")[-1]
+        verifier = AskarVerifier()
+
+        # Witness proof
+        verifier.validate_challenge(witness_proof, did_document["id"])
+        verifier.verify_proof(did_document, witness_proof)
+
+        # Controller proof
+        verifier.validate_challenge(client_proof, did_document["id"])
+        verifier.verify_proof(did_document, client_proof)
+
+        update_key = client_proof["verificationMethod"].split("#")[-1]
 
         # Store document and authorized key
         await AskarStorage().store("didDocument", did, did_document)
-        await AskarStorage().store("authorizedKey", did, authorized_key)
+        await AskarStorage().store("updateKey", did, update_key)
+
         return JSONResponse(status_code=201, content={})
 
     raise HTTPException(status_code=400, detail="Bad Request, something went wrong.")
@@ -96,12 +103,15 @@ async def register_did(
 async def get_log_state(namespace: str, identifier: str):
     """Get the current state of the log for a given namespace and identifier."""
     client_id = f"{namespace}:{identifier}"
+    did = f"{settings.DID_WEB_BASE}:{client_id}"
+    did_document = await AskarStorage().fetch("didDocument", did)
+    if not did_document:
+        raise HTTPException(status_code=404, detail="Identifier not found")
+
     log_entry = await AskarStorage().fetch("logEntries", client_id)
     if not log_entry:
-        did = f"{settings.DID_WEB_BASE}:{client_id}"
-        did_document = await AskarStorage().fetch("didDocument", did)
-        authorized_key = await AskarStorage().fetch("authorizedKey", did)
-        initial_log_entry = DidWebVH().create(did_document, authorized_key)
+        update_key = await AskarStorage().fetch("updatekey", did)
+        initial_log_entry = DidWebVH().create(did_document, update_key)
         return JSONResponse(status_code=200, content={"logEntry": initial_log_entry})
     return JSONResponse(status_code=200, content={})
 
@@ -125,10 +135,10 @@ async def create_didwebvh(
 
     # Verify proofs
     proof = proof[0]
-    authorized_key = proof["verificationMethod"].split("#")[-1]
+    update_key = proof["verificationMethod"].split("#")[-1]
     if (
-        authorized_key != await AskarStorage().fetch("authorizedKey", did)
-        or authorized_key != log_entry["parameters"]["updateKeys"][0]
+        update_key != await AskarStorage().fetch("updateKey", did)
+        or update_key != log_entry["parameters"]["updateKeys"][0]
     ):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -160,7 +170,7 @@ async def read_did_log(namespace: str, identifier: str):
     log_entries = await AskarStorage().fetch("logEntries", client_id)
     if log_entries:
         log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries])
-        return Response(log_entries, media_type="text/jsonl")
+        return Response(log_entries + "\n", media_type="text/jsonl")
     raise HTTPException(status_code=404, detail="Not Found")
 
 

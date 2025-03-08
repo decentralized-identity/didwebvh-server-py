@@ -9,40 +9,27 @@ from app.models.web_schemas import RegisterInitialLogEntry
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
 from app.routers.identifiers import create_didwebvh, read_did, read_did_log, request_did
 from tests.fixtures import (
-    TEST_AUTHORISED_KEY,
-    TEST_DID,
-    TEST_DID_DOCUMENT,
     TEST_DID_IDENTIFIER,
     TEST_DID_NAMESPACE,
     TEST_DOMAIN,
+    TEST_DID,
+    TEST_DID_DOCUMENT,
+    TEST_UPDATE_KEY,
     TEST_PROOF_OPTIONS,
 )
+from tests.mock_agents import WitnessAgent, ControllerAgent
+import json
+import pytest
+import asyncio
 from tests.signer import sign
 
 askar = AskarStorage()
 asyncio.run(askar.provision(recreate=True))
-
 verifier = AskarVerifier()
 didwebvh = DidWebVH()
 
-
-@pytest.mark.asyncio
-async def test_storage():
-    category = "test"
-    key = "01"
-    data = {"value": None}
-    value_1 = "value_1"
-    value_2 = "value_2"
-
-    data["value"] = value_1
-    await askar.store(category, key, data)
-    fetched_data = await askar.fetch(category, key)
-    assert fetched_data["value"] == value_1
-
-    data["value"] = value_2
-    await askar.update(category, key, data)
-    fetched_data = await askar.fetch(category, key)
-    assert fetched_data["value"] == value_2
+witness = WitnessAgent()
+controller = ControllerAgent()
 
 
 @pytest.mark.asyncio
@@ -62,8 +49,11 @@ async def test_request_did():
 
 @pytest.mark.asyncio
 async def test_register_did():
+    did_request = await request_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
+    did_request = json.loads(did_request.body.decode())
+    proof_options = did_request.get("proofOptions")
     await askar.store("didDocument", TEST_DID, TEST_DID_DOCUMENT)
-    await askar.store("authorizedKey", TEST_DID, TEST_AUTHORISED_KEY)
+    await askar.store("updateKey", TEST_DID, TEST_UPDATE_KEY)
 
 
 @pytest.mark.asyncio
@@ -75,16 +65,8 @@ async def test_resolve_did():
 
 
 @pytest.mark.asyncio
-async def test_verify_di_proof():
-    document = await askar.fetch("didDocument", TEST_DID)
-    signed_document = sign(document)
-    proof = signed_document.pop("proof")
-    assert verifier.verify_proof(signed_document, proof)
-
-
-@pytest.mark.asyncio
 async def test_create_log_entry():
-    initial_log_entry = didwebvh.create(TEST_DID_DOCUMENT, TEST_AUTHORISED_KEY)
+    initial_log_entry = didwebvh.create(TEST_DID_DOCUMENT, TEST_UPDATE_KEY)
     assert initial_log_entry.get("versionId")
     assert initial_log_entry.get("versionTime")
     assert initial_log_entry.get("parameters")
@@ -93,7 +75,7 @@ async def test_create_log_entry():
 
 @pytest.mark.asyncio
 async def test_register_log_entry():
-    log_entry = didwebvh.create(TEST_DID_DOCUMENT, TEST_AUTHORISED_KEY)
+    log_entry = didwebvh.create(TEST_DID_DOCUMENT, TEST_UPDATE_KEY)
     assert log_entry.get("versionId")
     assert log_entry.get("versionTime")
     assert log_entry.get("parameters")

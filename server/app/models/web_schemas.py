@@ -3,10 +3,10 @@
 from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field
-
-from .di_proof import DataIntegrityProof
 from .did_document import SecuredDidDocument
-from .did_log import InitialLogEntry, LogEntry
+from .resource import AttestedResource
+from .did_log import InitialLogEntry, LogEntry, WitnessSignature
+from .di_proof import DataIntegrityProof
 
 
 class BaseModel(BaseModel):
@@ -35,23 +35,44 @@ class UpdateLogEntry(BaseModel):
     logEntry: LogEntry = Field()
     witnessProof: List[DataIntegrityProof] = Field(None)
 
-    # model_config = {
-    #     "json_schema_extra": {
-    #         "examples": [
-    #             {
-    #                 "logEntry": {},
-    #                 "witnessProof": [
-    #                     DataIntegrityProof(
-    #                         proofValue='',
-    #                         verificationMethod=''
-    #                     ).model_dump()
-    #                 ]
-    #             }
-    #         ]
-    #     }
-    # }
+
+class DeactivateLogEntry(BaseModel):
+    """DeactivateLogEntry model."""
+
+    logEntry: LogEntry = Field()
+    witnessProof: WitnessSignature = Field()
 
 
-# class DeactivateLogEntry(BaseModel):
-#     logEntry: LogEntry = Field()
-#     witnessProof: WitnessSignature = Field()
+class ResourceUploadDocument(BaseModel):
+    """ResourceUploadDocument model."""
+
+    context: List[str] = Field(alias="@context")
+    type: List[str] = Field()
+    id: str = Field()
+    resourceContent: dict = Field()
+    resourceMetadata: dict = Field()
+    relatedResource: List[dict] = Field(None)
+    proof: dict = Field()
+
+
+class ResourceOptions(BaseModel):
+    """ResourceOptions model."""
+
+    resourceId: str = Field(None)
+    resourceName: str = Field(None)
+    resourceType: str = Field(None)
+    resourceCollectionId: str = Field(None)
+
+
+class ResourceTemplate(BaseModel):
+    """ResourceTemplate model."""
+
+    resourceContent: dict = Field()
+    options: ResourceOptions = Field()
+
+
+class ResourceUpload(BaseModel):
+    """ResourceUpload model."""
+
+    attestedResource: AttestedResource = Field()
+    options: ResourceOptions = Field()

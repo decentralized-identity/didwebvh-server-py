@@ -22,12 +22,22 @@ class BaseModel(BaseModel):
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
 
 
+class JsonWebKey(BaseModel):
+    """JsonWebKey model."""
+
+    kty: str = Field("OKP")
+    crv: str = Field("Ed25519")
+    x: str = Field()
+
+
 class VerificationMethod(BaseModel):
     """VerificationMethod model."""
 
     id: str = Field()
     type: Union[str, List[str]] = Field()
     controller: str = Field()
+    publicKeyJwk: JsonWebKey = Field(None)
+    publicKeyMultibase: str = Field(None)
 
     @field_validator("id")
     @classmethod
@@ -132,6 +142,7 @@ class DidDocument(BaseModel):
     capabilityInvocation: List[Union[str, VerificationMethod]] = Field(None)
     capabilityDelegation: List[Union[str, VerificationMethod]] = Field(None)
     service: List[Service] = Field(None)
+    proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field(None)
 
     model_config = {
         "json_schema_extra": {

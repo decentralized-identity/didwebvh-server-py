@@ -3,13 +3,12 @@ from hashlib import sha256
 import canonicaljson
 from aries_askar import Key, KeyAlg
 from aries_askar.bindings import LocalKeyHandle
+from tests.fixtures import TEST_UPDATE_SEED, TEST_PROOF_OPTIONS
 from multiformats import multibase
-
-from tests.fixtures import TEST_PROOF_OPTIONS, TEST_SEED
 
 
 def sign(document, options=TEST_PROOF_OPTIONS):
-    key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_SEED)
+    key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_UPDATE_SEED)
     pub_key_multi = multibase.encode(
         bytes.fromhex(f"ed01{key.get_public_bytes().hex()}"),
         "base58btc",
