@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app.dependencies import identifier_available
 from app.models.did_document import DidDocument
-from app.models.web_schemas import RegisterDID, RegisterInitialLogEntry, UpdateLogEntry
+from app.models.web_schemas import RegisterDID, UpdateLogEntry, NewLogEntry
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
 from config import settings
 
@@ -53,13 +53,14 @@ async def register_did(
             status_code=400, detail="Expecting proof set from controller and endorser."
         )
 
+    witness_verification_method = f"did:key:{settings.WITNESS_KEY}#{settings.WITNESS_KEY}"
     # Find proof matching endorser
     witness_proof = next(
         (
             proof
             for proof in proof_set
             if proof["verificationMethod"]
-            == f"did:key:{settings.ENDORSER_MULTIKEY}#{settings.ENDORSER_MULTIKEY}"
+            == witness_verification_method
         ),
         None,
     )
@@ -70,7 +71,7 @@ async def register_did(
             proof
             for proof in proof_set
             if proof["verificationMethod"]
-            != f"did:key:{settings.ENDORSER_MULTIKEY}#{settings.ENDORSER_MULTIKEY}"
+            != witness_verification_method
         ),
         None,
     )
@@ -117,15 +118,16 @@ async def get_log_state(namespace: str, identifier: str):
 
 
 @router.post("/{namespace}/{identifier}")
-async def create_didwebvh(
+async def new_webvh_log_entry(
     namespace: str,
     identifier: str,
-    request_body: RegisterInitialLogEntry,
+    request_body: NewLogEntry,
 ):
     """Create a new log entry for a given namespace and identifier."""
     client_id = f"{namespace}:{identifier}"
     log_entry = request_body.model_dump()["logEntry"]
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
+    print(log_entry)
 
     # Assert proof set
     proof = log_entry.pop("proof", None)
