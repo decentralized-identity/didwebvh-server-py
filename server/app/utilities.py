@@ -38,6 +38,7 @@ def derive_did(namespace, identifier):
     """Derive a DID from a namespace and identifier."""
     return f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
 
+
 def create_did_doc(did, multikey, kid="key-01"):
     """Create a DID document."""
     return DidDocument(
@@ -76,12 +77,12 @@ def first_proof(proof):
     """Return the first proof from a proof set."""
     return proof if isinstance(proof, dict) else proof[0]
 
+
 def timestamp():
     """Create timestamps."""
-    return str(datetime.now(timezone.utc).isoformat('T', 'seconds')).replace('+00:00', 'Z')
+    return str(datetime.now(timezone.utc).isoformat("T", "seconds")).replace("+00:00", "Z")
+
 
 def webvh_to_web_doc(did_document, scid):
     """Trasform did webvh doc to did web."""
-    return json.loads(
-        json.dumps(did_document).replace(f'did:webvh:{scid}:', 'did:web:')
-    )
+    return json.loads(json.dumps(did_document).replace(f"did:webvh:{scid}:", "did:web:"))

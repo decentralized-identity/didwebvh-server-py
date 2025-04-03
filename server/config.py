@@ -37,8 +37,8 @@ class Settings(BaseSettings):
         logging.info("Using SQLite database")
 
     SCID_PLACEHOLDER: str = "{SCID}"
-    
-    RESERVED_NAMESPACES: list = ['admin', 'resources']
+
+    RESERVED_NAMESPACES: list = ["admin", "resources"]
 
 
 settings = Settings()

@@ -33,7 +33,7 @@ class DidWebVH:
         doc_state = DocumentState.initial(params, document)
         return doc_state.history_line()
 
-    def get_document_state(self, log_entries, doc_state = None):
+    def get_document_state(self, log_entries, doc_state=None):
         """Return the latest document state."""
         for log_entry in log_entries:
             doc_state = DocumentState.load_history_line(log_entry, doc_state)

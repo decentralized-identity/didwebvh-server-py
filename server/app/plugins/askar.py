@@ -27,15 +27,12 @@ class AskarStorage:
     async def provision(self, recreate=False):
         """Provision the Askar storage."""
         await Store.provision(self.db, "raw", self.key, recreate=recreate)
-        if not await self.fetch('registry', 'knownWitnesses'):
+        if not await self.fetch("registry", "knownWitnesses"):
             witness_registry = {
-                'meta': {
-                    'created': timestamp(),
-                    'updated': timestamp()
-                },
-                'registry': {}
+                "meta": {"created": timestamp(), "updated": timestamp()},
+                "registry": {},
             }
-            await self.store('registry', 'knownWitnesses', witness_registry)
+            await self.store("registry", "knownWitnesses", witness_registry)
 
     async def open(self):
         """Open the Askar storage."""
