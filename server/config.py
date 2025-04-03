@@ -23,8 +23,6 @@ class Settings(BaseSettings):
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
-    
-    WITNESS_KEY: str = os.environ.get("WITNESS_KEY", "")
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
@@ -39,6 +37,8 @@ class Settings(BaseSettings):
         logging.info("Using SQLite database")
 
     SCID_PLACEHOLDER: str = "{SCID}"
+    
+    RESERVED_NAMESPACES: list = ['admin', 'resources']
 
 
 settings = Settings()

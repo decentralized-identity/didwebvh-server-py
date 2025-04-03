@@ -4,10 +4,12 @@ from fastapi import HTTPException
 from config import settings
 from datetime import datetime
 from multiformats import multibase, multihash
+
 # from app.models.did_log import LogParameters
 from app.utilities import digest_multibase
 import canonicaljson
 import json
+from did_webvh.core.state import DocumentState, verify_state_proofs
 
 
 class DidWebVH:
@@ -25,6 +27,21 @@ class DidWebVH:
     #         method=self.method_version, scid=r"{SCID}", updateKeys=[update_key]
     #     )
     #     return parameters
+
+    def initial_document_state(self, params, document):
+        """Return the latest document state."""
+        doc_state = DocumentState.initial(params, document)
+        return doc_state.history_line()
+
+    def get_document_state(self, log_entries, doc_state = None):
+        """Return the latest document state."""
+        for log_entry in log_entries:
+            doc_state = DocumentState.load_history_line(log_entry, doc_state)
+        return doc_state
+
+    def verify_state_proofs(self, state, prev_state=None):
+        """Return the latest document state."""
+        verify_state_proofs(state, prev_state)
 
     def _init_state(self, did_doc):
         return json.loads(json.dumps(did_doc).replace("did:web:", self.prefix + r"{SCID}:"))

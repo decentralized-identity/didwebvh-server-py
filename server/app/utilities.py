@@ -1,11 +1,11 @@
 """Utility functions for the DID Web server."""
 
-from fastapi import HTTPException
 from app.models.did_document import DidDocument
 from config import settings
-from app.plugins import AskarVerifier, AskarStorage
 import jcs
+import json
 from multiformats import multibase, multihash
+from datetime import datetime, timezone
 
 
 def is_webvh_did(did):
@@ -34,53 +34,9 @@ def to_did_web(namespace: str, identifier: str):
     return f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
 
 
-async def location_available(did: str):
-    """Check if a location is available."""
-    if await AskarStorage().fetch("didDocument", did):
-        raise HTTPException(status_code=409, detail="Identifier unavailable.")
-
-
-async def did_document_exists(did: str):
-    """Check if a DID document exists."""
-    if not await AskarStorage().fetch("didDocument", did):
-        raise HTTPException(status_code=404, detail="Ressource not found.")
-
-
-async def valid_did_registration(did_document):
-    """Validate a DID document registration."""
-    did_document
-    proofs = did_document.pop("proof")
-    try:
-        assert len(did_document["verificationMethod"]) >= 1, (
-            "DID Document must contain at least 1 verificationMethod."
-        )
-        assert isinstance(proofs, list) and len(proofs) == 2, (
-            "Insufficient proofs, must contain a client and an endorser proof."
-        )
-    except AssertionError as msg:
-        raise HTTPException(status_code=400, detail=str(msg))
-
-    endorser_proof = find_proof(proofs, f"{settings.DID_WEB_BASE}#key-01")
-    endorser_key = settings.ENDORSER_MULTIKEY
-    AskarVerifier(endorser_key).verify_proof(did_document, endorser_proof)
-
-    client_proof = find_proof(proofs, did_document["verificationMethod"][0]["id"])
-    client_key = find_key(did_document, client_proof["verificationMethod"])
-    AskarVerifier(client_key).verify_proof(did_document, client_proof)
-
-    return did_document
-
-
-async def identifier_available(identifier: str):
-    """Check if an identifier is available."""
-    if await AskarStorage().fetch("didDocument", identifier):
-        raise HTTPException(status_code=409, detail="Identifier unavailable.")
-
-
 def derive_did(namespace, identifier):
     """Derive a DID from a namespace and identifier."""
     return f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
-
 
 def create_did_doc(did, multikey, kid="key-01"):
     """Create a DID document."""
@@ -119,3 +75,13 @@ def find_proof(proof_set, kid):
 def first_proof(proof):
     """Return the first proof from a proof set."""
     return proof if isinstance(proof, dict) else proof[0]
+
+def timestamp():
+    """Create timestamps."""
+    return str(datetime.now(timezone.utc).isoformat('T', 'seconds')).replace('+00:00', 'Z')
+
+def webvh_to_web_doc(did_document, scid):
+    """Trasform did webvh doc to did web."""
+    return json.loads(
+        json.dumps(did_document).replace(f'did:webvh:{scid}:', 'did:web:')
+    )

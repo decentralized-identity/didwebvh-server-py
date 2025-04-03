@@ -17,6 +17,13 @@ class BaseModel(BaseModel):
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
 
 
+class AddWitness(BaseModel):
+    """AddWitness model."""
+
+    label: str = Field()
+    multikey: str = Field()
+
+
 class RegisterDID(BaseModel):
     """RegisterDID model."""
 

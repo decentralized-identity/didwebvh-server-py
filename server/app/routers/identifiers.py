@@ -5,13 +5,15 @@ import json
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse
 
-from app.dependencies import identifier_available
 from app.models.did_document import DidDocument
-from app.models.web_schemas import RegisterDID, UpdateLogEntry, NewLogEntry
+from app.models.web_schemas import RegisterDID, NewLogEntry
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
 from config import settings
 
 router = APIRouter(tags=["Identifiers"])
+askar = AskarStorage()
+verifier = AskarVerifier()
+webvh = DidWebVH()
 
 
 # DIDWeb
@@ -21,10 +23,16 @@ async def request_did(
     identifier: str = None,
 ):
     """Request a DID document and proof options for a given namespace and identifier."""
+    if namespace in settings.RESERVED_NAMESPACES:
+        raise HTTPException(status_code=400, detail=f"Reserved namespace {namespace}.")
+    
     if namespace and identifier:
         client_id = f"{namespace}:{identifier}"
         did = f"{settings.DID_WEB_BASE}:{client_id}"
-        await identifier_available(did)
+        
+        if await askar.fetch("didDocument", did):
+            raise HTTPException(status_code=409, detail="Identifier unavailable.")
+        
         return JSONResponse(
             status_code=200,
             content={
@@ -43,8 +51,9 @@ async def register_did(
     """Register a DID document and proof set."""
     did_document = request_body.model_dump()["didDocument"]
     did = did_document["id"]
-
-    await identifier_available(did)
+    
+    if await AskarStorage().fetch("didDocument", did):
+        raise HTTPException(status_code=409, detail="Identifier unavailable.")
 
     # Assert proof set
     proof_set = did_document.pop("proof", None)
@@ -53,14 +62,16 @@ async def register_did(
             status_code=400, detail="Expecting proof set from controller and endorser."
         )
 
-    witness_verification_method = f"did:key:{settings.WITNESS_KEY}#{settings.WITNESS_KEY}"
-    # Find proof matching endorser
+    witness_registry = (await askar.fetch('registry', 'knownWitnesses')).get('registry')
+    if not witness_registry:
+        raise HTTPException(status_code=500, detail="No witness registry.")
+
+    # Find proof matching known witness
     witness_proof = next(
         (
             proof
             for proof in proof_set
-            if proof["verificationMethod"]
-            == witness_verification_method
+            if witness_registry.get(proof["verificationMethod"].split('#')[0])
         ),
         None,
     )
@@ -70,16 +81,13 @@ async def register_did(
         (
             proof
             for proof in proof_set
-            if proof["verificationMethod"]
-            != witness_verification_method
+            if proof["verificationMethod"] != witness_proof['verificationMethod']
         ),
         None,
     )
 
     if client_proof and witness_proof:
         # Verify proofs
-        verifier = AskarVerifier()
-
         # Witness proof
         verifier.validate_challenge(witness_proof, did_document["id"])
         verifier.verify_proof(did_document, witness_proof)
@@ -88,11 +96,11 @@ async def register_did(
         verifier.validate_challenge(client_proof, did_document["id"])
         verifier.verify_proof(did_document, client_proof)
 
-        update_key = client_proof["verificationMethod"].split("#")[-1]
+        registration_key = client_proof["verificationMethod"].split("#")[-1]
 
         # Store document and authorized key
-        await AskarStorage().store("didDocument", did, did_document)
-        await AskarStorage().store("updateKey", did, update_key)
+        await askar.store("didDocument", did, did_document)
+        await askar.store("registrationKey", did, registration_key)
 
         return JSONResponse(status_code=201, content={})
 
@@ -105,14 +113,14 @@ async def get_log_state(namespace: str, identifier: str):
     """Get the current state of the log for a given namespace and identifier."""
     client_id = f"{namespace}:{identifier}"
     did = f"{settings.DID_WEB_BASE}:{client_id}"
-    did_document = await AskarStorage().fetch("didDocument", did)
+    did_document = await askar.fetch("didDocument", did)
     if not did_document:
         raise HTTPException(status_code=404, detail="Identifier not found")
 
-    log_entry = await AskarStorage().fetch("logEntries", client_id)
+    log_entry = await askar.fetch("logEntries", client_id)
     if not log_entry:
-        update_key = await AskarStorage().fetch("updatekey", did)
-        initial_log_entry = DidWebVH().create(did_document, update_key)
+        registration_key = await askar.fetch("registrationKey", did)
+        initial_log_entry = DidWebVH().create(did_document, registration_key)
         return JSONResponse(status_code=200, content={"logEntry": initial_log_entry})
     return JSONResponse(status_code=200, content={})
 
@@ -125,43 +133,74 @@ async def new_webvh_log_entry(
 ):
     """Create a new log entry for a given namespace and identifier."""
     client_id = f"{namespace}:{identifier}"
-    log_entry = request_body.model_dump()["logEntry"]
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
-    print(log_entry)
 
-    # Assert proof set
-    proof = log_entry.pop("proof", None)
-    proof = proof if isinstance(proof, list) else [proof]
-    if len(proof) != 1:
-        raise HTTPException(status_code=400, detail="Expecting singular proof from controller.")
+    new_log_entry = request_body.model_dump()["logEntry"]
+    log_entries = await askar.fetch("logEntries", client_id)
 
-    # Verify proofs
-    proof = proof[0]
-    update_key = proof["verificationMethod"].split("#")[-1]
-    if (
-        update_key != await AskarStorage().fetch("updateKey", did)
-        or update_key != log_entry["parameters"]["updateKeys"][0]
-    ):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not log_entries:
+        # First log entry for DID creation
+        registration_key = await askar.fetch("registrationKey", did)
+        if not registration_key:
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
-    AskarVerifier().verify_proof(log_entry, proof)
-    log_entry["proof"] = [proof]
+        document_state = webvh.get_document_state([new_log_entry])
+        webvh.verify_state_proofs(document_state)
+        # witness_rules = document_state.witness_rule
 
-    await AskarStorage().store("logEntries", client_id, [log_entry])
+        if registration_key not in [
+            proof["verificationMethod"].split("#")[-1] for proof in document_state.proofs
+        ]:
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
-    did_document = await AskarStorage().fetch("didDocument", did)
-    did_document["alsoKnownAs"] = [log_entry["state"]["id"]]
-    await AskarStorage().update("didDocument", did, did_document)
-    return JSONResponse(status_code=201, content=log_entry)
+        await askar.store("logEntries", client_id, [document_state.history_line()])
+
+        return JSONResponse(status_code=201, content=document_state.history_line())
+
+    prev_document_state = webvh.get_document_state(log_entries)
+    if prev_document_state.params.get('deactivated'):
+        return JSONResponse(status_code=400, content=prev_document_state.history_line())
+    
+    document_state = webvh.get_document_state([new_log_entry], prev_document_state)
+    
+    webvh.verify_state_proofs(document_state)
+    
+    if prev_document_state.next_key_hashes:
+        document_state._validate_key_rotation(
+            prev_document_state.next_key_hashes,
+            document_state.update_keys
+        )
+        
+    # TODO, check witness rules
+    if prev_document_state.witness_rule:
+        pass
+
+    log_entries.append(document_state.history_line())
+    await askar.update("logEntries", client_id, log_entries)
+    return JSONResponse(status_code=201, content=document_state.history_line())
 
 
 @router.get("/{namespace}/{identifier}/did.json", include_in_schema=False)
 async def read_did(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/next/#read-resolve."""
+    client_id = f"{namespace}:{identifier}"
+    log_entries = await askar.fetch("logEntries", client_id)
+    if log_entries:
+        document_state = webvh.get_document_state(log_entries)
+        did_document = json.loads(
+            json.dumps(document_state.document).replace(
+                f'did:webvh:{document_state.scid}:', 'did:web:'
+            )
+        )
+        did_document['alsoKnownAs'] = [document_state.document_id]
+        return Response(json.dumps(did_document), media_type="application/did+ld+json")
+    
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
-    did_doc = await AskarStorage().fetch("didDocument", did)
-    if did_doc:
-        return Response(json.dumps(did_doc), media_type="application/did+ld+json")
+    did_document = await askar.fetch("didDocument", did)
+    
+    if did_document:
+        return Response(json.dumps(did_document), media_type="application/did+ld+json")
+    
     raise HTTPException(status_code=404, detail="Not Found")
 
 
@@ -169,20 +208,10 @@ async def read_did(namespace: str, identifier: str):
 async def read_did_log(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/next/#read-resolve."""
     client_id = f"{namespace}:{identifier}"
-    log_entries = await AskarStorage().fetch("logEntries", client_id)
-    if log_entries:
-        log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries])
-        return Response(log_entries + "\n", media_type="text/jsonl")
-    raise HTTPException(status_code=404, detail="Not Found")
-
-
-@router.put("/{namespace}/{identifier}")
-async def update_did(namespace: str, identifier: str, request_body: UpdateLogEntry):
-    """See https://identity.foundation/didwebvh/next/#update-rotate."""
-    raise HTTPException(status_code=501, detail="Not Implemented")
-
-
-@router.delete("/{namespace}/{identifier}")
-async def deactivate_did(namespace: str, identifier: str):
-    """See https://identity.foundation/didwebvh/next/#deactivate-revoke."""
-    raise HTTPException(status_code=501, detail="Not Implemented")
+    log_entries = await askar.fetch("logEntries", client_id)
+    
+    if not log_entries:
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries])
+    return Response(f'{log_entries}\n', media_type="text/jsonl")

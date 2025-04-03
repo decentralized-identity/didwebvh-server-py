@@ -11,6 +11,7 @@ from aries_askar import Key, Store
 from aries_askar.bindings import LocalKeyHandle
 from fastapi import HTTPException
 from multiformats import multibase
+from app.utilities import timestamp
 
 from config import settings
 
@@ -21,11 +22,20 @@ class AskarStorage:
     def __init__(self):
         """Initialize the Askar storage plugin."""
         self.db = settings.ASKAR_DB
-        self.key = Store.generate_raw_key(hashlib.md5(settings.DOMAIN.encode()).hexdigest())
+        self.key = Store.generate_raw_key(hashlib.md5(settings.SECRET_KEY.encode()).hexdigest())
 
     async def provision(self, recreate=False):
         """Provision the Askar storage."""
         await Store.provision(self.db, "raw", self.key, recreate=recreate)
+        if not await self.fetch('registry', 'knownWitnesses'):
+            witness_registry = {
+                'meta': {
+                    'created': timestamp(),
+                    'updated': timestamp()
+                },
+                'registry': {}
+            }
+            await self.store('registry', 'knownWitnesses', witness_registry)
 
     async def open(self):
         """Open the Askar storage."""
@@ -55,6 +65,18 @@ class AskarStorage:
         store = await self.open()
         try:
             async with store.session() as session:
+                await session.replace(category, data_key, json.dumps(data), tags=tags)
+        except Exception:
+            raise HTTPException(status_code=404, detail="Couldn't update record.")
+
+    async def append(self, category, data_key, data, tags=None):
+        """Append data in the store."""
+        store = await self.open()
+        try:
+            async with store.session() as session:
+                data_array = await session.fetch(category, data_key)
+                data_array = json.loads(data_array.value)
+                data_array = data_array.append(data)
                 await session.replace(category, data_key, json.dumps(data), tags=tags)
         except Exception:
             raise HTTPException(status_code=404, detail="Couldn't update record.")

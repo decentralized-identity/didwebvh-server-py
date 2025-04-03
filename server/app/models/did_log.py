@@ -33,7 +33,7 @@ class LogEntry(BaseModel):
 
         class WitnessParam(BaseModel):
             """WitnessParam model."""
-            
+
             class Witness(BaseModel):
                 """Witness model."""
 
@@ -42,10 +42,10 @@ class LogEntry(BaseModel):
             threshold: int = Field()
             witnesses: List[Witness] = Field()
 
-        method: str = Field(example=f"did:webvh:{settings.WEBVH_VERSION}")
-        scid: str = Field()
+        method: str = Field(None, example=f"did:webvh:{settings.WEBVH_VERSION}")
+        scid: str = Field(None)
         portable: bool = Field(None)
-        updateKeys: List[str] = Field()
+        updateKeys: List[str] = Field(None)
         nextKeyHashes: List[str] = Field(None)
         witness: WitnessParam = Field(None)
         deactivated: bool = Field(None)
