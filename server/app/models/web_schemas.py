@@ -37,12 +37,6 @@ class NewLogEntry(BaseModel):
     witnessSignature: WitnessSignature = Field(None)
 
 
-# class RegisterInitialLogEntry(BaseModel):
-#     """RegisterInitialLogEntry model."""
-
-#     logEntry: InitialLogEntry = Field()
-
-
 class UpdateLogEntry(BaseModel):
     """UpdateLogEntry model."""
 

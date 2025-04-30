@@ -21,13 +21,6 @@ class DidWebVH:
         self.method_version = f"{self.prefix}0.4"
         self.did_string_base = self.prefix + r"{SCID}:" + settings.DOMAIN
 
-    # def _init_parameters(self, update_key, next_key=None, ttl=100):
-    #     # https://identity.foundation/trustdidweb/#generate-scid
-    #     parameters = LogParameters(
-    #         method=self.method_version, scid=r"{SCID}", updateKeys=[update_key]
-    #     )
-    #     return parameters
-
     def initial_document_state(self, params, document):
         """Return the latest document state."""
         doc_state = DocumentState.initial(params, document)
@@ -64,21 +57,6 @@ class DidWebVH:
         """Create an initial DID document."""
         did_doc = {"@context": [], "id": did_string}
         return did_doc
-
-    # def create(self, did_doc, update_key):
-    #     """Create a new DID WebVH log."""
-    #     # https://identity.foundation/trustdidweb/#create-register
-    #     log_entry = InitialLogEntry(
-    #         versionId=r"{SCID}",
-    #         versionTime=str(datetime.now().isoformat("T", "seconds")),
-    #         parameters=self._init_parameters(update_key=update_key),
-    #         state=self._init_state(did_doc),
-    #     ).model_dump()
-    #     scid = self._generate_scid(log_entry)
-    #     log_entry = json.loads(json.dumps(log_entry).replace("{SCID}", scid))
-    #     log_entry_hash = self._generate_entry_hash(log_entry)
-    #     log_entry["versionId"] = f"1-{log_entry_hash}"
-    #     return log_entry
 
     def verify_resource(self, secured_resource):
         """Verify resource."""

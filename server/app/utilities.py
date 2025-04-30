@@ -39,24 +39,6 @@ def derive_did(namespace, identifier):
     return f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
 
 
-def create_did_doc(did, multikey, kid="key-01"):
-    """Create a DID document."""
-    return DidDocument(
-        id=did,
-        verificationMethod=[
-            {
-                "id": kid,
-                "type": "Multikey",
-                "controller": did,
-                "publicKeyMultibase": multikey,
-            }
-        ],
-        authentication=[kid],
-        assertionMethod=[kid],
-        service=[],
-    ).model_dump()
-
-
 def find_key(did_doc, kid):
     """Find a key in a DID document."""
     return next(
