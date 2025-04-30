@@ -13,6 +13,7 @@ webvh = DidWebVH()
 storage = AskarStorage()
 verifier = AskarVerifier()
 
+
 @router.post("/resources")
 async def upload_attested_resource(request_body: ResourceUpload):
     """Upload an attested resource."""
@@ -64,7 +65,7 @@ async def update_attested_resource(
 @router.get("/{namespace}/{identifier}/resources/{resource_id}")
 async def get_resource(namespace: str, identifier: str, resource_id: str):
     """Fetch existing resource."""
-    
+
     store_id = f"{namespace}:{identifier}:{resource_id}"
     resource = await storage.fetch("resource", store_id)
 
