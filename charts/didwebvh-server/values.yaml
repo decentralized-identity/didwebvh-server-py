@@ -16,14 +16,11 @@ networkPolicy:
 server:
   image:
     repository: ghcr.io/decentralized-identity/didwebvh-server-py
-    tag: 0.1.1
+    tag: 0.2.0
     pullPolicy: IfNotPresent
     pullSecrets: []
   # host is required when enabling TLS in the ingress
   # host: server.myapp.example
-
-  environment:
-    ENDORSER_MULTIKEY: ""
 
   replicaCount: 1
 

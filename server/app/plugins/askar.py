@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
@@ -22,7 +23,7 @@ class AskarStorage:
     def __init__(self):
         """Initialize the Askar storage plugin."""
         self.db = settings.ASKAR_DB
-        self.key = Store.generate_raw_key(hashlib.md5(settings.SECRET_KEY.encode()).hexdigest())
+        self.key = Store.generate_raw_key(hashlib.md5(settings.STORAGE_KEY.encode()).hexdigest())
 
     async def provision(self, recreate=False):
         """Provision the Askar storage."""
@@ -46,6 +47,7 @@ class AskarStorage:
                 data = await session.fetch(category, data_key)
             return json.loads(data.value)
         except Exception:
+            logging.error(f'Error fetching data {category}: {data_key}', exc_info=True)
             return None
 
     async def store(self, category, data_key, data, tags=None):
@@ -55,6 +57,7 @@ class AskarStorage:
             async with store.session() as session:
                 await session.insert(category, data_key, json.dumps(data), tags=tags)
         except Exception:
+            logging.error(f'Error storing data {category}: {data_key}', exc_info=True)
             raise HTTPException(status_code=404, detail="Couldn't store record.")
 
     async def update(self, category, data_key, data, tags=None):
@@ -64,6 +67,7 @@ class AskarStorage:
             async with store.session() as session:
                 await session.replace(category, data_key, json.dumps(data), tags=tags)
         except Exception:
+            logging.error(f'Error updating data {category}: {data_key}', exc_info=True)
             raise HTTPException(status_code=404, detail="Couldn't update record.")
 
     async def append(self, category, data_key, data, tags=None):
@@ -76,6 +80,7 @@ class AskarStorage:
                 data_array = data_array.append(data)
                 await session.replace(category, data_key, json.dumps(data), tags=tags)
         except Exception:
+            logging.error(f'Error fetching data {category}: {data_key}', exc_info=True)
             raise HTTPException(status_code=404, detail="Couldn't update record.")
 
 

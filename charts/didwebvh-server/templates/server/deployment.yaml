@@ -28,15 +28,23 @@ spec:
           image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag }}"
           imagePullPolicy: {{ .Values.server.image.pullPolicy }}
           env:
+            - name: API_KEY
+              valueFrom:
+                apiKeyRef:
+                  name: {{ include "server.fullname" . }}
+                  key: api-key
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "server.fullname" . }}
                   key: secret-key
+            - name: STORAGE_KEY
+              valueFrom:
+                storageKeyRef:
+                  name: {{ include "server.fullname" . }}
+                  key: storage-key
             - name: DOMAIN
               value: {{ .Values.server.host }}
-            - name: ENDORSER_MULTIKEY
-              value: {{ .Values.server.environment.ENDORSER_MULTIKEY }}
             - name: POSTGRES_USER
               value: {{ .Values.postgresql.auth.username }}
             - name: POSTGRES_PASSWORD

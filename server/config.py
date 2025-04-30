@@ -16,8 +16,10 @@ class Settings(BaseSettings):
     PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
+    API_KEY: str = os.environ.get("API_KEY", "s3cret")
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "s3cret")
-    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "0.4")
+    STORAGE_KEY: str = os.environ.get("STORAGE_KEY", "s3cret")
+    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "0.5")
 
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
     DID_WEB_PREFIX: str = "did:web:"

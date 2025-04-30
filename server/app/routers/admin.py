@@ -29,8 +29,9 @@ def get_api_key(
     Raises:
         HTTPException: If the API key is invalid or missing.
     """
-    if api_key_header == settings.SECRET_KEY:
+    if api_key_header == settings.API_KEY:
         return api_key_header
+
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or missing API Key",
