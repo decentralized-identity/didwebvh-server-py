@@ -1,5 +1,4 @@
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
-import json
 import pytest
 import asyncio
 from tests.fixtures import (

@@ -4,7 +4,7 @@ from multiformats import multibase
 from hashlib import sha256
 import jcs
 from config import settings
-from tests.fixtures import TEST_WITNESS_SEED, TEST_SIGNING_SEED, TEST_UPDATE_SEED
+from tests.fixtures import TEST_WITNESS_SEED, TEST_SIGNING_SEED, TEST_REGISTRATION_SEED
 from tests.utils import key_to_multikey, transform, digest_multibase
 from app.models.resource import AttestedResource, ResourceMetadata
 
@@ -27,7 +27,7 @@ class WitnessAgent:
 
 class ControllerAgent:
     def __init__(self):
-        self.update_key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_UPDATE_SEED)
+        self.update_key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_REGISTRATION_SEED)
         self.update_multikey = key_to_multikey(self.update_key)
         self.signing_key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_SIGNING_SEED)
         self.signing_multikey = key_to_multikey(self.update_key)
@@ -35,6 +35,7 @@ class ControllerAgent:
         self.did_key = f"did:key:{self.update_multikey}"
         self.did_web = f"did:web:{settings.DOMAIN}:{DID_NAMESPACE}:{DID_IDENTIFIER}"
         self.issuer_id = None
+        self.verification_method = None
 
     def sign_log(self, document):
         options = PROOF_OPTIONS | {"verificationMethod": f"{self.did_key}#{self.update_multikey}"}
@@ -46,7 +47,7 @@ class ControllerAgent:
         return document | {"proof": proof}
 
     def sign(self, document):
-        options = PROOF_OPTIONS | {"verificationMethod": f"{self.issuer_id}#{self.signing_key_id}"}
+        options = PROOF_OPTIONS | {"verificationMethod": self.verification_method}
         proof = options | {
             "proofValue": multibase.encode(
                 self.signing_key.sign_message(transform(document, options)), "base58btc"

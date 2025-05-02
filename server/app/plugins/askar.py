@@ -96,7 +96,8 @@ class AskarVerifier:
     def create_proof_config(self, did):
         """Create a proof configuration."""
         expires = str(
-            (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat("T", "seconds")
+            (datetime.now(timezone.utc) + timedelta(minutes=settings.REGISTRATION_PROOF_TTL))
+            .isoformat("T", "seconds")
         )
         return {
             "type": self.type,
