@@ -69,7 +69,7 @@ async def test_register_log_entry():
     did_document = await askar.fetch("didDocument", TEST_DID)
     initial_state = DocumentState.initial(
         params={
-            'method': 'did:webvh:1.0',
+            'method': 'did:webvh:0.5',
             'updateKeys': [TEST_REGISTRATION_KEY]
         },
         document=json.loads(json.dumps(did_document).replace('did:web:', r'did:webvh:{SCID}:'))
@@ -85,3 +85,16 @@ async def test_register_log_entry():
 async def test_resolve_did_log():
     did_logs = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
     did_logs = json.loads(did_logs.body.decode())
+
+
+@pytest.mark.asyncio
+async def test_update_log_entry():
+    client_id = f"{TEST_DID_NAMESPACE}:{TEST_DID_IDENTIFIER}"
+    log_entries = await askar.fetch("logEntries", client_id)
+    log_state = didwebvh.get_document_state(log_entries)
+    next_entry = log_state.create_next()
+    log_entry = sign(next_entry.history_line())
+    log_request = NewLogEntry.model_validate({"logEntry": log_entry})
+    response = await new_webvh_log_entry(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, log_request)
+    log_entry = response.body.decode()
+    LogEntry.model_validate(json.loads(log_entry))
