@@ -33,6 +33,11 @@ class AskarStorage:
                 "meta": {"created": timestamp(), "updated": timestamp()},
                 "registry": {},
             }
+            if settings.DEFAULT_WITNESS_KEY:
+                witness_did = f'did:key:{settings.DEFAULT_WITNESS_KEY}'
+                witness_registry['registry'][witness_did] = {
+                    'name': 'Default Server Witness'
+                }
             await self.store("registry", "knownWitnesses", witness_registry)
 
     async def open(self):

@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
+from typing import Union
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
 
@@ -20,6 +22,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "s3cret")
     STORAGE_KEY: str = os.environ.get("STORAGE_KEY", "s3cret")
     WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "0.5")
+    
+    DEFAULT_WITNESS_KEY: Union[str, None] = os.environ.get("DEFAULT_WITNESS_KEY", None)
 
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
     DID_WEB_PREFIX: str = "did:web:"
