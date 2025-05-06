@@ -31,13 +31,13 @@ controller = ControllerAgent()
 
 async def get_mock_issuer():
     did_logs = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    did_logs = did_logs.body.decode().split('\n')[:-1]
+    did_logs = did_logs.body.decode().split("\n")[:-1]
     return json.loads(did_logs[-1]).get("state").get("id")
 
 
 async def get_mock_verification_method():
     did_logs = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    did_logs = did_logs.body.decode().split('\n')[:-1]
+    did_logs = did_logs.body.decode().split("\n")[:-1]
     return json.loads(did_logs[-1]).get("state").get("verificationMethod")[0].get("id")
 
 

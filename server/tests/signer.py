@@ -8,7 +8,7 @@ from multiformats import multibase
 
 
 def sign(document, options=TEST_PROOF_OPTIONS, verification_method=None):
-    document.pop('proof', None)
+    document.pop("proof", None)
     key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_REGISTRATION_SEED)
     if not verification_method:
         pub_key_multi = multibase.encode(

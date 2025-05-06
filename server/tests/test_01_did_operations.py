@@ -15,7 +15,7 @@ from tests.fixtures import (
     TEST_DID,
     TEST_DID_DOCUMENT,
     TEST_PROOF_OPTIONS,
-    TEST_REGISTRATION_KEY
+    TEST_REGISTRATION_KEY,
 )
 from tests.mock_agents import WitnessAgent, ControllerAgent
 import json
@@ -68,11 +68,8 @@ async def test_resolve_did():
 async def test_register_log_entry():
     did_document = await askar.fetch("didDocument", TEST_DID)
     initial_state = DocumentState.initial(
-        params={
-            'method': 'did:webvh:0.5',
-            'updateKeys': [TEST_REGISTRATION_KEY]
-        },
-        document=json.loads(json.dumps(did_document).replace('did:web:', r'did:webvh:{SCID}:'))
+        params={"method": "did:webvh:0.5", "updateKeys": [TEST_REGISTRATION_KEY]},
+        document=json.loads(json.dumps(did_document).replace("did:web:", r"did:webvh:{SCID}:")),
     )
     log_entry = sign(initial_state.history_line())
     log_request = NewLogEntry.model_validate({"logEntry": log_entry})

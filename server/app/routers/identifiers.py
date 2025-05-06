@@ -28,7 +28,7 @@ async def request_did(
 
     if not namespace or not identifier:
         raise HTTPException(status_code=400, detail="Missing namespace or identifier query.")
-    
+
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
 
     if await askar.fetch("didDocument", did):
@@ -41,7 +41,6 @@ async def request_did(
             "proofOptions": verifier.create_proof_config(did),
         },
     )
-
 
 
 @router.post("/")
@@ -126,7 +125,7 @@ async def new_webvh_log_entry(
 
         document_state = webvh.get_document_state([log_entry])
         webvh.verify_state_proofs(document_state)
-        
+
         if registration_key not in [
             proof["verificationMethod"].split("#")[-1] for proof in document_state.proofs
         ]:
@@ -134,7 +133,7 @@ async def new_webvh_log_entry(
 
         # TODO check witness rules
         # witness_rules = document_state.witness_rule
-        
+
         await askar.store("logEntries", client_id, [document_state.history_line()])
 
         return JSONResponse(status_code=201, content=document_state.history_line())
@@ -166,7 +165,7 @@ async def read_did(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/next/#read-resolve."""
     client_id = f"{namespace}:{identifier}"
     log_entries = await askar.fetch("logEntries", client_id)
-    
+
     if log_entries:
         document_state = webvh.get_document_state(log_entries)
         did_document = json.loads(
@@ -182,7 +181,7 @@ async def read_did(namespace: str, identifier: str):
 
     if not did_document:
         raise HTTPException(status_code=404, detail="Not Found")
-    
+
     return Response(json.dumps(did_document), media_type="application/did+ld+json")
 
 

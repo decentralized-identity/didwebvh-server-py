@@ -22,14 +22,14 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "s3cret")
     STORAGE_KEY: str = os.environ.get("STORAGE_KEY", "s3cret")
     WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "0.5")
-    
+
     DEFAULT_WITNESS_KEY: Union[str, None] = os.environ.get("DEFAULT_WITNESS_KEY", None)
 
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
-    
+
     # Proof expiration in minutes
     REGISTRATION_PROOF_TTL: int = 60
 

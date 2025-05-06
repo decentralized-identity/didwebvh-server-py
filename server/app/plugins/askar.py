@@ -34,10 +34,8 @@ class AskarStorage:
                 "registry": {},
             }
             if settings.DEFAULT_WITNESS_KEY:
-                witness_did = f'did:key:{settings.DEFAULT_WITNESS_KEY}'
-                witness_registry['registry'][witness_did] = {
-                    'name': 'Default Server Witness'
-                }
+                witness_did = f"did:key:{settings.DEFAULT_WITNESS_KEY}"
+                witness_registry["registry"][witness_did] = {"name": "Default Server Witness"}
             await self.store("registry", "knownWitnesses", witness_registry)
 
     async def open(self):
@@ -101,8 +99,9 @@ class AskarVerifier:
     def create_proof_config(self, did):
         """Create a proof configuration."""
         expires = str(
-            (datetime.now(timezone.utc) + timedelta(minutes=settings.REGISTRATION_PROOF_TTL))
-            .isoformat("T", "seconds")
+            (
+                datetime.now(timezone.utc) + timedelta(minutes=settings.REGISTRATION_PROOF_TTL)
+            ).isoformat("T", "seconds")
         )
         return {
             "type": self.type,
