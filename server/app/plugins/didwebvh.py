@@ -5,7 +5,6 @@ from config import settings
 from datetime import datetime
 from multiformats import multibase, multihash
 
-# from app.models.did_log import LogParameters
 from app.utilities import digest_multibase
 import canonicaljson
 import json

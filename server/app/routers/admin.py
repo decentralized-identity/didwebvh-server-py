@@ -7,7 +7,7 @@ from fastapi.security import APIKeyHeader
 from app.models.web_schemas import AddWitness
 from app.plugins import AskarStorage
 from config import settings
-from app.utilities import timestamp
+from app.utilities import timestamp, is_valid_multikey
 
 router = APIRouter(tags=["Admin"])
 askar = AskarStorage()
@@ -56,7 +56,7 @@ async def add_known_witness(request_body: AddWitness, api_key: str = Security(ge
     witness_registry = await askar.fetch("registry", "knownWitnesses")
     multikey = request_body["multikey"]
 
-    if not multikey.startswith("z6M") or len(multikey) != 48:
+    if not is_valid_multikey(multikey, alg="ed25519"):
         raise HTTPException(status_code=400, detail="Invalid multikey, must be ed25519 type.")
 
     witness_did = f"did:key:{multikey}"
@@ -77,7 +77,7 @@ async def remove_known_witness(multikey: str, api_key: str = Security(get_api_ke
     """Remove known witness."""
     witness_registry = await askar.fetch("registry", "knownWitnesses")
 
-    if not multikey.startswith("z6M") or len(multikey) != 48:
+    if not is_valid_multikey(multikey, alg="ed25519"):
         raise HTTPException(status_code=400, detail="Invalid multikey, must be ed25519 type.")
 
     witness_did = f"did:key:{multikey}"

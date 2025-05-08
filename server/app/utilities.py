@@ -5,7 +5,18 @@ from config import settings
 import jcs
 import json
 from multiformats import multibase, multihash
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
+
+
+def is_valid_multikey(multikey, alg="ed25519"):
+    """Test for multikey string."""
+    if not multikey.startswith(MULTIKEY_PARAMS[alg]["prefix"]) or len(multikey) != 48:
+        return False
+    if len(multikey) != MULTIKEY_PARAMS[alg]["length"]:
+        return False
+    return True
 
 
 def is_webvh_did(did):
@@ -60,9 +71,14 @@ def first_proof(proof):
     return proof if isinstance(proof, dict) else proof[0]
 
 
-def timestamp():
+def timestamp(minutes_delta=None):
     """Create timestamps."""
-    return str(datetime.now(timezone.utc).isoformat("T", "seconds")).replace("+00:00", "Z")
+    dt = (
+        datetime.now(timezone.utc) + timedelta(minutes=minutes_delta)
+        if minutes_delta
+        else datetime.now(timezone.utc)
+    )
+    return str(dt.isoformat("T", "seconds")).replace("+00:00", "Z")
 
 
 def webvh_to_web_doc(did_document, scid):
