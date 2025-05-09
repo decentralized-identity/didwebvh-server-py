@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
+from typing import Union
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
 
@@ -16,14 +18,20 @@ class Settings(BaseSettings):
     PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
+    API_KEY: str = os.environ.get("API_KEY", "s3cret")
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "s3cret")
-    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "0.4")
+    STORAGE_KEY: str = os.environ.get("STORAGE_KEY", "s3cret")
+    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "0.5")
+
+    DEFAULT_WITNESS_KEY: Union[str, None] = os.environ.get("DEFAULT_WITNESS_KEY", None)
 
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
-    ENDORSER_MULTIKEY: str = os.environ.get("ENDORSER_MULTIKEY", "")
+
+    # Proof expiration in minutes
+    REGISTRATION_PROOF_TTL: int = 60
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
@@ -38,6 +46,8 @@ class Settings(BaseSettings):
         logging.info("Using SQLite database")
 
     SCID_PLACEHOLDER: str = "{SCID}"
+
+    RESERVED_NAMESPACES: list = ["admin", "resources"]
 
 
 settings = Settings()

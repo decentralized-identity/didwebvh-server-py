@@ -31,7 +31,14 @@ controller = ControllerAgent()
 
 async def get_mock_issuer():
     did_logs = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    return json.loads(did_logs.body.decode()).get("state").get("id")
+    did_logs = did_logs.body.decode().split("\n")[:-1]
+    return json.loads(did_logs[-1]).get("state").get("id")
+
+
+async def get_mock_verification_method():
+    did_logs = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
+    did_logs = did_logs.body.decode().split("\n")[:-1]
+    return json.loads(did_logs[-1]).get("state").get("verificationMethod")[0].get("id")
 
 
 def decode_response(response):
@@ -41,6 +48,7 @@ def decode_response(response):
 @pytest.mark.asyncio
 async def test_anoncreds():
     controller.issuer_id = await get_mock_issuer()
+    controller.verification_method = await get_mock_verification_method()
 
     schema = Schema.create(
         TEST_ANONCREDS_SCHEMA["name"],

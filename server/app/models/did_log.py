@@ -18,84 +18,41 @@ class BaseModel(BaseModel):
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
 
 
-class Witness(BaseModel):
-    """Witness model."""
-
-    id: str = Field(None)
-    weight: int = Field(None)
-
-
-class WitnessParam(BaseModel):
-    """WitnessParam model."""
-
-    threshold: int = Field(None)
-    selfWeight: int = Field(None)
-    witnesses: List[Witness] = Field(None)
-
-
 class WitnessSignature(BaseModel):
     """WitnessSignature model."""
 
-    versionId: str = Field(None)
-    proof: List[DataIntegrityProof] = Field()
-
-
-class InitialLogParameters(BaseModel):
-    """InitialLogParameters model."""
-
-    method: str = Field(f"did:webvh:{settings.WEBVH_VERSION}")
-    scid: str = Field()
-    updateKeys: List[str] = Field()
-    prerotation: bool = Field(default=False)
-    portable: bool = Field(default=False)
-    deactivated: bool = Field(False)
-    nextKeyHashes: List[str] = Field(None)
-
-
-class LogParameters(BaseModel):
-    """LogParameters model."""
-
-    prerotation: bool = Field(None)
-    portable: bool = Field(None)
-    updateKeys: List[str] = Field(None)
-    nextKeyHashes: List[str] = Field(None)
-    witness: WitnessParam = Field(None)
-    deactivated: bool = Field(None)
-    ttl: bool = Field(None)
-    method: str = Field(None)
-    scid: str = Field(None)
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "method": "",
-                    "scid": "",
-                    "prerotation": True,
-                    "portable": False,
-                    "updateKeys": [],
-                    "nextKeyHashes": [],
-                }
-            ]
-        }
-    }
-
-
-class InitialLogEntry(BaseModel):
-    """InitialLogEntry model."""
-
     versionId: str = Field()
-    versionTime: str = Field()
-    parameters: LogParameters = Field()
-    state: dict = Field()
-    proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field(None)
+    proof: List[DataIntegrityProof] = Field()
 
 
 class LogEntry(BaseModel):
     """LogEntry model."""
 
+    class Parameters(BaseModel):
+        """LogParameters model."""
+
+        class WitnessParam(BaseModel):
+            """WitnessParam model."""
+
+            class Witness(BaseModel):
+                """Witness model."""
+
+                id: str = Field()
+
+            threshold: int = Field()
+            witnesses: List[Witness] = Field()
+
+        method: str = Field(None, example=f"did:webvh:{settings.WEBVH_VERSION}")
+        scid: str = Field(None)
+        portable: bool = Field(None)
+        updateKeys: List[str] = Field(None)
+        nextKeyHashes: List[str] = Field(None)
+        witness: WitnessParam = Field(None)
+        deactivated: bool = Field(None)
+        ttl: bool = Field(None)
+
     versionId: str = Field()
     versionTime: str = Field()
-    parameters: LogParameters = Field()
+    parameters: Parameters = Field()
     state: DidDocument = Field()
     proof: Union[DataIntegrityProof, List[DataIntegrityProof]] = Field(None)

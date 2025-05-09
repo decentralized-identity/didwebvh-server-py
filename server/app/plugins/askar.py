@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
@@ -11,6 +12,7 @@ from aries_askar import Key, Store
 from aries_askar.bindings import LocalKeyHandle
 from fastapi import HTTPException
 from multiformats import multibase
+from app.utilities import timestamp
 
 from config import settings
 
@@ -21,11 +23,20 @@ class AskarStorage:
     def __init__(self):
         """Initialize the Askar storage plugin."""
         self.db = settings.ASKAR_DB
-        self.key = Store.generate_raw_key(hashlib.md5(settings.DOMAIN.encode()).hexdigest())
+        self.key = Store.generate_raw_key(hashlib.md5(settings.STORAGE_KEY.encode()).hexdigest())
 
     async def provision(self, recreate=False):
         """Provision the Askar storage."""
         await Store.provision(self.db, "raw", self.key, recreate=recreate)
+        if not await self.fetch("registry", "knownWitnesses"):
+            witness_registry = {
+                "meta": {"created": timestamp(), "updated": timestamp()},
+                "registry": {},
+            }
+            if settings.DEFAULT_WITNESS_KEY:
+                witness_did = f"did:key:{settings.DEFAULT_WITNESS_KEY}"
+                witness_registry["registry"][witness_did] = {"name": "Default Server Witness"}
+            await self.store("registry", "knownWitnesses", witness_registry)
 
     async def open(self):
         """Open the Askar storage."""
@@ -39,6 +50,7 @@ class AskarStorage:
                 data = await session.fetch(category, data_key)
             return json.loads(data.value)
         except Exception:
+            logging.debug(f"Error fetching data {category}: {data_key}", exc_info=True)
             return None
 
     async def store(self, category, data_key, data, tags=None):
@@ -48,6 +60,7 @@ class AskarStorage:
             async with store.session() as session:
                 await session.insert(category, data_key, json.dumps(data), tags=tags)
         except Exception:
+            logging.debug(f"Error storing data {category}: {data_key}", exc_info=True)
             raise HTTPException(status_code=404, detail="Couldn't store record.")
 
     async def update(self, category, data_key, data, tags=None):
@@ -57,6 +70,20 @@ class AskarStorage:
             async with store.session() as session:
                 await session.replace(category, data_key, json.dumps(data), tags=tags)
         except Exception:
+            logging.debug(f"Error updating data {category}: {data_key}", exc_info=True)
+            raise HTTPException(status_code=404, detail="Couldn't update record.")
+
+    async def append(self, category, data_key, data, tags=None):
+        """Append data in the store."""
+        store = await self.open()
+        try:
+            async with store.session() as session:
+                data_array = await session.fetch(category, data_key)
+                data_array = json.loads(data_array.value)
+                data_array = data_array.append(data)
+                await session.replace(category, data_key, json.dumps(data), tags=tags)
+        except Exception:
+            logging.debug(f"Error fetching data {category}: {data_key}", exc_info=True)
             raise HTTPException(status_code=404, detail="Couldn't update record.")
 
 
@@ -71,9 +98,7 @@ class AskarVerifier:
 
     def create_proof_config(self, did):
         """Create a proof configuration."""
-        expires = str(
-            (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat("T", "seconds")
-        )
+        expires = timestamp(minutes_delta=settings.REGISTRATION_PROOF_TTL)
         return {
             "type": self.type,
             "cryptosuite": self.cryptosuite,

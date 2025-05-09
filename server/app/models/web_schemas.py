@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 from pydantic import BaseModel, Field
 from .did_document import SecuredDidDocument
 from .resource import AttestedResource
-from .did_log import InitialLogEntry, LogEntry, WitnessSignature
+from .did_log import LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
 
 
@@ -17,16 +17,24 @@ class BaseModel(BaseModel):
         return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
 
 
+class AddWitness(BaseModel):
+    """AddWitness model."""
+
+    label: str = Field()
+    multikey: str = Field()
+
+
 class RegisterDID(BaseModel):
     """RegisterDID model."""
 
     didDocument: SecuredDidDocument = Field()
 
 
-class RegisterInitialLogEntry(BaseModel):
-    """RegisterInitialLogEntry model."""
+class NewLogEntry(BaseModel):
+    """NewLogEntry model."""
 
-    logEntry: InitialLogEntry = Field()
+    logEntry: LogEntry = Field()
+    witnessSignature: WitnessSignature = Field(None)
 
 
 class UpdateLogEntry(BaseModel):
