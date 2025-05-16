@@ -3,7 +3,7 @@ name: didwebvh-server-py
 icon: https://identity.foundation/didwebvh/didwebvh.jpg
 description: An api server to register and serve web dids with verifiable history.
 type: application
-version: 0.2.1
+version: 0.2.2
 appVersion: 0.2.0
 
 maintainers:
