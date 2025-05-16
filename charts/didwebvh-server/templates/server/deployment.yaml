@@ -30,7 +30,7 @@ spec:
           env:
             - name: API_KEY
               valueFrom:
-                apiKeyRef:
+                secretKeyRef:
                   name: {{ include "server.fullname" . }}
                   key: api-key
             - name: SECRET_KEY
@@ -40,7 +40,7 @@ spec:
                   key: secret-key
             - name: STORAGE_KEY
               valueFrom:
-                storageKeyRef:
+                secretKeyRef:
                   name: {{ include "server.fullname" . }}
                   key: storage-key
             - name: DOMAIN
