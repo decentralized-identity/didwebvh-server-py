@@ -43,9 +43,9 @@ spec:
                 secretKeyRef:
                   name: {{ include "server.fullname" . }}
                   key: storage-key
-              {{ if .Values.server.environment.DEFAULT_WITNESS_KEY }}
+              {{ if hasKey .Values.server.default_witness_key }}
             - name: DEFAULT_WITNESS_KEY
-              value: {{ .Values.server.environment.DEFAULT_WITNESS_KEY }}
+              value: {{ .Values.server.default_witness_key }}
               {{ end }}
             - name: DOMAIN
               value: {{ .Values.server.host }}
