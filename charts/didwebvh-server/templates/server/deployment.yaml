@@ -43,6 +43,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "server.fullname" . }}
                   key: storage-key
+              {{ if .Values.server.environment.DEFAULT_WITNESS_KEY }}
+            - name: DEFAULT_WITNESS_KEY
+              value: {{ .Values.server.environment.DEFAULT_WITNESS_KEY }}
+              {{ end }}
             - name: DOMAIN
               value: {{ .Values.server.host }}
             - name: POSTGRES_USER
