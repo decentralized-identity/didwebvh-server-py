@@ -7,6 +7,7 @@ from .did_document import SecuredDidDocument
 from .resource import AttestedResource
 from .did_log import LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
+from .presentation import VerifiablePresentation
 
 
 class BaseModel(BaseModel):
@@ -84,3 +85,9 @@ class ResourceUpload(BaseModel):
 
     attestedResource: AttestedResource = Field()
     options: ResourceOptions = Field()
+
+
+class WhoisUpdate(BaseModel):
+    """WhoisUpdate model."""
+
+    verifiablePresentation: VerifiablePresentation = Field()

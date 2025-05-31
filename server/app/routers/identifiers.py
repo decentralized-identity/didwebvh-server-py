@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse
 
 from app.models.did_document import DidDocument
-from app.models.web_schemas import RegisterDID, NewLogEntry
+from app.models.web_schemas import RegisterDID, NewLogEntry, WhoisUpdate
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
 from config import settings
 
@@ -196,3 +196,26 @@ async def read_did_log(namespace: str, identifier: str):
 
     log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries]) + "\n"
     return Response(log_entries, media_type="text/jsonl")
+
+
+@router.get("/{namespace}/{identifier}/whois.vp", include_in_schema=False)
+async def read_whois(namespace: str, identifier: str):
+    """See https://identity.foundation/didwebvh/v1.0/#whois-linkedvp-service."""
+    client_id = f"{namespace}:{identifier}"
+    whois_vp = await askar.fetch("whois", client_id)
+
+    return Response(whois_vp or {}, media_type="application/vp")
+
+
+@router.post("/{namespace}/{identifier}/whois")
+async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdate):
+    """See https://didwebvh.info/latest/whois/."""
+
+    client_id = f"{namespace}:{identifier}"
+    whois_vp = vars(request_body).get('verifiablePresentation')
+
+    verifier.verify_proof(whois_vp, whois_vp.get('proof'))
+
+    await askar.store("whois", client_id)
+    
+    return JSONResponse(status_code=201, content={})
