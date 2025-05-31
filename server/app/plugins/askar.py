@@ -178,11 +178,11 @@ class AskarVerifier:
         if not key.verify_signature(message=hash_data, signature=signature):
             raise HTTPException(status_code=400, detail="Signature was forged or corrupt.")
 
-    def verify_proof(self, document, proof):
+    def verify_proof(self, document, proof, multikey=None):
         """Verify the proof."""
         self.validate_proof(proof)
 
-        multikey = proof["verificationMethod"].split("#")[-1]
+        multikey = multikey or proof["verificationMethod"].split("#")[-1]
 
         key = Key(LocalKeyHandle()).from_public_bytes(
             alg="ed25519", public=bytes(bytearray(multibase.decode(multikey))[2:])

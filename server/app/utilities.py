@@ -10,6 +10,10 @@ from datetime import datetime, timezone, timedelta
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
 
+def client_id(namespace, identifier):
+    return f"{namespace}:{identifier}"
+
+
 def is_valid_multikey(multikey, alg="ed25519"):
     """Test for multikey string."""
     if not multikey.startswith(MULTIKEY_PARAMS[alg]["prefix"]) or len(multikey) != 48:
