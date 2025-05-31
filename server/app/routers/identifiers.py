@@ -201,10 +201,14 @@ async def read_did_log(namespace: str, identifier: str):
 @router.get("/{namespace}/{identifier}/whois.vp", include_in_schema=False)
 async def read_whois(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/v1.0/#whois-linkedvp-service."""
+
     client_id = f"{namespace}:{identifier}"
     whois_vp = await askar.fetch("whois", client_id)
 
-    return Response(whois_vp or {}, media_type="application/vp")
+    if not whois_vp:
+        return JSONResponse(status_code=404, content={'Reason': 'Not found.'})
+
+    return Response(whois_vp, media_type="application/vp")
 
 
 @router.post("/{namespace}/{identifier}/whois")
@@ -212,10 +216,27 @@ async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdat
     """See https://didwebvh.info/latest/whois/."""
 
     client_id = f"{namespace}:{identifier}"
-    whois_vp = vars(request_body).get('verifiablePresentation')
-
-    verifier.verify_proof(whois_vp, whois_vp.get('proof'))
-
-    await askar.store("whois", client_id)
     
-    return JSONResponse(status_code=201, content={})
+    log_entries = await askar.fetch("logEntries", client_id)
+
+    if not log_entries:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    did_document = log_entries
+
+    whois_vp = vars(request_body).get('verifiablePresentation')
+    proof = first_proof(whois_vp.get('proof'))
+
+    if proof.get('verificationMethod').split('#')[0] != did_document.get('id'):
+        return JSONResponse(status_code=400, content={'Reason': 'Invalid holder.'})
+
+    if not verifier.verify_proof(whois_vp, proof):
+        return JSONResponse(status_code=400, content={'Reason': 'Verification failed.'})
+
+    (
+        await askar.update("whois", client_id) 
+        if await askar.fetch("whois", client_id) 
+        else await askar.store("whois", client_id)
+    )
+    
+    return JSONResponse(status_code=200, content={'Message': 'Whois VP updated.'})
