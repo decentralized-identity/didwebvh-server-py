@@ -10,7 +10,8 @@ from datetime import datetime, timezone, timedelta
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
 
-def client_id(namespace, identifier):
+def fn_client_id(namespace, identifier):
+    """Create the client id."""
     return f"{namespace}:{identifier}"
 
 
@@ -66,6 +67,18 @@ def find_proof(proof_set, kid):
     """Find a proof in a proof set."""
     return next(
         (proof for proof in proof_set if proof["verificationMethod"] == kid),
+        None,
+    )
+
+
+def find_verification_method(did_doc, kid):
+    """Find a proof in a proof set."""
+    return next(
+        (
+            vm["publicKeyMultibase"]
+            for vm in did_doc.document["verificationMethod"]
+            if vm["id"] == kid
+        ),
         None,
     )
 
