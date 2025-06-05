@@ -94,6 +94,7 @@ class AskarStorage:
             else await self.store(category, data_key, data)
         )
 
+
 class AskarVerifier:
     """Askar verifier plugin."""
 
