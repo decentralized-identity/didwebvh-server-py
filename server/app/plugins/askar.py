@@ -86,6 +86,13 @@ class AskarStorage:
             logging.debug(f"Error fetching data {category}: {data_key}", exc_info=True)
             raise HTTPException(status_code=404, detail="Couldn't update record.")
 
+    async def store_or_update(self, category, data_key, data):
+        """Store or update data in the store."""
+        (
+            await self.update(category, data_key, data)
+            if await self.fetch(category, data_key)
+            else await self.store(category, data_key, data)
+        )
 
 class AskarVerifier:
     """Askar verifier plugin."""

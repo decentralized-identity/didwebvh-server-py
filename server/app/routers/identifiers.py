@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from app.models.did_document import DidDocument
 from app.models.web_schemas import RegisterDID, NewLogEntry, WhoisUpdate
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
-from app.utilities import fn_client_id, first_proof, find_verification_method
+from app.utilities import get_client_id, first_proof, find_verification_method
 from config import settings
 
 router = APIRouter(tags=["Identifiers"])
@@ -111,7 +111,7 @@ async def new_webvh_log_entry(
     request_body: NewLogEntry,
 ):
     """Create a new log entry for a given namespace and identifier."""
-    client_id = fn_client_id(namespace, identifier)
+    client_id = get_client_id(namespace, identifier)
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
 
     log_entry = request_body.model_dump()["logEntry"]
@@ -163,7 +163,7 @@ async def new_webvh_log_entry(
 @router.get("/{namespace}/{identifier}/did.json", include_in_schema=False)
 async def read_did(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/next/#read-resolve."""
-    client_id = fn_client_id(namespace, identifier)
+    client_id = get_client_id(namespace, identifier)
     log_entries = await askar.fetch("logEntries", client_id)
 
     if log_entries:
@@ -188,7 +188,7 @@ async def read_did(namespace: str, identifier: str):
 @router.get("/{namespace}/{identifier}/did.jsonl", include_in_schema=False)
 async def read_did_log(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/next/#read-resolve."""
-    client_id = fn_client_id(namespace, identifier)
+    client_id = get_client_id(namespace, identifier)
     log_entries = await askar.fetch("logEntries", client_id)
 
     if not log_entries:
@@ -202,7 +202,7 @@ async def read_did_log(namespace: str, identifier: str):
 async def read_whois(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/v1.0/#whois-linkedvp-service."""
 
-    client_id = fn_client_id(namespace, identifier)
+    client_id = get_client_id(namespace, identifier)
     whois_vp = await askar.fetch("whois", client_id)
 
     if not whois_vp:
@@ -215,7 +215,7 @@ async def read_whois(namespace: str, identifier: str):
 async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdate):
     """See https://didwebvh.info/latest/whois/."""
 
-    client_id = fn_client_id(namespace, identifier)
+    client_id = get_client_id(namespace, identifier)
 
     log_entries = await askar.fetch("logEntries", client_id)
 
@@ -242,10 +242,6 @@ async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdat
     if not verifier.verify_proof(whois_vp_copy, proof, multikey):
         return JSONResponse(status_code=400, content={"Reason": "Verification failed."})
 
-    (
-        await askar.update("whois", client_id, whois_vp)
-        if await askar.fetch("whois", client_id)
-        else await askar.store("whois", client_id, whois_vp)
-    )
+    await askar.store_or_update("whois", client_id, whois_vp)
 
     return JSONResponse(status_code=200, content={"Message": "Whois VP updated."})

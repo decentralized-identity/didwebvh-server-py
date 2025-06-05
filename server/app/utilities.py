@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
 
-def fn_client_id(namespace, identifier):
+def get_client_id(namespace, identifier):
     """Create the client id."""
     return f"{namespace}:{identifier}"
 
