@@ -6,8 +6,9 @@ from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse
 
 from app.models.did_document import DidDocument
-from app.models.web_schemas import RegisterDID, NewLogEntry
+from app.models.web_schemas import RegisterDID, NewLogEntry, WhoisUpdate
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
+from app.utilities import get_client_id, first_proof, find_verification_method
 from config import settings
 
 router = APIRouter(tags=["Identifiers"])
@@ -16,7 +17,6 @@ verifier = AskarVerifier()
 webvh = DidWebVH()
 
 
-# DIDWeb
 @router.get("/")
 async def request_did(
     namespace: str = None,
@@ -58,7 +58,7 @@ async def register_did(
     proof_set = did_document.pop("proof", None)
     if len(proof_set) != 2:
         raise HTTPException(
-            status_code=400, detail="Expecting proof set from controller and endorser."
+            status_code=400, detail="Expecting proof set from controller and known witness."
         )
 
     witness_registry = (await askar.fetch("registry", "knownWitnesses")).get("registry")
@@ -111,7 +111,7 @@ async def new_webvh_log_entry(
     request_body: NewLogEntry,
 ):
     """Create a new log entry for a given namespace and identifier."""
-    client_id = f"{namespace}:{identifier}"
+    client_id = get_client_id(namespace, identifier)
     did = f"{settings.DID_WEB_BASE}:{namespace}:{identifier}"
 
     log_entry = request_body.model_dump()["logEntry"]
@@ -163,7 +163,7 @@ async def new_webvh_log_entry(
 @router.get("/{namespace}/{identifier}/did.json", include_in_schema=False)
 async def read_did(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/next/#read-resolve."""
-    client_id = f"{namespace}:{identifier}"
+    client_id = get_client_id(namespace, identifier)
     log_entries = await askar.fetch("logEntries", client_id)
 
     if log_entries:
@@ -188,7 +188,7 @@ async def read_did(namespace: str, identifier: str):
 @router.get("/{namespace}/{identifier}/did.jsonl", include_in_schema=False)
 async def read_did_log(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/next/#read-resolve."""
-    client_id = f"{namespace}:{identifier}"
+    client_id = get_client_id(namespace, identifier)
     log_entries = await askar.fetch("logEntries", client_id)
 
     if not log_entries:
@@ -196,3 +196,52 @@ async def read_did_log(namespace: str, identifier: str):
 
     log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries]) + "\n"
     return Response(log_entries, media_type="text/jsonl")
+
+
+@router.get("/{namespace}/{identifier}/whois.vp", include_in_schema=False)
+async def read_whois(namespace: str, identifier: str):
+    """See https://identity.foundation/didwebvh/v1.0/#whois-linkedvp-service."""
+
+    client_id = get_client_id(namespace, identifier)
+    whois_vp = await askar.fetch("whois", client_id)
+
+    if not whois_vp:
+        return JSONResponse(status_code=404, content={"Reason": "Not found."})
+
+    return Response(json.dumps(whois_vp), media_type="application/vp")
+
+
+@router.post("/{namespace}/{identifier}/whois")
+async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdate):
+    """See https://didwebvh.info/latest/whois/."""
+
+    client_id = get_client_id(namespace, identifier)
+
+    log_entries = await askar.fetch("logEntries", client_id)
+
+    if not log_entries:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    doc_state = webvh.get_document_state(log_entries)
+
+    request_body = request_body.model_dump()
+
+    whois_vp = request_body.get("verifiablePresentation")
+    whois_vp_copy = whois_vp.copy()
+    proof = first_proof(whois_vp_copy.pop("proof"))
+
+    if proof.get("verificationMethod").split("#")[0] != doc_state.document.get("id"):
+        return JSONResponse(status_code=400, content={"Reason": "Invalid holder."})
+
+    multikey = find_verification_method(doc_state.document, proof.get("verificationMethod"))
+
+    if not multikey:
+        return JSONResponse(status_code=400, content={"Reason": "Invalid verification method."})
+
+    verifier.purpose = "authentication"
+    if not verifier.verify_proof(whois_vp_copy, proof, multikey):
+        return JSONResponse(status_code=400, content={"Reason": "Verification failed."})
+
+    await askar.store_or_update("whois", client_id, whois_vp)
+
+    return JSONResponse(status_code=200, content={"Message": "Whois VP updated."})
