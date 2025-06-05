@@ -76,7 +76,7 @@ def find_verification_method(did_doc, kid):
     return next(
         (
             vm["publicKeyMultibase"]
-            for vm in did_doc.document["verificationMethod"]
+            for vm in did_doc["verificationMethod"]
             if vm["id"] == kid
         ),
         None,
