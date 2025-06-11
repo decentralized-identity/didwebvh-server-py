@@ -48,6 +48,7 @@ class LogEntry(BaseModel):
         updateKeys: List[str] = Field(None)
         nextKeyHashes: List[str] = Field(None)
         witness: WitnessParam = Field(None)
+        watchers: List[str] = Field(None)
         deactivated: bool = Field(None)
         ttl: bool = Field(None)
 
