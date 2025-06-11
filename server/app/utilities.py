@@ -72,7 +72,7 @@ def find_proof(proof_set, kid):
 
 
 def find_verification_method(did_doc, kid):
-    """Find a proof in a proof set."""
+    """Find a verification method's public key given a key id."""
     return next(
         (vm["publicKeyMultibase"] for vm in did_doc["verificationMethod"] if vm["id"] == kid),
         None,
