@@ -17,7 +17,7 @@ class DidWebVH:
     def __init__(self):
         """Initialize the DID WebVH plugin."""
         self.prefix = settings.DID_WEBVH_PREFIX
-        self.method_version = f"{self.prefix}0.4"
+        self.method_version = f"{self.prefix}1.0"
         self.did_string_base = self.prefix + r"{SCID}:" + settings.DOMAIN
 
     def initial_document_state(self, params, document):

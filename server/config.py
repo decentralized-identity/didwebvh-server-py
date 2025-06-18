@@ -18,17 +18,15 @@ class Settings(BaseSettings):
     PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
-    API_KEY: str = os.environ.get("API_KEY", "s3cret")
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "s3cret")
-    STORAGE_KEY: str = os.environ.get("STORAGE_KEY", "s3cret")
-    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "0.5")
-
-    DEFAULT_WITNESS_KEY: Union[str, None] = os.environ.get("DEFAULT_WITNESS_KEY", None)
+    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "1.0")
 
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
+
+    DEFAULT_WITNESS_KEY: Union[str, None] = os.environ.get("DEFAULT_WITNESS_KEY", None)
 
     # Proof expiration in minutes
     REGISTRATION_PROOF_TTL: int = 60
@@ -38,16 +36,25 @@ class Settings(BaseSettings):
     POSTGRES_SERVER_NAME: str = os.getenv("POSTGRES_SERVER_NAME", "")
     POSTGRES_SERVER_PORT: str = os.getenv("POSTGRES_SERVER_PORT", "")
 
-    ASKAR_DB: str = "sqlite://app.db"
     if POSTGRES_USER and POSTGRES_PASSWORD and POSTGRES_SERVER_NAME and POSTGRES_SERVER_PORT:
         logging.info(f"Using postgres storage: {POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}")
         ASKAR_DB: str = f"postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}/didwebvh-server"
     else:
         logging.info("Using SQLite database")
-
-    SCID_PLACEHOLDER: str = "{SCID}"
-
-    RESERVED_NAMESPACES: list = ["admin", "resources"]
+        ASKAR_DB: str = "sqlite://app.db"
+    
+    # Recommended for production deployments
+    ENABLE_POLICY_MODULE: bool = os.getenv("ENABLE_POLICY_MODULE", True)
+    
+    
+    KNOWN_WITNESS_KEY: Union[str, None] = os.environ.get("KNOWN_WITNESS_KEY", None)
+    KNOWN_WITNESS_REGISTRY: Union[str, None] = os.environ.get("KNOWN_WITNESS_REGISTRY", None)
+    WEBVH_ENDORSEMENT: bool = os.environ.get("WEBVH_ENDORSEMENT", True)
+    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", '1.0')
+    WEBVH_WITNESS: bool = os.environ.get("WEBVH_WITNESS", True)
+    WEBVH_WATCHER: Union[str, None] = os.environ.get("WEBVH_WATCHER", None)
+    WEBVH_PREROTATION: bool = os.environ.get("WEBVH_PREROTATION", True)
+    WEBVH_PORTABILITY: bool = os.environ.get("WEBVH_PORTABILITY", True)
 
 
 settings = Settings()

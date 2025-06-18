@@ -48,5 +48,47 @@ sequenceDiagram
 
 An attested resource is a stored resource cryptographically bound to it's location on the web. See the anoncreds document for more information.
 
-## Roadmap
-- whois VP support
+### Setting up policies
+
+The server is equiped with a configurable policy module. Rule sets can be established to change the server behavior when validating some requests.
+
+#### Known Witnesses Registry
+
+A default known witness key to provision the server.
+`KNOWN_WITNESS_KEY=z6MQ`
+
+A list of known witnesses is used for validating witness policies.
+`KNOWN_WITNESS_REGISTRY=https://known-witnesses.example.com`
+
+#### Attested Resource Endorsement
+
+This will require a known witness proof on any attested resource uploaded or updated. It's up to the witness service to determine which resources to endorse from the controller.
+`WEBVH_ENDORSEMENT=true`
+
+#### WebVH Parameters
+
+Require some webvh paramters to be enabled.
+
+##### WebVH Method Version
+
+`WEBVH_VERSION=1.0`
+
+##### Witness
+
+Require a signature from at least 1 known witness.
+`WEBVH_WITNESS=true`
+
+##### Watcher
+
+Require a specific watcher to monitor the server.
+`WEBVH_WATCHER=https://watcher.example.com`
+
+##### Prerotation
+
+Require prerotation
+`WEBVH_PREROTATION=true`
+
+##### Portability
+
+Require portability
+`WEBVH_PORTABILITY=true`
