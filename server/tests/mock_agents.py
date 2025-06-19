@@ -32,20 +32,17 @@ class WitnessAgent:
             "verificationMethod": self.key_id,
         }
         self.proof_digest = sha256(canonicaljson.encode_canonical_json(self.proof_options)).digest()
-        
+
     def sign(self, document):
-        document.pop('proof', None)
+        document.pop("proof", None)
         document_digest = sha256(canonicaljson.encode_canonical_json(document)).digest()
         hash_data = self.proof_digest + document_digest
-        proof_value = multibase.encode(
-            self.key.sign_message(hash_data), 
-            "base58btc"
-        )
-        document['proof'] = [self.proof_options | {'proofValue': proof_value}]
+        proof_value = multibase.encode(self.key.sign_message(hash_data), "base58btc")
+        document["proof"] = [self.proof_options | {"proofValue": proof_value}]
         return document
-        
+
     def create_log_entry_proof(self, log_entry):
-        witness_proof = self.sign({'versionId': log_entry.get('versionId')})
+        witness_proof = self.sign({"versionId": log_entry.get("versionId")})
         return witness_proof
 
 
@@ -60,7 +57,9 @@ class ControllerAgent:
         self.verification_method = None
 
     def sign_log(self, document):
-        options = PROOF_OPTIONS | {"verificationMethod": f"did:key:{self.update_multikey}#{self.update_multikey}"}
+        options = PROOF_OPTIONS | {
+            "verificationMethod": f"did:key:{self.update_multikey}#{self.update_multikey}"
+        }
         proof = options | {
             "proofValue": multibase.encode(
                 self.update_key.sign_message(transform(document, options)), "base58btc"

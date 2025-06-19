@@ -13,7 +13,9 @@ from aries_askar.bindings import LocalKeyHandle
 from fastapi import HTTPException
 from multiformats import multibase
 from app.utilities import timestamp
-from app.models.policy import ActivePolicy#, KnownWitnessRegistry, RegistryMetadata, RegistryEntry
+from app.models.policy import (
+    ActivePolicy,
+)  # , KnownWitnessRegistry, RegistryMetadata, RegistryEntry
 
 from config import settings
 
@@ -38,7 +40,7 @@ class AskarStorage:
                 witness_did = f"did:key:{settings.DEFAULT_WITNESS_KEY}"
                 witness_registry["registry"][witness_did] = {"name": "Default Server Witness"}
             await self.store("registry", "knownWitnesses", witness_registry)
-            
+
         if not await self.fetch("policy", "active"):
             policy = ActivePolicy(
                 version=settings.WEBVH_VERSION,
@@ -47,7 +49,7 @@ class AskarStorage:
                 portability=settings.WEBVH_PORTABILITY,
                 prerotation=settings.WEBVH_PREROTATION,
                 endorsement=settings.WEBVH_ENDORSEMENT,
-                witness_registry_url=settings.KNOWN_WITNESS_REGISTRY
+                witness_registry_url=settings.KNOWN_WITNESS_REGISTRY,
             ).model_dump()
             await self.store("policy", "active", policy)
 

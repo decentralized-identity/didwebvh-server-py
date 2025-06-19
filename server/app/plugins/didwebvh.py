@@ -12,9 +12,12 @@ import canonicaljson
 import json
 from did_webvh.core.state import DocumentState, verify_state_proofs
 
+
 class PolicyError(Exception):
     """Policy error."""
+
     pass
+
 
 class DidWebVH:
     """DID Web Verifiable History (DID WebVH) plugin."""
@@ -22,14 +25,14 @@ class DidWebVH:
     def __init__(self, active_policy=None, active_registry=None):
         """Initialize the DID WebVH plugin."""
         self.askar = AskarStorage()
-        self.prefix = 'did:webvh:'
+        self.prefix = "did:webvh:"
         self.scid_placeholder = settings.SCID_PLACEHOLDER
         self.method_version = f"{self.prefix}{settings.WEBVH_VERSION}"
-        self.did_string_base = f'{self.prefix}{settings.SCID_PLACEHOLDER}:{settings.DOMAIN}'
+        self.did_string_base = f"{self.prefix}{settings.SCID_PLACEHOLDER}:{settings.DOMAIN}"
         self.active_policy = active_policy or {}
         self.known_witness_key = settings.KNOWN_WITNESS_KEY
         self.known_witness_registry = active_registry or {}
-        
+
         # Reserved namespaces based on existing API routes
         self.reserved_namespaces = ["policy"]
 
@@ -56,8 +59,9 @@ class DidWebVH:
 
     def _find_witness_proof(self, proof_set, witness_id):
         return [
-            proof for proof in proof_set 
-            if proof.get('verificationMethod').split('#')[0] == witness_id
+            proof
+            for proof in proof_set
+            if proof.get("verificationMethod").split("#")[0] == witness_id
         ]
 
     def verify_resource(self, secured_resource):
@@ -126,73 +130,66 @@ class DidWebVH:
         identifier = did.split(":")[5]
         content_digest = resource_id.split("/")[-1]
         return f"{namespace}:{identifier}:{content_digest}"
-            
+
     def namespace_available(self, namespace):
         """Check if requested namespace is available."""
         return False if namespace in self.reserved_namespaces else True
 
     def load_known_witness_registry(self, registry):
         """Load known witness registry."""
-        
+
         self.known_witness_registry = registry
-        
+
         if self.known_witness_key:
-            witness_id = f'did:key:{self.known_witness_key}'
+            witness_id = f"did:key:{self.known_witness_key}"
             if witness_id not in self.known_witness_registry:
-                self.known_witness_registry[witness_id] = {
-                    'name': 'Default Server Witness'
-                }
+                self.known_witness_registry[witness_id] = {"name": "Default Server Witness"}
 
     def cache_known_witness_registry(self):
         """Cache known witness registry."""
-        if self.active_policy.get('witness_registry_url'):
-            r = requests.get(self.active_policy.get('witness_registry_url'))
-            self.known_witness_registry |= r.json().get('registry')
-        
-        for witness in self.known_witness_registry:
-            if not witness.startswith('did:key:'):
-                self.known_witness_registry.pop(witness)
-            
-        return self.known_witness_registry
+        if self.active_policy.get("witness_registry_url"):
+            r = requests.get(self.active_policy.get("witness_registry_url"))
+            self.known_witness_registry |= r.json().get("registry")
 
+        for witness in self.known_witness_registry:
+            if not witness.startswith("did:key:"):
+                self.known_witness_registry.pop(witness)
+
+        return self.known_witness_registry
 
     def validate_known_witness(self, document_state, witness_signature):
         """Validate known witness."""
-        witness_id = document_state.params.get('witness').get('witnesses')[0].get('id')
-            
+        witness_id = document_state.params.get("witness").get("witnesses")[0].get("id")
+
         if not witness_id:
             raise PolicyError("No witness")
-        
+
         if not self.known_witness_registry.get(witness_id, None):
             self.cache_known_witness_registry()
             if not self.known_witness_registry.get(witness_id, None):
                 raise PolicyError(f"Unknown witness: {witness_id}")
-        
-        witness_proof = self._find_witness_proof(
-            witness_signature.get('proof'), 
-            witness_id
-        )
-            
+
+        witness_proof = self._find_witness_proof(witness_signature.get("proof"), witness_id)
+
         if not witness_proof:
             raise PolicyError("No witness proof")
-        
 
     async def create_did(self, log_entry, witness_signature=None):
         """Apply policies to DID creation."""
 
         document_state = self.get_document_state([log_entry])
         self.verify_state_proofs(document_state)
-        
+
         witness_rules = document_state.witness_rule
-        if self.active_policy.get('witness'):
+        if self.active_policy.get("witness"):
             self.validate_known_witness(document_state, witness_signature)
-            
+
         log_entries = [document_state.history_line()]
-        
+
         witness_file = []
         if witness_signature:
             witness_file.append(witness_signature)
-            
+
         return log_entries, witness_file
 
     def update_did(self, log_entry, log_entries, witness_signature=None, prev_witness_file=None):
@@ -200,30 +197,30 @@ class DidWebVH:
         prev_document_state = self.get_document_state(log_entries)
         if prev_document_state.params.get("deactivated"):
             raise PolicyError("DID is deactivated")
-        
+
         document_state = self.get_document_state([log_entry], prev_document_state)
         self.verify_state_proofs(document_state, prev_document_state)
-        
+
         if prev_document_state.next_key_hashes:
             document_state._validate_key_rotation(
                 prev_document_state.next_key_hashes, document_state.update_keys
             )
-        
+
         witness_rules = prev_document_state.witness_rule
-        if self.active_policy.get('witness'):
+        if self.active_policy.get("witness"):
             self.validate_known_witness(document_state, witness_signature)
-            
+
         if document_state.deactivated:
             self.deactivate_did()
-            
+
         log_entries.append(document_state.history_line())
-        
+
         witness_file = []
         if witness_signature:
             witness_file.append(witness_signature)
         if prev_witness_file:
             witness_file += prev_witness_file
-            
+
         return log_entries, witness_file
 
     def deactivate_did(self):
@@ -233,31 +230,33 @@ class DidWebVH:
     def proof_options(self):
         """Create new proof options."""
         return {
-            'type': 'DataIntegrityProof',
-            'cryptosuite': 'eddsa-jcs-2022',
-            'proofPurpose': 'assertionMethod'
+            "type": "DataIntegrityProof",
+            "cryptosuite": "eddsa-jcs-2022",
+            "proofPurpose": "assertionMethod",
         }
 
     def parameters(self):
         """Create policy driven parameters."""
-        
+
         server_parameter = {
-            'scid': settings.SCID_PLACEHOLDER,
-            'method': f'did:webvh:{settings.WEBVH_VERSION}',
-            'portable': self.active_policy.get('portability'),
-            'updateKeys': []
+            "scid": settings.SCID_PLACEHOLDER,
+            "method": f"did:webvh:{settings.WEBVH_VERSION}",
+            "updateKeys": [],
         }
-        
-        if self.active_policy.get('prerotation'):
-            server_parameter['nextKeyHashes'] = []
-            
-        if self.active_policy.get('witness'):
-            server_parameter['witness'] = {
-                'threshold': 1,
-                'witnesses': [{'id': witness} for witness in self.known_witness_registry]
+
+        if self.active_policy.get("portability"):
+            server_parameter["portable"] = True
+
+        if self.active_policy.get("prerotation"):
+            server_parameter["nextKeyHashes"] = []
+
+        if self.active_policy.get("witness"):
+            server_parameter["witness"] = {
+                "threshold": 1,
+                "witnesses": [{"id": witness} for witness in self.known_witness_registry],
             }
-            
-        if self.active_policy.get('watcher'):
-            server_parameter['watchers'] = [self.active_policy.get('watcher')]
-            
+
+        if self.active_policy.get("watcher"):
+            server_parameter["watchers"] = [self.active_policy.get("watcher")]
+
         return server_parameter

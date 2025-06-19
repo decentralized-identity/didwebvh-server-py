@@ -27,20 +27,20 @@ async def request_did(
 
     if not namespace or not identifier:
         raise HTTPException(status_code=400, detail="Missing namespace or identifier query.")
-    
+
     client_id = get_client_id(namespace, identifier)
 
     if await askar.fetch("logEntries", client_id):
         raise HTTPException(status_code=409, detail="Identifier unavailable.")
-    
+
     webvh = DidWebVH(
-        active_policy=await askar.fetch('policy', 'active'),
-        active_registry=(await askar.fetch('registry', 'knownWitnesses')).get('registry')
+        active_policy=await askar.fetch("policy", "active"),
+        active_registry=(await askar.fetch("registry", "knownWitnesses")).get("registry"),
     )
-    
+
     if not webvh.namespace_available(namespace):
         raise HTTPException(status_code=400, detail=f"Unavailable namespace: {namespace}.")
-    
+
     return JSONResponse(
         status_code=200,
         content={
@@ -48,8 +48,8 @@ async def request_did(
             "versionTime": timestamp(),
             "parameters": webvh.parameters(),
             "state": {
-                '@context': ['https://www.w3.org/ns/did/v1'],
-                'id': webvh.placeholder_id(namespace, identifier)
+                "@context": ["https://www.w3.org/ns/did/v1"],
+                "id": webvh.placeholder_id(namespace, identifier),
             },
             "proof": webvh.proof_options(),
         },
@@ -124,18 +124,18 @@ async def new_log_entry(
     request_body: NewLogEntry,
 ):
     """Create a new log entry for a given namespace and identifier."""
-    
+
     client_id = get_client_id(namespace, identifier)
-    
+
     prev_log_entries = await askar.fetch("logEntries", client_id)
     prev_witness_file = await askar.fetch("witnessFile", client_id)
 
-    log_entry = request_body.model_dump().get('logEntry')
-    witness_signature = request_body.model_dump().get('witnessSignature')
-    
+    log_entry = request_body.model_dump().get("logEntry")
+    witness_signature = request_body.model_dump().get("witnessSignature")
+
     webvh = DidWebVH(
         active_policy=await askar.fetch("policy", "active"),
-        active_registry=(await askar.fetch("registry", "knownWitnesses")).get('registry'),
+        active_registry=(await askar.fetch("registry", "knownWitnesses")).get("registry"),
     )
 
     # Create DID
@@ -149,23 +149,23 @@ async def new_log_entry(
         await askar.store("witnessFile", client_id, witness_file)
 
         return JSONResponse(status_code=201, content=log_entries[-1])
-    
+
     # Update DID
     try:
         log_entries, witness_file = webvh.update_did(
-            log_entry=log_entry, 
-            log_entries=prev_log_entries, 
-            witness_signature=witness_signature, 
-            prev_witness_file=prev_witness_file
+            log_entry=log_entry,
+            log_entries=prev_log_entries,
+            witness_signature=witness_signature,
+            prev_witness_file=prev_witness_file,
         )
     except PolicyError as err:
         raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
-    
+
     await askar.update("logEntries", client_id, log_entries)
     await askar.update("witnessFile", client_id, witness_file)
-    
+
     # Deactivate DID
-    if log_entries[-1].get('parameters').get('deactivated'):
+    if log_entries[-1].get("parameters").get("deactivated"):
         try:
             webvh.deactivate_did()
         except PolicyError as err:
@@ -182,10 +182,11 @@ async def read_did(namespace: str, identifier: str):
 
     if not log_entries:
         raise HTTPException(status_code=404, detail="Not Found")
-    
+
     document_state = webvh.get_document_state(log_entries)
     did_document = json.dumps(document_state.to_did_web())
     return Response(did_document, media_type="application/did+ld+json")
+
 
 @router.get("/{namespace}/{identifier}/did.jsonl", include_in_schema=False)
 async def read_did_log(namespace: str, identifier: str):
@@ -227,7 +228,7 @@ async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdat
     doc_state = webvh.get_document_state(log_entries)
 
     whois_vp = request_body.model_dump().get("verifiablePresentation")
-    
+
     whois_vp_copy = whois_vp.copy()
     proof = first_proof(whois_vp_copy.pop("proof"))
 

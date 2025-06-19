@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     STORAGE_KEY: str = os.environ.get("STORAGE_KEY", "s3cret")
 
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
-    SCID_PLACEHOLDER: str = r'{SCID}'
+    SCID_PLACEHOLDER: str = r"{SCID}"
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
@@ -32,8 +32,8 @@ class Settings(BaseSettings):
 
     # Proof expiration in minutes
     REGISTRATION_PROOF_TTL: int = 60
-    
-    ATTESTED_RESOURCE_CTX: str = 'https://opsecid.github.io/attested-resource/v1'
+
+    ATTESTED_RESOURCE_CTX: str = "https://opsecid.github.io/attested-resource/v1"
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
@@ -46,14 +46,14 @@ class Settings(BaseSettings):
     else:
         logging.info("Using SQLite database")
         ASKAR_DB: str = "sqlite://app.db"
-    
+
     # Recommended for production deployments
     ENABLE_POLICY_MODULE: bool = os.getenv("ENABLE_POLICY_MODULE", True)
 
     KNOWN_WITNESS_KEY: Union[str, None] = os.environ.get("KNOWN_WITNESS_KEY", None)
     KNOWN_WITNESS_REGISTRY: Union[str, None] = os.environ.get("KNOWN_WITNESS_REGISTRY", None)
     WEBVH_ENDORSEMENT: bool = os.environ.get("WEBVH_ENDORSEMENT", True)
-    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", '1.0')
+    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "1.0")
     WEBVH_WITNESS: bool = os.environ.get("WEBVH_WITNESS", True)
     WEBVH_WATCHER: Union[str, None] = os.environ.get("WEBVH_WATCHER", None)
     WEBVH_PREROTATION: bool = os.environ.get("WEBVH_PREROTATION", True)

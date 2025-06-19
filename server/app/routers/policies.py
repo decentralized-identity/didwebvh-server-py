@@ -44,6 +44,7 @@ async def get_active_policy(api_key: str = Security(get_api_key)):
     active_policy = await askar.fetch("policy", "active")
     return JSONResponse(status_code=200, content=active_policy)
 
+
 @router.get("/policy/known-witnesses")
 async def get_known_witnesses(api_key: str = Security(get_api_key)):
     """Get known witnesses registry."""
