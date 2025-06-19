@@ -11,10 +11,13 @@ from app.routers.identifiers import new_log_entry, read_did, read_did_log, reque
 from tests.fixtures import (
     TEST_DID_IDENTIFIER,
     TEST_DID_NAMESPACE,
+    TEST_VERSION_TIME,
+    TEST_UPDATE_TIME,
     TEST_DOMAIN,
     TEST_DID,
     TEST_DID_DOCUMENT,
     TEST_LOG_ENTRY,
+    TEST_POLICY,
     TEST_PLACEHOLDER_ID,
     TEST_PROOF_OPTIONS,
     TEST_NEXT_KEY_HASH,
@@ -46,31 +49,28 @@ async def test_request_did():
 
 @pytest.mark.asyncio
 async def test_create_did():
+    await askar.update('registry', 'knownWitnesses', {'registry': {}})
+    await askar.update('policy', 'active', TEST_POLICY)
+    
     response = await request_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
     did_request = json.loads(response.body.decode())
     
     parameters = did_request.get('parameters')
     parameters['updateKeys'] = [TEST_UPDATE_KEY]
-    # parameters['nextKeyHashes'] = [TEST_NEXT_KEY_HASH]
+    
+    if parameters.get('nextKeyHashes') == []:
+        parameters['nextKeyHashes'] = [TEST_NEXT_KEY_HASH]
+        
+    if parameters.get('witness'):
+        pass
     
     initial_state = DocumentState.initial(
+        timestamp=TEST_VERSION_TIME,
         params=parameters,
         document=did_request.get('state'),
     )
-    
     initial_log_entry = sign(initial_state.history_line())
-    print(json.dumps(initial_log_entry, indent=2))
-    # print(initial_state)
-    initial_state = DocumentState.initial(
-        params={"method": "did:webvh:1.0", "updateKeys": [TEST_UPDATE_KEY]},
-        document={
-            '@context': ['https://www.w3.org/ns/did/v1'],
-            'id': TEST_PLACEHOLDER_ID
-        },
-    )
     
-    initial_log_entry = sign(initial_state.history_line())
-    # print(json.dumps(initial_log_entry, indent=2))
     response = await new_log_entry(
         TEST_DID_NAMESPACE, 
         TEST_DID_IDENTIFIER, 
@@ -111,6 +111,7 @@ async def test_update_did():
         doc_state = DocumentState.load_history_json(log_entry, doc_state)
         
     new_state = doc_state.create_next(
+        timestamp=TEST_UPDATE_TIME,
         document=None,
         params_update=None
     )

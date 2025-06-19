@@ -32,11 +32,6 @@ class DidWebVH:
         # Reserved namespaces based on existing API routes
         self.reserved_namespaces = ["policy"]
 
-    def initial_document_state(self, params, document):
-        """Return the latest document state."""
-        doc_state = DocumentState.initial(params, document)
-        return doc_state.history_line()
-
     def placeholder_id(self, namespace, identifier):
         """Return placeholder id."""
         return f"did:webvh:{settings.SCID_PLACEHOLDER}:{settings.DOMAIN}:{namespace}:{identifier}"
@@ -241,7 +236,7 @@ class DidWebVH:
         server_parameter = {
             'scid': settings.SCID_PLACEHOLDER,
             'method': f'did:webvh:{settings.WEBVH_VERSION}',
-            'portability': self.active_policy.get('portability'),
+            'portable': self.active_policy.get('portability'),
             'updateKeys': []
         }
         

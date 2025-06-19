@@ -2,6 +2,7 @@ from app.models.did_document import DidDocument
 from config import settings
 from app.models.did_document import DidDocument, VerificationMethodMultikey
 from app.models.di_proof import DataIntegrityProof
+from app.models.policy import ActivePolicy
 
 
 TEST_SIGNING_SEED = "ixUwS8A2SYzmPiGor7t08wgg1ifNABrB"
@@ -20,6 +21,7 @@ TEST_NEXT_KEY_HASH = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
 TEST_DOMAIN = settings.DOMAIN
 TEST_DID_NAMESPACE = "test"
 TEST_DID_IDENTIFIER = "01"
+TEST_SCID = 'QmQHoxuyZznVkAimy3f4qst66UNAjUMXzgLn4tfavPSSSE'
 TEST_PLACEHOLDER_ID = r'did:webvh:{SCID}:' + f'{TEST_DOMAIN}:{TEST_DID_NAMESPACE}:{TEST_DID_IDENTIFIER}'
 TEST_DID = f"{settings.DID_WEB_BASE}:{TEST_DID_NAMESPACE}:{TEST_DID_IDENTIFIER}"
 TEST_PROOF_OPTIONS = {
@@ -27,6 +29,8 @@ TEST_PROOF_OPTIONS = {
     "cryptosuite": "eddsa-jcs-2022",
     "proofPurpose": "assertionMethod",
 }
+TEST_VERSION_TIME = '2025-06-19T03:09:19Z'
+TEST_UPDATE_TIME = '2025-06-19T03:10:19Z'
 
 TEST_LOG_ENTRY = {}
 
@@ -41,6 +45,17 @@ TEST_DID_DOCUMENT = DidDocument(
             publicKeyMultibase=TEST_SIGNING_KEY,
         )
     ],
+).model_dump()
+
+TEST_POLICY = ActivePolicy(
+    version='1.0',
+    witness=False,
+    watcher=None,
+    portability=False,
+    prerotation=False,
+    endorsement=False,
+    validity=0,
+    witness_registry_url=None,
 ).model_dump()
 
 
