@@ -7,25 +7,27 @@ from app.plugins import DidWebVH
 
 webvh = DidWebVH()
 
-class PolicyError:
+class PolicyError(Exception):
     """Policy error."""
     pass
     
 
-class WebVHPolicyModule:
+class PolicyModule:
     """Policy plugin."""
 
     def __init__(self):
         """Initialize the plugin."""
         
         # Reserved namespaces based on existing API routes
-        self.reserved_namespaces = ["admin", "resources"]
+        self.reserved_namespaces = ["policy"]
         
         self.webvh_version: str = settings.WEBVH_VERSION
         self.webvh_witness: bool = settings.WEBVH_WITNESS
+        self.webvh_watcher: str = settings.WEBVH_WATCHER
         self.webvh_portability: bool = settings.WEBVH_PORTABILITY
         self.webvh_prerotation: bool = settings.WEBVH_PREROTATION
         self.webvh_endorsement: bool = settings.WEBVH_ENDORSEMENT
+        self.webvh_validity: int = settings.WEBVH_VALIDITY
         
         self.known_witness_key: str | None = settings.KNOWN_WITNESS_KEY
         self.known_witness_registry: dict = {}
@@ -36,6 +38,16 @@ class WebVHPolicyModule:
             proof for proof in proof_set 
             if proof.get('verificationMethod').split('#')[0] == witness_id
         ]
+
+    def refresh_policy(self, policy):
+        
+        self.webvh_version: str = settings.WEBVH_VERSION
+        self.webvh_witness: bool = settings.WEBVH_WITNESS
+        self.webvh_watcher: str = settings.WEBVH_WATCHER
+        self.webvh_portability: bool = settings.WEBVH_PORTABILITY
+        self.webvh_prerotation: bool = settings.WEBVH_PREROTATION
+        self.webvh_endorsement: bool = settings.WEBVH_ENDORSEMENT
+        self.webvh_validity: int = settings.WEBVH_VALIDITY
 
     def load_known_witness_registry(self, registry):
         """Load known witness registry."""
@@ -93,8 +105,8 @@ class WebVHPolicyModule:
         webvh.verify_state_proofs(document_state)
         
         witness_rules = document_state.witness_rule
-        if self.webvh_witness:
-            self.validate_known_witness(document_state, witness_signature)
+        # if self.webvh_witness:
+        #     self.validate_known_witness(document_state, witness_signature)
             
         log_entries = [document_state.history_line()]
         witness_file = [witness_signature]
@@ -116,15 +128,17 @@ class WebVHPolicyModule:
             )
         
         witness_rules = prev_document_state.witness_rule
-        if self.webvh_witness:
-            self.validate_known_witness(document_state, witness_signature)
+        # if self.webvh_witness:
+        #     self.validate_known_witness(document_state, witness_signature)
             
         if document_state.deactivated:
             self.deactivate_did()
             
         log_entries.append(document_state.history_line())
+        # witness_file = [prev_witness_file | witness_signature]
+        witness_file = [witness_signature]
             
-        return log_entries, prev_witness_file | witness_signature
+        return log_entries, witness_file
 
     def deactivate_did(self, log_entry, witness_signature=None):
         """Apply policies to DID deactivation."""
@@ -137,6 +151,25 @@ class WebVHPolicyModule:
             'cryptosuite': 'eddsa-jcs-2022',
             'proofPurpose': 'assertionMethod'
         }
+
+    def parameters(self):
+        """Create policy driven parameters."""
+        server_parameter = {
+            'scid': settings.SCID_PLACEHOLDER,
+            'method': f'did:webvh:{self.webvh_version}',
+            'portability': self.webvh_portability,
+            'updateKeys': []
+        }
+        if self.webvh_prerotation:
+            server_parameter['nextKeyHashes'] = []
+        if self.webvh_witness:
+            server_parameter['witness'] = {
+                'threshold': 1,
+                'witnesses': [{'id': witness} for witness in self.known_witness_registry]
+            }
+        if self.webvh_watcher:
+            server_parameter['watchers'] = [self.webvh_watcher]
+        return server_parameter
 
     # def check_attested_resource(self, attested_resource):
     #     """Validate a new attested resource."""

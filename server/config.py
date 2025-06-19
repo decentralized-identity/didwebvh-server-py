@@ -18,10 +18,12 @@ class Settings(BaseSettings):
     PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
+    API_KEY: str = os.environ.get("API_KEY", "webvh")
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "s3cret")
-    WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "1.0")
+    STORAGE_KEY: str = os.environ.get("STORAGE_KEY", "s3cret")
 
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
+    SCID_PLACEHOLDER: str = r'{SCID}'
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
@@ -55,6 +57,7 @@ class Settings(BaseSettings):
     WEBVH_WATCHER: Union[str, None] = os.environ.get("WEBVH_WATCHER", None)
     WEBVH_PREROTATION: bool = os.environ.get("WEBVH_PREROTATION", True)
     WEBVH_PORTABILITY: bool = os.environ.get("WEBVH_PORTABILITY", True)
+    WEBVH_VALIDITY: int = os.environ.get("WEBVH_VALIDITY", 0)
 
 
 settings = Settings()

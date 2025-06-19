@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import admin, identifiers, resources
+from app.routers import policies, identifiers, resources
 from app.contexts import AttestedResourceCtx
 import json
 import logging
@@ -42,7 +42,7 @@ async def get_attested_resource_ctx():
     return Response(ctx, media_type="application/ld+json")
 
 
-api_router.include_router(admin.router)
+api_router.include_router(policies.router)
 api_router.include_router(resources.router)
 api_router.include_router(identifiers.router)
 

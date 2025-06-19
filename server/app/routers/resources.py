@@ -14,7 +14,7 @@ storage = AskarStorage()
 verifier = AskarVerifier()
 
 
-@router.post("/resources")
+@router.post("/{namespace}/{identifier}/resources")
 async def upload_attested_resource(request_body: ResourceUpload):
     """Upload an attested resource."""
     secured_resource = vars(request_body)["attestedResource"].model_dump()
