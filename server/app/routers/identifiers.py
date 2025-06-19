@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from app.models.did_document import DidDocument
 from app.models.policy import ActivePolicy
 from app.models.web_schemas import RegisterDID, NewLogEntry, WhoisUpdate
-from app.plugins import AskarStorage, AskarVerifier, DidWebVH, PolicyModule, PolicyError
+from app.plugins import AskarStorage, AskarVerifier, DidWebVH, PolicyError
 from app.utilities import get_client_id, first_proof, find_verification_method, timestamp
 from config import settings
 
@@ -16,7 +16,6 @@ router = APIRouter(tags=["Identifiers"])
 askar = AskarStorage()
 verifier = AskarVerifier()
 webvh = DidWebVH()
-policy = PolicyModule()
 
 
 @router.get("/")
@@ -25,8 +24,6 @@ async def request_did(
     identifier: str = None,
 ):
     """Request a DID document and proof options for a given namespace and identifier."""
-    if not policy.available_namespace(namespace):
-        raise HTTPException(status_code=400, detail=f"Reserved namespace: {namespace}.")
 
     if not namespace or not identifier:
         raise HTTPException(status_code=400, detail="Missing namespace or identifier query.")
@@ -36,23 +33,25 @@ async def request_did(
     if await askar.fetch("logEntries", client_id):
         raise HTTPException(status_code=409, detail="Identifier unavailable.")
     
-    registry = (await askar.fetch('registry', 'knownWitnesses')).get('registry')
-    policy.load_known_witness_registry(registry)
-    
-    placeholder_id = (
-        f"did:webvh:{settings.SCID_PLACEHOLDER}:{settings.DOMAIN}:{namespace}:{identifier}"
+    webvh = DidWebVH(
+        active_policy=await askar.fetch('policy', 'active'),
+        active_registry=(await askar.fetch('registry', 'knownWitnesses')).get('registry')
     )
+    
+    if not webvh.namespace_available(namespace):
+        raise HTTPException(status_code=400, detail=f"Unavailable namespace: {namespace}.")
+    
     return JSONResponse(
         status_code=200,
         content={
-            "versionId": settings.SCID_PLACEHOLDER,
+            "versionId": webvh.scid_placeholder,
             "versionTime": timestamp(),
-            "parameters": policy.parameters(),
+            "parameters": webvh.parameters(),
             "state": {
                 '@context': ['https://www.w3.org/ns/did/v1'],
-                'id': placeholder_id
+                'id': webvh.placeholder_id(namespace, identifier)
             },
-            "proof": policy.proof_options(),
+            "proof": webvh.proof_options(),
         },
     )
 
@@ -125,6 +124,7 @@ async def new_log_entry(
     request_body: NewLogEntry,
 ):
     """Create a new log entry for a given namespace and identifier."""
+    
     client_id = get_client_id(namespace, identifier)
     
     prev_log_entries = await askar.fetch("logEntries", client_id)
@@ -132,11 +132,16 @@ async def new_log_entry(
 
     log_entry = request_body.model_dump().get('logEntry')
     witness_signature = request_body.model_dump().get('witnessSignature')
+    
+    webvh = DidWebVH(
+        active_policy=await askar.fetch("policy", "active"),
+        active_registry=(await askar.fetch("registry", "knownWitnesses")).get('registry'),
+    )
 
     # Create DID
     if not prev_log_entries:
         try:
-            log_entries, witness_file = policy.create_did(log_entry, witness_signature)
+            log_entries, witness_file = webvh.create_did(log_entry, witness_signature)
         except PolicyError as err:
             raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
 
@@ -147,7 +152,7 @@ async def new_log_entry(
     
     # Update DID
     try:
-        log_entries, witness_file = policy.update_did(
+        log_entries, witness_file = webvh.update_did(
             log_entry, 
             prev_log_entries, 
             witness_signature, 
@@ -162,7 +167,7 @@ async def new_log_entry(
     # Deactivate DID
     if log_entries[-1].get('parameters').get('deactivated'):
         try:
-            policy.deactivate_did()
+            webvh.deactivate_did()
         except PolicyError as err:
             raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
 

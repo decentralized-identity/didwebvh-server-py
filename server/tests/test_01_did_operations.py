@@ -30,7 +30,7 @@ askar = AskarStorage()
 asyncio.run(askar.provision(recreate=True))
 
 verifier = AskarVerifier()
-didwebvh = DidWebVH()
+webvh = DidWebVH()
 
 witness = WitnessAgent()
 controller = ControllerAgent()

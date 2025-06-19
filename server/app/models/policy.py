@@ -14,6 +14,7 @@ class ActivePolicy(BaseModel):
     """Model for server policies."""
     version: str = Field(None)
     witness: bool = Field(True)
+    watcher: Union[str, None] = Field(None)
     portability: bool = Field(True)
     prerotation: bool = Field(True)
     endorsement: bool = Field(True)

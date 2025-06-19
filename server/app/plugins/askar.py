@@ -30,13 +30,6 @@ class AskarStorage:
         """Provision the Askar storage."""
         await Store.provision(self.db, "raw", self.key, recreate=recreate)
         if not await self.fetch("registry", "knownWitnesses"):
-            # witness_registry = KnownWitnessRegistry(
-            #     meta = RegistryMetadata(
-            #         created=timestamp(),
-            #         updated=timestamp(),
-            #     ),
-            #     registry={}
-            # )
             witness_registry = {
                 "meta": {"created": timestamp(), "updated": timestamp()},
                 "registry": {},
@@ -50,6 +43,7 @@ class AskarStorage:
             policy = ActivePolicy(
                 version=settings.WEBVH_VERSION,
                 witness=settings.WEBVH_WITNESS,
+                watcher=settings.WEBVH_WATCHER,
                 portability=settings.WEBVH_PORTABILITY,
                 prerotation=settings.WEBVH_PREROTATION,
                 endorsement=settings.WEBVH_ENDORSEMENT,
