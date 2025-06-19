@@ -23,11 +23,17 @@ TEST_DID_NAMESPACE = "test"
 TEST_DID_IDENTIFIER = "01"
 TEST_SCID = 'QmQHoxuyZznVkAimy3f4qst66UNAjUMXzgLn4tfavPSSSE'
 TEST_PLACEHOLDER_ID = r'did:webvh:{SCID}:' + f'{TEST_DOMAIN}:{TEST_DID_NAMESPACE}:{TEST_DID_IDENTIFIER}'
-TEST_DID = f"{settings.DID_WEB_BASE}:{TEST_DID_NAMESPACE}:{TEST_DID_IDENTIFIER}"
+TEST_DID = f"did:webvh:{TEST_SCID}:{TEST_DOMAIN}:{TEST_DID_NAMESPACE}:{TEST_DID_IDENTIFIER}"
 TEST_PROOF_OPTIONS = {
     "type": "DataIntegrityProof",
     "cryptosuite": "eddsa-jcs-2022",
     "proofPurpose": "assertionMethod",
+}
+TEST_VERIFICATION_METHOD = {
+    "id": f'{TEST_DID}#{TEST_SIGNING_KEY}',
+    "type": "Multikey",
+    "controller": TEST_DID,
+    "publicKeyMultibase": TEST_SIGNING_KEY,
 }
 TEST_VERSION_TIME = '2025-06-19T03:09:19Z'
 TEST_UPDATE_TIME = '2025-06-19T03:10:19Z'
@@ -49,7 +55,7 @@ TEST_DID_DOCUMENT = DidDocument(
 
 TEST_POLICY = ActivePolicy(
     version='1.0',
-    witness=False,
+    witness=True,
     watcher=None,
     portability=False,
     prerotation=False,
@@ -58,6 +64,11 @@ TEST_POLICY = ActivePolicy(
     witness_registry_url=None,
 ).model_dump()
 
+TEST_WITNESS_REGISTRY = {
+    f'did:key:{TEST_WITNESS_KEY}': {
+        'name': 'Test Witness'
+    }
+}
 
 TEST_ANONCREDS_SCHEMA = {"name": "test", "version": "1.0", "attributes": ["test_attribute"]}
 

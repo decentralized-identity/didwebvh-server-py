@@ -7,9 +7,9 @@ from datetime import datetime
 from multiformats import multibase, multihash
 
 from app.utilities import digest_multibase
+from app.plugins import AskarStorage
 import canonicaljson
 import json
-from asyncio import run as _await
 from did_webvh.core.state import DocumentState, verify_state_proofs
 
 class PolicyError(Exception):
@@ -19,15 +19,16 @@ class PolicyError(Exception):
 class DidWebVH:
     """DID Web Verifiable History (DID WebVH) plugin."""
 
-    def __init__(self, active_policy=None, active_registry={}):
+    def __init__(self, active_policy=None, active_registry=None):
         """Initialize the DID WebVH plugin."""
+        self.askar = AskarStorage()
         self.prefix = 'did:webvh:'
         self.scid_placeholder = settings.SCID_PLACEHOLDER
         self.method_version = f"{self.prefix}{settings.WEBVH_VERSION}"
         self.did_string_base = f'{self.prefix}{settings.SCID_PLACEHOLDER}:{settings.DOMAIN}'
-        self.active_policy = active_policy
+        self.active_policy = active_policy or {}
         self.known_witness_key = settings.KNOWN_WITNESS_KEY
-        self.known_witness_registry = active_registry
+        self.known_witness_registry = active_registry or {}
         
         # Reserved namespaces based on existing API routes
         self.reserved_namespaces = ["policy"]
@@ -144,31 +145,31 @@ class DidWebVH:
 
     def cache_known_witness_registry(self):
         """Cache known witness registry."""
-        if self.known_witness_registry_url:
-            r = requests.get(self.known_witness_registry_url)
-            registry = r.json()
+        if self.active_policy.get('witness_registry_url'):
+            r = requests.get(self.active_policy.get('witness_registry_url'))
+            self.known_witness_registry |= r.json().get('registry')
         
-        for witness in registry.get('registry'):
+        for witness in self.known_witness_registry:
             if not witness.startswith('did:key:'):
-                raise PolicyError(f"Invalid witness registry: {self.known_witness_registry_url}")
+                self.known_witness_registry.pop(witness)
             
-        return self.known_witness_registry | registry.get('registry')
+        return self.known_witness_registry
 
 
     def validate_known_witness(self, document_state, witness_signature):
         """Validate known witness."""
-        witness_id = document_state.params.get('witness').get('witnesses').get(0)
+        witness_id = document_state.params.get('witness').get('witnesses')[0].get('id')
             
         if not witness_id:
             raise PolicyError("No witness")
         
-        if witness_id not in self.known_witness_registry:
+        if not self.known_witness_registry.get(witness_id, None):
             self.cache_known_witness_registry()
-            if witness_id not in self.known_witness_registry:
-                raise PolicyError("Unknown witness")
+            if not self.known_witness_registry.get(witness_id, None):
+                raise PolicyError(f"Unknown witness: {witness_id}")
         
         witness_proof = self._find_witness_proof(
-            witness_signature.get('signatures'), 
+            witness_signature.get('proof'), 
             witness_id
         )
             
@@ -176,18 +177,21 @@ class DidWebVH:
             raise PolicyError("No witness proof")
         
 
-    def create_did(self, log_entry, witness_signature=None):
+    async def create_did(self, log_entry, witness_signature=None):
         """Apply policies to DID creation."""
 
         document_state = self.get_document_state([log_entry])
         self.verify_state_proofs(document_state)
         
         witness_rules = document_state.witness_rule
-        # if self.webvh_witness:
-        #     self.validate_known_witness(document_state, witness_signature)
+        if self.active_policy.get('witness'):
+            self.validate_known_witness(document_state, witness_signature)
             
         log_entries = [document_state.history_line()]
-        witness_file = [witness_signature]
+        
+        witness_file = []
+        if witness_signature:
+            witness_file.append(witness_signature)
             
         return log_entries, witness_file
 
@@ -206,19 +210,23 @@ class DidWebVH:
             )
         
         witness_rules = prev_document_state.witness_rule
-        # if self.webvh_witness:
-        #     self.validate_known_witness(document_state, witness_signature)
+        if self.active_policy.get('witness'):
+            self.validate_known_witness(document_state, witness_signature)
             
         if document_state.deactivated:
             self.deactivate_did()
             
         log_entries.append(document_state.history_line())
-        # witness_file = [prev_witness_file | witness_signature]
-        witness_file = [witness_signature]
+        
+        witness_file = []
+        if witness_signature:
+            witness_file.append(witness_signature)
+        if prev_witness_file:
+            witness_file += prev_witness_file
             
         return log_entries, witness_file
 
-    def deactivate_did(self, log_entry, witness_signature=None):
+    def deactivate_did(self):
         """Apply policies to DID deactivation."""
         return
 

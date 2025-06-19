@@ -141,7 +141,7 @@ async def new_log_entry(
     # Create DID
     if not prev_log_entries:
         try:
-            log_entries, witness_file = webvh.create_did(log_entry, witness_signature)
+            log_entries, witness_file = await webvh.create_did(log_entry, witness_signature)
         except PolicyError as err:
             raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
 
@@ -153,10 +153,10 @@ async def new_log_entry(
     # Update DID
     try:
         log_entries, witness_file = webvh.update_did(
-            log_entry, 
-            prev_log_entries, 
-            witness_signature, 
-            prev_witness_file
+            log_entry=log_entry, 
+            log_entries=prev_log_entries, 
+            witness_signature=witness_signature, 
+            prev_witness_file=prev_witness_file
         )
     except PolicyError as err:
         raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")

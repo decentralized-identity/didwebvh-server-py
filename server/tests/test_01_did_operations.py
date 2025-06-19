@@ -20,6 +20,8 @@ from tests.fixtures import (
     TEST_POLICY,
     TEST_PLACEHOLDER_ID,
     TEST_PROOF_OPTIONS,
+    TEST_WITNESS_REGISTRY,
+    TEST_VERIFICATION_METHOD,
     TEST_NEXT_KEY_HASH,
     TEST_UPDATE_KEY,
 )
@@ -49,7 +51,7 @@ async def test_request_did():
 
 @pytest.mark.asyncio
 async def test_create_did():
-    await askar.update('registry', 'knownWitnesses', {'registry': {}})
+    await askar.update('registry', 'knownWitnesses', {'registry': TEST_WITNESS_REGISTRY})
     await askar.update('policy', 'active', TEST_POLICY)
     
     response = await request_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
@@ -71,17 +73,18 @@ async def test_create_did():
     )
     initial_log_entry = sign(initial_state.history_line())
     
+    witness_signature = witness.create_log_entry_proof(initial_log_entry)
+    
     response = await new_log_entry(
         TEST_DID_NAMESPACE, 
         TEST_DID_IDENTIFIER, 
         NewLogEntry.model_validate({
             "logEntry": initial_log_entry,
-            # 'witnessSignature': None
+            'witnessSignature': witness_signature
         })
     )
     
-    log_entry = json.loads(response.body.decode())
-    assert LogEntry.model_validate(log_entry)
+    assert LogEntry.model_validate(json.loads(response.body.decode()))
 
 
 @pytest.mark.asyncio
@@ -107,19 +110,32 @@ async def test_update_did():
     response = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
     log_entries = response.body.decode().split('\n')[:-1]
     doc_state = None
+    
     for log_entry in log_entries:
         doc_state = DocumentState.load_history_json(log_entry, doc_state)
         
+    document = doc_state.document.copy()
+    document['@context'].append('https://www.w3.org/ns/cid/v1')
+    document['assertionMethod'] = [TEST_VERIFICATION_METHOD.get('id')]
+    document['verificationMethod'] = [TEST_VERIFICATION_METHOD]
     new_state = doc_state.create_next(
         timestamp=TEST_UPDATE_TIME,
-        document=None,
+        document=document,
         params_update=None
     )
-    log_entry = sign(new_state.history_line())
-    log_request = NewLogEntry.model_validate({"logEntry": log_entry})
+    
+    next_log_entry = sign(new_state.history_line())
+    
+    witness_signature = witness.create_log_entry_proof(next_log_entry)
+    
+    log_request = NewLogEntry.model_validate(
+        {
+            "logEntry": next_log_entry,
+            "witnessSignature": witness_signature,
+        }
+    )
     response = await new_log_entry(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, log_request)
-    log_entry = response.body.decode()
-    LogEntry.model_validate(json.loads(log_entry))
+    LogEntry.model_validate(json.loads(response.body.decode()))
 
 
 @pytest.mark.asyncio
