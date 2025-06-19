@@ -38,8 +38,8 @@ class AttestedResource(BaseModel):
     context: List[str] = Field(
         alias="@context",
         default=[
+            settings.ATTESTED_RESOURCE_CTX,
             "https://w3id.org/security/data-integrity/v2",
-            f"https://{settings.DOMAIN}/attested-resource/v1",
         ],
     )
     type: List[str] = Field(default=["AttestedResource"])

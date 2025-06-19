@@ -32,6 +32,8 @@ class Settings(BaseSettings):
 
     # Proof expiration in minutes
     REGISTRATION_PROOF_TTL: int = 60
+    
+    ATTESTED_RESOURCE_CTX: str = 'https://opsecid.github.io/attested-resource/v1'
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
@@ -47,8 +49,7 @@ class Settings(BaseSettings):
     
     # Recommended for production deployments
     ENABLE_POLICY_MODULE: bool = os.getenv("ENABLE_POLICY_MODULE", True)
-    
-    
+
     KNOWN_WITNESS_KEY: Union[str, None] = os.environ.get("KNOWN_WITNESS_KEY", None)
     KNOWN_WITNESS_REGISTRY: Union[str, None] = os.environ.get("KNOWN_WITNESS_REGISTRY", None)
     WEBVH_ENDORSEMENT: bool = os.environ.get("WEBVH_ENDORSEMENT", True)

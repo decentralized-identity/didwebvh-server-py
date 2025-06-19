@@ -5,7 +5,7 @@ from hashlib import sha256
 import jcs
 import canonicaljson
 from config import settings
-from tests.fixtures import TEST_WITNESS_SEED, TEST_SIGNING_SEED, TEST_UPDATE_SEED
+from tests.fixtures import TEST_WITNESS_SEED, TEST_SIGNING_SEED, TEST_UPDATE_SEED, TEST_DID
 from tests.utils import key_to_multikey, transform, digest_multibase
 from app.models.resource import AttestedResource, ResourceMetadata
 
@@ -51,18 +51,16 @@ class WitnessAgent:
 
 class ControllerAgent:
     def __init__(self):
+        self.issuer_id = TEST_DID
         self.update_key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_UPDATE_SEED)
         self.update_multikey = key_to_multikey(self.update_key)
         self.signing_key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_SIGNING_SEED)
         self.signing_multikey = key_to_multikey(self.update_key)
-        self.signing_key_id = "key-0"
-        self.did_key = f"did:key:{self.update_multikey}"
-        self.did_web = f"did:web:{settings.DOMAIN}:{DID_NAMESPACE}:{DID_IDENTIFIER}"
-        self.issuer_id = None
+        self.signing_key_id = f"{self.issuer_id}#{self.signing_multikey}"
         self.verification_method = None
 
     def sign_log(self, document):
-        options = PROOF_OPTIONS | {"verificationMethod": f"{self.did_key}#{self.update_multikey}"}
+        options = PROOF_OPTIONS | {"verificationMethod": f"did:key:{self.update_multikey}#{self.update_multikey}"}
         proof = options | {
             "proofValue": multibase.encode(
                 self.update_key.sign_message(transform(document, options)), "base58btc"
@@ -71,7 +69,7 @@ class ControllerAgent:
         return document | {"proof": proof}
 
     def sign(self, document):
-        options = PROOF_OPTIONS | {"verificationMethod": self.verification_method}
+        options = PROOF_OPTIONS | {"verificationMethod": self.signing_key_id}
         proof = options | {
             "proofValue": multibase.encode(
                 self.signing_key.sign_message(transform(document, options)), "base58btc"

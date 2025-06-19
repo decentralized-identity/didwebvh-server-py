@@ -3,7 +3,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import policies, identifiers, resources
-from app.contexts import AttestedResourceCtx
 import json
 import logging
 from config import settings
@@ -33,13 +32,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def server_status():
     """Server status endpoint."""
     return JSONResponse(status_code=200, content={"status": "ok"})
-
-
-@api_router.get("/attested-resource/v1", tags=["Context"], include_in_schema=False)
-async def get_attested_resource_ctx():
-    """Attested Resource Context."""
-    ctx = json.dumps(AttestedResourceCtx, indent=2)
-    return Response(ctx, media_type="application/ld+json")
 
 
 api_router.include_router(policies.router)
