@@ -40,6 +40,7 @@ jcs = "^0.2.1"
 anoncreds = "^0.2.0"
 pytest-dependency = "^0.6.0"
 did-webvh = "^1.0.0rc0"
+requests = "^2.32.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.9.1"
