@@ -1,6 +1,6 @@
 """Pydantic models for the web schemas."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from pydantic import BaseModel, Field
 from .did_document import SecuredDidDocument
@@ -35,14 +35,20 @@ class NewLogEntry(BaseModel):
     """NewLogEntry model."""
 
     logEntry: LogEntry = Field()
-    witnessSignature: WitnessSignature = Field(None)
+    witnessSignature: Union[WitnessSignature, None] = Field(None)
 
 
 class UpdateLogEntry(BaseModel):
     """UpdateLogEntry model."""
 
     logEntry: LogEntry = Field()
-    witnessProof: List[DataIntegrityProof] = Field(None)
+    
+    class WitnessProof(BaseModel):
+        """WitnessProof model."""
+        versionId: str = Field()
+        proof: List[DataIntegrityProof] = Field()
+    
+    witnessProof: WitnessProof = Field(None)
 
 
 class DeactivateLogEntry(BaseModel):

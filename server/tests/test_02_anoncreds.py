@@ -6,6 +6,7 @@ from tests.fixtures import (
     TEST_ANONCREDS_SCHEMA,
     TEST_DID_NAMESPACE,
     TEST_DID_IDENTIFIER,
+    TEST_DID,
 )
 from tests.mock_agents import WitnessAgent, ControllerAgent
 import pytest
@@ -29,13 +30,13 @@ witness = WitnessAgent()
 controller = ControllerAgent()
 
 
-async def get_mock_issuer():
+async def get_issuer_id():
     did_logs = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
     did_logs = did_logs.body.decode().split("\n")[:-1]
     return json.loads(did_logs[-1]).get("state").get("id")
 
 
-async def get_mock_verification_method():
+async def get_verification_method():
     did_logs = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
     did_logs = did_logs.body.decode().split("\n")[:-1]
     return json.loads(did_logs[-1]).get("state").get("verificationMethod")[0].get("id")
@@ -47,9 +48,6 @@ def decode_response(response):
 
 @pytest.mark.asyncio
 async def test_anoncreds():
-    controller.issuer_id = await get_mock_issuer()
-    controller.verification_method = await get_mock_verification_method()
-
     schema = Schema.create(
         TEST_ANONCREDS_SCHEMA["name"],
         TEST_ANONCREDS_SCHEMA["version"],
@@ -58,6 +56,7 @@ async def test_anoncreds():
     )
 
     attested_schema, schema_id = controller.attest_resource(schema.to_dict(), "anonCredsSchema")
+    print(json.dumps(attested_schema, indent=2))
 
     await upload_attested_resource(
         ResourceUpload(

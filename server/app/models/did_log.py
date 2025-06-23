@@ -42,7 +42,7 @@ class LogEntry(BaseModel):
             threshold: int = Field()
             witnesses: List[Witness] = Field()
 
-        method: str = Field(None, example=f"did:webvh:{settings.WEBVH_VERSION}")
+        method: str = Field(None)
         scid: str = Field(None)
         portable: bool = Field(None)
         updateKeys: List[str] = Field(None)
