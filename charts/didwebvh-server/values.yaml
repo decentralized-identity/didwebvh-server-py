@@ -19,6 +19,7 @@ server:
     tag: 0.2.0
     pullPolicy: IfNotPresent
     pullSecrets: []
+    default_witness_key: null
   # host is required when enabling TLS in the ingress
   # host: server.myapp.example
 

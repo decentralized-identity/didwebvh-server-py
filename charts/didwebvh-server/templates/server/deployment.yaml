@@ -43,7 +43,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "server.fullname" . }}
                   key: storage-key
-              {{ if hasKey .Values.server.default_witness_key }}
+              {{ if .Values.server.default_witness_key }}
             - name: DEFAULT_WITNESS_KEY
               value: {{ .Values.server.default_witness_key }}
               {{ end }}
