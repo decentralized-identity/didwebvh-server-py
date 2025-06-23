@@ -188,6 +188,8 @@ class DidWebVH:
 
         witness_file = []
         if witness_signature:
+            if witness_signature.get('versionId') != log_entry.get('versionId'):
+                raise PolicyError("Witness versionId mismatch")
             witness_file.append(witness_signature)
 
         return log_entries, witness_file
@@ -217,6 +219,8 @@ class DidWebVH:
 
         witness_file = []
         if witness_signature:
+            if witness_signature.get('versionId') != log_entry.get('versionId'):
+                raise PolicyError("Witness versionId mismatch")
             witness_file.append(witness_signature)
         if prev_witness_file:
             witness_file += prev_witness_file

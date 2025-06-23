@@ -48,7 +48,6 @@ class Settings(BaseSettings):
         ASKAR_DB: str = "sqlite://app.db"
 
     # Recommended for production deployments
-    ENABLE_POLICY_MODULE: bool = os.getenv("ENABLE_POLICY_MODULE", True)
 
     KNOWN_WITNESS_KEY: Union[str, None] = os.environ.get("KNOWN_WITNESS_KEY", None)
     KNOWN_WITNESS_REGISTRY: Union[str, None] = os.environ.get("KNOWN_WITNESS_REGISTRY", None)

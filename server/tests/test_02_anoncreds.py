@@ -56,6 +56,7 @@ async def test_anoncreds():
     )
 
     attested_schema, schema_id = controller.attest_resource(schema.to_dict(), "anonCredsSchema")
+    print(json.dumps(attested_schema, indent=2))
 
     await upload_attested_resource(
         ResourceUpload(

@@ -1,6 +1,7 @@
 """Identifier endpoints for DIDWeb and DIDWebVH."""
 
 import json
+import logging
 
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse
@@ -127,11 +128,11 @@ async def new_log_entry(
 
     client_id = get_client_id(namespace, identifier)
 
-    prev_log_entries = await askar.fetch("logEntries", client_id)
-    prev_witness_file = await askar.fetch("witnessFile", client_id)
-
     log_entry = request_body.model_dump().get("logEntry")
     witness_signature = request_body.model_dump().get("witnessSignature")
+
+    prev_log_entries = await askar.fetch("logEntries", client_id)
+    prev_witness_file = await askar.fetch("witnessFile", client_id)
 
     webvh = DidWebVH(
         active_policy=await askar.fetch("policy", "active"),
@@ -176,7 +177,7 @@ async def new_log_entry(
 
 @router.get("/{namespace}/{identifier}/did.json", include_in_schema=False)
 async def read_did(namespace: str, identifier: str):
-    """See https://identity.foundation/didwebvh/next/#read-resolve."""
+    """See https://identity.foundation/didwebvh/next/#publishing-a-parallel-didweb-did."""
     client_id = get_client_id(namespace, identifier)
     log_entries = await askar.fetch("logEntries", client_id)
 
@@ -190,7 +191,7 @@ async def read_did(namespace: str, identifier: str):
 
 @router.get("/{namespace}/{identifier}/did.jsonl", include_in_schema=False)
 async def read_did_log(namespace: str, identifier: str):
-    """See https://identity.foundation/didwebvh/next/#read-resolve."""
+    """See https://identity.foundation/didwebvh/next/#the-did-log-file."""
     client_id = get_client_id(namespace, identifier)
     log_entries = await askar.fetch("logEntries", client_id)
 
@@ -201,6 +202,17 @@ async def read_did_log(namespace: str, identifier: str):
     return Response(log_entries, media_type="text/jsonl")
 
 
+@router.get("/{namespace}/{identifier}/did-witness.json", include_in_schema=False)
+async def read_witness_file(namespace: str, identifier: str):
+    """See https://identity.foundation/didwebvh/next/#the-witness-proofs-file."""
+    client_id = get_client_id(namespace, identifier)
+    witness_file = await askar.fetch("witnessFile", client_id)
+    if not witness_file:
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    return JSONResponse(status_code=200, content=witness_file)
+
+
 @router.get("/{namespace}/{identifier}/whois.vp", include_in_schema=False)
 async def read_whois(namespace: str, identifier: str):
     """See https://identity.foundation/didwebvh/v1.0/#whois-linkedvp-service."""
@@ -209,7 +221,7 @@ async def read_whois(namespace: str, identifier: str):
     whois_vp = await askar.fetch("whois", client_id)
 
     if not whois_vp:
-        return JSONResponse(status_code=404, content={"Reason": "Not found."})
+        raise HTTPException(status_code=404, detail="Not Found")
 
     return Response(json.dumps(whois_vp), media_type="application/vp")
 
