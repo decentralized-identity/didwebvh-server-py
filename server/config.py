@@ -19,16 +19,12 @@ class Settings(BaseSettings):
     PROJECT_VERSION: str = "v0"
 
     API_KEY: str = os.environ.get("API_KEY", "webvh")
-    SECRET_KEY: str = os.environ.get("SECRET_KEY", "s3cret")
-    STORAGE_KEY: str = os.environ.get("STORAGE_KEY", "s3cret")
 
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
     SCID_PLACEHOLDER: str = r"{SCID}"
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
-
-    DEFAULT_WITNESS_KEY: Union[str, None] = os.environ.get("DEFAULT_WITNESS_KEY", None)
 
     # Proof expiration in minutes
     REGISTRATION_PROOF_TTL: int = 60
@@ -51,13 +47,14 @@ class Settings(BaseSettings):
 
     KNOWN_WITNESS_KEY: Union[str, None] = os.environ.get("KNOWN_WITNESS_KEY", None)
     KNOWN_WITNESS_REGISTRY: Union[str, None] = os.environ.get("KNOWN_WITNESS_REGISTRY", None)
-    WEBVH_ENDORSEMENT: bool = os.environ.get("WEBVH_ENDORSEMENT", True)
+
     WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "1.0")
     WEBVH_WITNESS: bool = os.environ.get("WEBVH_WITNESS", True)
     WEBVH_WATCHER: Union[str, None] = os.environ.get("WEBVH_WATCHER", None)
+    WEBVH_VALIDITY: int = os.environ.get("WEBVH_VALIDITY", 0)
     WEBVH_PREROTATION: bool = os.environ.get("WEBVH_PREROTATION", True)
     WEBVH_PORTABILITY: bool = os.environ.get("WEBVH_PORTABILITY", True)
-    WEBVH_VALIDITY: int = os.environ.get("WEBVH_VALIDITY", 0)
+    WEBVH_ENDORSEMENT: bool = os.environ.get("WEBVH_ENDORSEMENT", True)
 
 
 settings = Settings()

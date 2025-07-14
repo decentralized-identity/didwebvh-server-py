@@ -42,12 +42,13 @@ class UpdateLogEntry(BaseModel):
     """UpdateLogEntry model."""
 
     logEntry: LogEntry = Field()
-    
+
     class WitnessProof(BaseModel):
         """WitnessProof model."""
+
         versionId: str = Field()
         proof: List[DataIntegrityProof] = Field()
-    
+
     witnessProof: WitnessProof = Field(None)
 
 
@@ -90,7 +91,7 @@ class ResourceUpload(BaseModel):
     """ResourceUpload model."""
 
     attestedResource: AttestedResource = Field()
-    options: ResourceOptions = Field()
+    options: ResourceOptions = Field(None)
 
 
 class WhoisUpdate(BaseModel):

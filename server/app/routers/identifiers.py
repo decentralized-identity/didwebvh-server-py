@@ -209,7 +209,7 @@ async def read_witness_file(namespace: str, identifier: str):
     witness_file = await askar.fetch("witnessFile", client_id)
     if not witness_file:
         raise HTTPException(status_code=404, detail="Not Found")
-    
+
     return JSONResponse(status_code=200, content=witness_file)
 
 
