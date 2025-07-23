@@ -65,8 +65,8 @@ The following policy variables can be used to enforce parameters from the did:we
     - ex: `WEBVH_VERSION=1.0`
 - WEBVH_WITNESS: Enforce the use of witness with a minimum threshold of 1. At least 1 witness from the known witness registry will need to be used.
     - ex: `WEBVH_WITNESS=true`
-- WEBVH_PREROTATION: Ensure that prerotation is enabled.
-    - ex: `WEBVH_PREROTATION=true`
+- WEBVH_PORTABILITY: Ensure that portability is enabled.
+    - ex: `WEBVH_PORTABILITY=true`
 - WEBVH_WATCHER: Request a specific watcher to be included in the watchers array
     - ex: `WEBVH_WATCHER=https://watcher.example.com`
 - WEBVH_PREROTATION: Enforce the use of prerotation
