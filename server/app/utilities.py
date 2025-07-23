@@ -1,6 +1,5 @@
 """Utility functions for the DID Web server."""
 
-from app.models.did_document import DidDocument
 from config import settings
 import jcs
 import json

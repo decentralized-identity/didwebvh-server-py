@@ -1,10 +1,8 @@
 """Askar plugin for storing and verifying data."""
 
-import hashlib
 import json
 import logging
-import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from hashlib import sha256
 
 import canonicaljson
@@ -13,9 +11,7 @@ from aries_askar.bindings import LocalKeyHandle
 from fastapi import HTTPException
 from multiformats import multibase
 from app.utilities import timestamp
-from app.models.policy import (
-    ActivePolicy,
-)  # , KnownWitnessRegistry, RegistryMetadata, RegistryEntry
+from app.models.policy import ActivePolicy
 
 from config import settings
 

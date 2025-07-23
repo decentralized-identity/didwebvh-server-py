@@ -1,6 +1,5 @@
 """Ressource management endpoints."""
 
-import logging
 import copy
 
 from fastapi import APIRouter, HTTPException
@@ -48,12 +47,12 @@ async def upload_attested_resource(namespace, identifier, request_body: Resource
     )
     author_id = secured_resource["proof"].get("verificationMethod").split("#")[0]
     if (
-        len(author_id.split(":")) != 6 
-        or author_id.split(":")[4] != namespace 
+        len(author_id.split(":")) != 6
+        or author_id.split(":")[4] != namespace
         or author_id.split(":")[5] != identifier
-        ):
+    ):
         raise HTTPException(status_code=400, detail="Invalid author id value.")
-    
+
     # This will ensure the verification method is registered on the server and that the proof is valid
     await verifier.verify_resource_proof(copy.deepcopy(secured_resource))
 

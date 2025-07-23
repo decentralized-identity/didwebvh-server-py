@@ -3,13 +3,11 @@
 from fastapi import HTTPException
 from config import settings
 import requests
-from datetime import datetime
 from multiformats import multibase, multihash
 
 from app.utilities import digest_multibase
 from app.plugins import AskarStorage
 import canonicaljson
-import json
 from did_webvh.core.state import DocumentState, verify_state_proofs
 
 
@@ -180,7 +178,6 @@ class DidWebVH:
         document_state = self.get_document_state([log_entry])
         self.verify_state_proofs(document_state)
 
-        witness_rules = document_state.witness_rule
         if self.active_policy.get("witness"):
             self.validate_known_witness(document_state, witness_signature)
 
@@ -208,7 +205,6 @@ class DidWebVH:
                 prev_document_state.next_key_hashes, document_state.update_keys
             )
 
-        witness_rules = prev_document_state.witness_rule
         if self.active_policy.get("witness"):
             self.validate_known_witness(document_state, witness_signature)
 

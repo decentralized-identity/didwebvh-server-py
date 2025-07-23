@@ -1,17 +1,13 @@
 """Identifier endpoints for DIDWeb and DIDWebVH."""
 
 import json
-import logging
 
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse
 
-from app.models.did_document import DidDocument
-from app.models.policy import ActivePolicy
-from app.models.web_schemas import RegisterDID, NewLogEntry, WhoisUpdate
+from app.models.web_schemas import NewLogEntry, WhoisUpdate
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH, PolicyError
 from app.utilities import get_client_id, first_proof, find_verification_method, timestamp
-from config import settings
 
 router = APIRouter(tags=["Identifiers"])
 askar = AskarStorage()
@@ -55,67 +51,6 @@ async def request_did(
             "proof": webvh.proof_options(),
         },
     )
-
-
-# @router.post("/")
-# async def register_did(
-#     request_body: RegisterDID,
-# ):
-#     """Register a DID document and proof set."""
-#     did_document = request_body.model_dump()["didDocument"]
-#     did = did_document["id"]
-
-#     if await askar.fetch("didDocument", did):
-#         raise HTTPException(status_code=409, detail="Identifier unavailable.")
-
-#     # Assert proof set
-#     proof_set = did_document.pop("proof", None)
-#     if len(proof_set) != 2:
-#         raise HTTPException(
-#             status_code=400, detail="Expecting proof set from controller and known witness."
-#         )
-
-#     witness_registry = (await askar.fetch("registry", "knownWitnesses")).get("registry")
-#     if not witness_registry:
-#         raise HTTPException(status_code=500, detail="No witness registry.")
-
-#     # Find known witness proof
-#     witness_proof = next(
-#         (
-#             proof
-#             for proof in proof_set
-#             if witness_registry.get(proof["verificationMethod"].split("#")[0])
-#         ),
-#         None,
-#     )
-
-#     # Find controller proof
-#     controller_proof = next(
-#         (
-#             proof
-#             for proof in proof_set
-#             if proof["verificationMethod"] != witness_proof["verificationMethod"]
-#         ),
-#         None,
-#     )
-
-#     if controller_proof and witness_proof:
-#         # Verify proofs
-#         verifier.validate_challenge(witness_proof, did_document["id"])
-#         verifier.verify_proof(did_document, witness_proof)
-
-#         verifier.validate_challenge(controller_proof, did_document["id"])
-#         verifier.verify_proof(did_document, controller_proof)
-
-#         registration_key = controller_proof["verificationMethod"].split("#")[-1]
-
-#         # Store document and registration key
-#         await askar.store("didDocument", did, did_document)
-#         await askar.store("registrationKey", did, registration_key)
-
-#         return JSONResponse(status_code=201, content=did_document)
-
-#     raise HTTPException(status_code=400, detail="Bad Request, something went wrong.")
 
 
 @router.post("/{namespace}/{identifier}")
