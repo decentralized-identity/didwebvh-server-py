@@ -40,7 +40,7 @@ def get_api_key(
 
 @router.get("/policy")
 async def get_active_policy(api_key: str = Security(get_api_key)):
-    """Get active policyy."""
+    """Get active policy."""
     active_policy = await askar.fetch("policy", "active")
     return JSONResponse(status_code=200, content=active_policy)
 
@@ -51,7 +51,7 @@ async def get_known_witnesses(api_key: str = Security(get_api_key)):
     witness_registry = await askar.fetch("registry", "knownWitnesses")
 
     if not witness_registry:
-        raise HTTPException(status_code=500, detail="Error, witness registry not found.")
+        raise HTTPException(status_code=404, detail="Error, witness registry not found.")
 
     return JSONResponse(status_code=200, content=witness_registry)
 
@@ -69,7 +69,7 @@ async def add_known_witness(request_body: AddWitness, api_key: str = Security(ge
     witness_did = f"did:key:{multikey}"
 
     if witness_registry["registry"].get(witness_did):
-        raise HTTPException(status_code=404, detail="Witness already exists.")
+        raise HTTPException(status_code=409, detail="Witness already exists.")
 
     witness_registry["registry"][witness_did] = {"name": request_body["label"]}
     witness_registry["meta"]["updated"] = timestamp()

@@ -42,45 +42,32 @@ An attested resource is a stored resource cryptographically bound to it's locati
 ### Setting up policies
 
 The server is equiped with a configurable policy module. Rule sets can be established to change the server behavior when validating some requests.
+
 When a rule is enforced, the server will reject any request that doesn't match said policy. Here are the configurable policies:
 
 #### Known Witnesses Registry
 
-A default known witness key to provision the server. Required if `witnessing` is enforced.
-`WEBVH_KNOWN_WITNESS_KEY=z6MQ`
+- WEBVH_KNOWN_WITNESS_KEY: A default known witness key to provision the server.
+    - ex: `WEBVH_KNOWN_WITNESS_KEY=z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP`
 
-A list of known witnesses is used for validating witness policies. This will be cached every time a witness can't be found.
-`WEBVH_KNOWN_WITNESS_REGISTRY=https://known-witnesses.example.com`
+- WEBVH_KNOWN_WITNESS_REGISTRY: A list of known witnesses is used for validating witness policies. This will be cached every time a witness can't be found.
+    - ex: `WEBVH_KNOWN_WITNESS_REGISTRY=https://known-witnesses.example.com`
 
 #### Attested Resource Endorsement
 
-This will require a known witness proof on any attested resource uploaded or updated. It's up to the witness service to determine which resources to endorse from the controller.
-`WEBVH_ENDORSEMENT=true`
+- WEBVH_ENDORSEMENT: This will require a known witness proof on any attested resource uploaded or updated. It's up to the witness service to determine which resources to endorse from the controller.
+    - ex: `WEBVH_ENDORSEMENT=true`
 
 #### WebVH Parameters
 
-Require some webvh paramters to be enabled.
-
-##### WebVH Method Version
-
-`WEBVH_VERSION=1.0`
-
-##### Witness
-
-Require a signature from at least 1 known witness.
-`WEBVH_WITNESS=true`
-
-##### Watcher
-
-Require a specific watcher to monitor the server.
-`WEBVH_WATCHER=https://watcher.example.com`
-
-##### Prerotation
-
-Require prerotation
-`WEBVH_PREROTATION=true`
-
-##### Portability
-
-Require portability
-`WEBVH_PORTABILITY=true`
+The following policy variables can be used to enforce parameters from the did:webvh specification:
+- WEBVH_VERSION: Specify a webvh method version to enforce
+    - ex: `WEBVH_VERSION=1.0`
+- WEBVH_WITNESS: Enforce the use of witness with a minimum threshold of 1. At least 1 witness from the known witness registry will need to be used.
+    - ex: `WEBVH_WITNESS=true`
+- WEBVH_PREROTATION: Ensure that prerotation is enabled.
+    - ex: `WEBVH_PREROTATION=true`
+- WEBVH_WATCHER: Request a specific watcher to be included in the watchers array
+    - ex: `WEBVH_WATCHER=https://watcher.example.com`
+- WEBVH_PREROTATION: Enforce the use of prerotation
+    - ex: `WEBVH_PREROTATION=true`
