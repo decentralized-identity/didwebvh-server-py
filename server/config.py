@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     WEBVH_VALIDITY: int = os.environ.get("WEBVH_VALIDITY", 0)
     WEBVH_PREROTATION: bool = os.environ.get("WEBVH_PREROTATION", True)
     WEBVH_PORTABILITY: bool = os.environ.get("WEBVH_PORTABILITY", True)
-    WEBVH_ENDORSEMENT: bool = os.environ.get("WEBVH_ENDORSEMENT", True)
+    WEBVH_ENDORSEMENT: bool = os.environ.get("WEBVH_ENDORSEMENT", False)
 
 
 settings = Settings()

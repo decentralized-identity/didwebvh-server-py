@@ -38,7 +38,7 @@ async def upload_attested_resource(namespace, identifier, request_body: Resource
             assert witness_registry.get(witness_id, None)
             assert verifier.verify_proof(resource, witness_proof, witness_id.split(":")[-1])
         except AssertionError:
-            raise HTTPException(status_code=400, detail="Invalid endorssment witness proof.")
+            raise HTTPException(status_code=400, detail="Invalid endorsement witness proof.")
 
     else:
         assert len(proofs) == 1

@@ -56,9 +56,10 @@ async def test_anoncreds():
     )
 
     attested_schema, schema_id = controller.attest_resource(schema.to_dict(), "anonCredsSchema")
-    print(json.dumps(attested_schema, indent=2))
 
     await upload_attested_resource(
+        TEST_DID_NAMESPACE,
+        TEST_DID_IDENTIFIER,
         ResourceUpload(
             attestedResource=AttestedResource.model_validate(attested_schema),
             options=ResourceOptions(),
@@ -78,6 +79,8 @@ async def test_anoncreds():
     )
 
     await upload_attested_resource(
+        TEST_DID_NAMESPACE,
+        TEST_DID_IDENTIFIER,
         ResourceUpload(
             attestedResource=AttestedResource.model_validate(attested_cred_def),
             options=ResourceOptions(),
@@ -97,6 +100,8 @@ async def test_anoncreds():
     )
 
     await upload_attested_resource(
+        TEST_DID_NAMESPACE,
+        TEST_DID_IDENTIFIER,
         ResourceUpload(
             attestedResource=AttestedResource.model_validate(attested_rev_reg_def),
             options=ResourceOptions(),
@@ -123,6 +128,8 @@ async def test_anoncreds():
     )
 
     await upload_attested_resource(
+        TEST_DID_NAMESPACE,
+        TEST_DID_IDENTIFIER,
         ResourceUpload(
             attestedResource=AttestedResource.model_validate(attested_rev_reg_entry),
             options=ResourceOptions(),
