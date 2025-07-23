@@ -1,11 +1,14 @@
 """Ressource management endpoints."""
 
+import copy
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from app.models.web_schemas import ResourceUpload
 from app.plugins import AskarVerifier, AskarStorage, DidWebVH
 from app.utilities import first_proof
-import copy
+
+from config import settings
 
 router = APIRouter(tags=["Attested Resources"])
 
@@ -14,11 +17,41 @@ storage = AskarStorage()
 verifier = AskarVerifier()
 
 
-@router.post("/resources")
-async def upload_attested_resource(request_body: ResourceUpload):
+@router.post("/{namespace}/{identifier}/resources")
+async def upload_attested_resource(namespace, identifier, request_body: ResourceUpload):
     """Upload an attested resource."""
     secured_resource = vars(request_body)["attestedResource"].model_dump()
-    secured_resource["proof"] = first_proof(secured_resource["proof"])
+    resource = copy.deepcopy(secured_resource)
+    proofs = resource.pop("proof")
+    proofs = proofs if isinstance(proofs, list) else [proofs]
+    # Check if endorsement policy is set for attested resources
+    if settings.WEBVH_ENDORSEMENT:
+        try:
+            assert len(proofs) == 2
+            witness_proof = next(
+                (proof for proof in proofs if proof["verificationMethod"].startswith("did:key:")),
+                None,
+            )
+            witness_registry = (await storage.fetch("registry", "knownWitnesses")).get("registry")
+            witness_id = witness_proof.get("verificationMethod").split("#")[0]
+            assert witness_registry.get(witness_id, None)
+            assert verifier.verify_proof(resource, witness_proof, witness_id.split(":")[-1])
+        except AssertionError:
+            raise HTTPException(status_code=400, detail="Invalid endorsement witness proof.")
+
+    else:
+        assert len(proofs) == 1
+
+    secured_resource["proof"] = next(
+        (proof for proof in proofs if proof["verificationMethod"].startswith("did:webvh:")), None
+    )
+    author_id = secured_resource["proof"].get("verificationMethod").split("#")[0]
+    if (
+        len(author_id.split(":")) != 6
+        or author_id.split(":")[4] != namespace
+        or author_id.split(":")[5] != identifier
+    ):
+        raise HTTPException(status_code=400, detail="Invalid author id value.")
 
     # This will ensure the verification method is registered on the server and that the proof is valid
     await verifier.verify_resource_proof(copy.deepcopy(secured_resource))

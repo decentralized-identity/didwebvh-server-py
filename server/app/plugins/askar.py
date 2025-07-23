@@ -1,10 +1,8 @@
 """Askar plugin for storing and verifying data."""
 
-import hashlib
 import json
 import logging
-import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from hashlib import sha256
 
 import canonicaljson
@@ -13,6 +11,7 @@ from aries_askar.bindings import LocalKeyHandle
 from fastapi import HTTPException
 from multiformats import multibase
 from app.utilities import timestamp
+from app.models.policy import ActivePolicy
 
 from config import settings
 
@@ -23,24 +22,35 @@ class AskarStorage:
     def __init__(self):
         """Initialize the Askar storage plugin."""
         self.db = settings.ASKAR_DB
-        self.key = Store.generate_raw_key(hashlib.md5(settings.STORAGE_KEY.encode()).hexdigest())
 
     async def provision(self, recreate=False):
         """Provision the Askar storage."""
-        await Store.provision(self.db, "raw", self.key, recreate=recreate)
+        await Store.provision(self.db, "none", recreate=recreate)
         if not await self.fetch("registry", "knownWitnesses"):
             witness_registry = {
                 "meta": {"created": timestamp(), "updated": timestamp()},
                 "registry": {},
             }
-            if settings.DEFAULT_WITNESS_KEY:
-                witness_did = f"did:key:{settings.DEFAULT_WITNESS_KEY}"
+            if settings.KNOWN_WITNESS_KEY:
+                witness_did = f"did:key:{settings.KNOWN_WITNESS_KEY}"
                 witness_registry["registry"][witness_did] = {"name": "Default Server Witness"}
             await self.store("registry", "knownWitnesses", witness_registry)
 
+        if not await self.fetch("policy", "active"):
+            policy = ActivePolicy(
+                version=settings.WEBVH_VERSION,
+                witness=settings.WEBVH_WITNESS,
+                watcher=settings.WEBVH_WATCHER,
+                portability=settings.WEBVH_PORTABILITY,
+                prerotation=settings.WEBVH_PREROTATION,
+                endorsement=settings.WEBVH_ENDORSEMENT,
+                witness_registry_url=settings.KNOWN_WITNESS_REGISTRY,
+            ).model_dump()
+            await self.store("policy", "active", policy)
+
     async def open(self):
         """Open the Askar storage."""
-        return await Store.open(self.db, "raw", self.key)
+        return await Store.open(self.db, "none")
 
     async def fetch(self, category, data_key):
         """Fetch data from the store."""
@@ -103,34 +113,6 @@ class AskarVerifier:
         self.type = "DataIntegrityProof"
         self.cryptosuite = "eddsa-jcs-2022"
         self.purpose = "assertionMethod"
-
-    def create_proof_config(self, did):
-        """Create a proof configuration."""
-        expires = timestamp(minutes_delta=settings.REGISTRATION_PROOF_TTL)
-        return {
-            "type": self.type,
-            "cryptosuite": self.cryptosuite,
-            "proofPurpose": self.purpose,
-            "expires": expires,
-            "domain": settings.DOMAIN,
-            "challenge": self.create_challenge(did + expires),
-        }
-
-    def create_challenge(self, value):
-        """Create a challenge."""
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, settings.SECRET_KEY + value))
-
-    def validate_challenge(self, proof, did):
-        """Validate the challenge."""
-        try:
-            if proof.get("domain"):
-                assert proof["domain"] == settings.DOMAIN, "Domain mismatch."
-            if proof.get("challenge"):
-                assert proof["challenge"] == self.create_challenge(did + proof["expires"]), (
-                    "Challenge mismatch."
-                )
-        except AssertionError as msg:
-            raise HTTPException(status_code=400, detail=str(msg))
 
     def validate_proof(self, proof):
         """Validate the proof."""

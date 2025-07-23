@@ -18,11 +18,8 @@ This also enables system architects to create rigid governance rules around publ
 
 - A controller requests an identifier from the server.
 - The server returns a configuration if the requested identifier is available.
-- The controller generates an update key and signs a did document for the requested identifier.
-- The controller request an registration signature from a witness known to the server.
-- The controller sends the did document along with the proof set back to the server.
-- The controller generates the preliminary DID log entry, transforms and signs it.
-- The controller sends the initial log entry to the server.
+- The controller generates a first log entry matching the server policies.
+- The controller sends the initial log entry to the server, along with the did witness file if required
 
 ### Registering a new DID
 ```mermaid
@@ -31,22 +28,46 @@ sequenceDiagram
     participant Controller
     participant Witness
     Controller->>WebVH Server: Request an identifier namespace.
-    WebVH Server->>Controller: Provide a DID document and a proof configuration.
-    Controller->>Controller: Create new verification method.
-    Controller->>Controller: Sign DID document.
-    Controller->>Witness: Request registration signature.
-    Witness->>Witness: Verify and sign DID document.
-    Witness->>Controller: Return endorsed DID document.
-    Controller->>WebVH Server: Send endorsed DID document.
-    WebVH Server->>WebVH Server: Verify endorsed DID document.
-    Controller->>Controller: Generate preliminary DID log entry.
-    Controller->>Controller: Transform and sign initial DID log entry.
-    Controller->>WebVH Server: Send initial DID log entry.
+    WebVH Server->>Controller: Provide log input document.
+    Controller->>Controller: Create and sign initial log entry.
+    Controller->>Witness: Request witness signature if enabled.
+    Controller->>WebVH Server: Send initial log entry and did witness file if required.
+    WebVH Server->>WebVH Server: Verify and publish DID.
 ```
 
 ### AnonCreds Objects (AttestedResources)
 
 An attested resource is a stored resource cryptographically bound to it's location on the web. See the anoncreds document for more information.
 
-## Roadmap
-- whois VP support
+### Setting up policies
+
+The server is equiped with a configurable policy module. Rule sets can be established to change the server behavior when validating some requests.
+
+When a rule is enforced, the server will reject any request that doesn't match said policy. Here are the configurable policies:
+
+#### Known Witnesses Registry
+
+- WEBVH_KNOWN_WITNESS_KEY: A default known witness key to provision the server.
+    - ex: `WEBVH_KNOWN_WITNESS_KEY=z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP`
+
+- WEBVH_KNOWN_WITNESS_REGISTRY: A list of known witnesses is used for validating witness policies. This will be cached every time a witness can't be found.
+    - ex: `WEBVH_KNOWN_WITNESS_REGISTRY=https://known-witnesses.example.com`
+
+#### Attested Resource Endorsement
+
+- WEBVH_ENDORSEMENT: This will require a known witness proof on any attested resource uploaded or updated. It's up to the witness service to determine which resources to endorse from the controller.
+    - ex: `WEBVH_ENDORSEMENT=true`
+
+#### WebVH Parameters
+
+The following policy variables can be used to enforce parameters from the did:webvh specification:
+- WEBVH_VERSION: Specify a webvh method version to enforce
+    - ex: `WEBVH_VERSION=1.0`
+- WEBVH_WITNESS: Enforce the use of witness with a minimum threshold of 1. At least 1 witness from the known witness registry will need to be used.
+    - ex: `WEBVH_WITNESS=true`
+- WEBVH_PORTABILITY: Ensure that portability is enabled.
+    - ex: `WEBVH_PORTABILITY=true`
+- WEBVH_WATCHER: Request a specific watcher to be included in the watchers array
+    - ex: `WEBVH_WATCHER=https://watcher.example.com`
+- WEBVH_PREROTATION: Enforce the use of prerotation
+    - ex: `WEBVH_PREROTATION=true`

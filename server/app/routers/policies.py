@@ -9,7 +9,7 @@ from app.plugins import AskarStorage
 from config import settings
 from app.utilities import timestamp, is_valid_multikey
 
-router = APIRouter(tags=["Admin"])
+router = APIRouter(tags=["Policies"])
 askar = AskarStorage()
 
 api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
@@ -38,18 +38,25 @@ def get_api_key(
     )
 
 
-@router.get("/admin/known-witnesses")
+@router.get("/policy")
+async def get_active_policy(api_key: str = Security(get_api_key)):
+    """Get active policy."""
+    active_policy = await askar.fetch("policy", "active")
+    return JSONResponse(status_code=200, content=active_policy)
+
+
+@router.get("/policy/known-witnesses")
 async def get_known_witnesses(api_key: str = Security(get_api_key)):
     """Get known witnesses registry."""
     witness_registry = await askar.fetch("registry", "knownWitnesses")
 
     if not witness_registry:
-        raise HTTPException(status_code=500, detail="Error, witness registry not found.")
+        raise HTTPException(status_code=404, detail="Error, witness registry not found.")
 
     return JSONResponse(status_code=200, content=witness_registry)
 
 
-@router.post("/admin/known-witnesses")
+@router.post("/policy/known-witnesses")
 async def add_known_witness(request_body: AddWitness, api_key: str = Security(get_api_key)):
     """Add known witness."""
     request_body = request_body.model_dump()
@@ -62,7 +69,7 @@ async def add_known_witness(request_body: AddWitness, api_key: str = Security(ge
     witness_did = f"did:key:{multikey}"
 
     if witness_registry["registry"].get(witness_did):
-        raise HTTPException(status_code=404, detail="Witness already exists.")
+        raise HTTPException(status_code=409, detail="Witness already exists.")
 
     witness_registry["registry"][witness_did] = {"name": request_body["label"]}
     witness_registry["meta"]["updated"] = timestamp()
@@ -72,7 +79,7 @@ async def add_known_witness(request_body: AddWitness, api_key: str = Security(ge
     return JSONResponse(status_code=200, content=witness_registry)
 
 
-@router.delete("/admin/known-witnesses/{multikey}")
+@router.delete("/policy/known-witnesses/{multikey}")
 async def remove_known_witness(multikey: str, api_key: str = Security(get_api_key)):
     """Remove known witness."""
     witness_registry = await askar.fetch("registry", "knownWitnesses")

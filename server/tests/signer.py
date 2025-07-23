@@ -3,13 +3,13 @@ from hashlib import sha256
 import canonicaljson
 from aries_askar import Key, KeyAlg
 from aries_askar.bindings import LocalKeyHandle
-from tests.fixtures import TEST_REGISTRATION_SEED, TEST_PROOF_OPTIONS
+from tests.fixtures import TEST_UPDATE_SEED, TEST_PROOF_OPTIONS
 from multiformats import multibase
 
 
 def sign(document, options=TEST_PROOF_OPTIONS, verification_method=None):
     document.pop("proof", None)
-    key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_REGISTRATION_SEED)
+    key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_UPDATE_SEED)
     if not verification_method:
         pub_key_multi = multibase.encode(
             bytes.fromhex(f"ed01{key.get_public_bytes().hex()}"),
