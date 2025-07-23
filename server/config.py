@@ -51,7 +51,6 @@ class Settings(BaseSettings):
     WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "1.0")
     WEBVH_WITNESS: bool = os.environ.get("WEBVH_WITNESS", True)
     WEBVH_WATCHER: Union[str, None] = os.environ.get("WEBVH_WATCHER", None)
-    WEBVH_VALIDITY: int = os.environ.get("WEBVH_VALIDITY", 0)
     WEBVH_PREROTATION: bool = os.environ.get("WEBVH_PREROTATION", True)
     WEBVH_PORTABILITY: bool = os.environ.get("WEBVH_PORTABILITY", True)
     WEBVH_ENDORSEMENT: bool = os.environ.get("WEBVH_ENDORSEMENT", False)
