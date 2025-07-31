@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    "helm.sh/resource-policy": keep
+  name: {{ include "server.fullname" . }}
+  labels:
+    {{- include "server.labels" . | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  DOMAIN: {{ .Values.server.host }}
+  APP_PORT: {{ .Values.server.service.apiPort }}
+  {{ if .Values.server.workers }}
+  APP_WORKERS: {{ .Values.server.workers }}
+  {{ end }}
+  {{ if .Values.server.known_witness_key }}
+  KNOWN_WITNESS_KEY: {{ .Values.server.known_witness_key }}
+  {{ end }}
+  {{ if .Values.server.known_witness_registry }}
+  KNOWN_WITNESS_REGISTRY: {{ .Values.server.known_witness_registry }}
+  {{ end }}
+  {{ if .Values.server.policies }}
+  WEBVH_VERSION: {{ .Values.server.policies.webvh_version }}
+  WEBVH_WITNESS: {{ .Values.server.policies.webvh_witness }}
+  WEBVH_WATCHER: {{ .Values.server.policies.webvh_watcher }}
+  WEBVH_PREROTATION: {{ .Values.server.policies.webvh_prerotation }}
+  WEBVH_PORTABILITY: {{ .Values.server.policies.webvh_portability }}
+  WEBVH_ENDORSEMENT: {{ .Values.server.policies.webvh_endorsement }}
+  {{ end }}
