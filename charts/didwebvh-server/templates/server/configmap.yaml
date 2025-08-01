@@ -13,19 +13,16 @@ data:
   DOMAIN: {{ .Values.server.host }}
   APP_PORT: {{ .Values.server.service.apiPort }}
   {{ if .Values.server.workers }}
-  APP_WORKERS: {{ .Values.server.workers }}
-  {{ end }}
+  APP_WORKERS: {{ .Values.server.workers }}{{ end }}
   {{ if .Values.server.known_witness_key }}
-  KNOWN_WITNESS_KEY: {{ .Values.server.known_witness_key }}
-  {{ end }}
+  KNOWN_WITNESS_KEY: {{ .Values.server.known_witness_key }}{{ end }}
   {{ if .Values.server.known_witness_registry }}
-  KNOWN_WITNESS_REGISTRY: {{ .Values.server.known_witness_registry }}
-  {{ end }}
+  KNOWN_WITNESS_REGISTRY: {{ .Values.server.known_witness_registry }}{{ end }}
   {{ if .Values.server.policies }}
-  WEBVH_VERSION: {{ .Values.server.policies.webvh_version }}
-  WEBVH_WITNESS: {{ .Values.server.policies.webvh_witness }}
-  WEBVH_WATCHER: {{ .Values.server.policies.webvh_watcher }}
-  WEBVH_PREROTATION: {{ .Values.server.policies.webvh_prerotation }}
-  WEBVH_PORTABILITY: {{ .Values.server.policies.webvh_portability }}
-  WEBVH_ENDORSEMENT: {{ .Values.server.policies.webvh_endorsement }}
+  WEBVH_VERSION: {{ .Values.server.policies.webvh_version | default "1.0" | quote }}
+  WEBVH_WITNESS: {{ .Values.server.policies.webvh_witness | default false }}
+  WEBVH_WATCHER: {{ .Values.server.policies.webvh_watcher | default "" | quote }}
+  WEBVH_PREROTATION: {{ .Values.server.policies.webvh_prerotation | default false }}
+  WEBVH_PORTABILITY: {{ .Values.server.policies.webvh_portability | default false }}
+  WEBVH_ENDORSEMENT: {{ .Values.server.policies.webvh_endorsement | default false }}
   {{ end }}

@@ -26,7 +26,7 @@ server:
   workers: 4
 
   policies:
-    webvh_version: 1.0
+    webvh_version: "1.0"
     webvh_witness: true
     webvh_watcher: null
     webvh_prerotation: true
