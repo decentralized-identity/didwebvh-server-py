@@ -20,8 +20,18 @@ server:
     pullPolicy: IfNotPresent
     pullSecrets: []
     default_witness_key: null
-  # host is required when enabling TLS in the ingress
-  # host: server.myapp.example
+
+  host: example.com
+
+  workers: 4
+
+  policies:
+    webvh_version: "1.0"
+    webvh_witness: true
+    webvh_watcher: null
+    webvh_prerotation: true
+    webvh_portability: true
+    webvh_endorsement: true
 
   replicaCount: 1
 

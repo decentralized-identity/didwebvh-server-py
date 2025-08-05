@@ -26,9 +26,6 @@ class Settings(BaseSettings):
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
 
-    # Proof expiration in minutes
-    REGISTRATION_PROOF_TTL: int = 60
-
     ATTESTED_RESOURCE_CTX: str = "https://opsecid.github.io/attested-resource/v1"
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")

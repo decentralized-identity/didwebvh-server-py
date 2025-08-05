@@ -27,28 +27,15 @@ spec:
             {{- toYaml .Values.server.containerSecurityContext | nindent 12 }}
           image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag }}"
           imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+              name: {{ include "server.fullname" . }}
           env:
             - name: API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "server.fullname" . }}
                   key: api-key
-            - name: SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "server.fullname" . }}
-                  key: secret-key
-            - name: STORAGE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "server.fullname" . }}
-                  key: storage-key
-              {{ if .Values.server.default_witness_key }}
-            - name: DEFAULT_WITNESS_KEY
-              value: {{ .Values.server.default_witness_key }}
-              {{ end }}
-            - name: DOMAIN
-              value: {{ .Values.server.host }}
             - name: POSTGRES_USER
               value: {{ .Values.postgresql.auth.username }}
             - name: POSTGRES_PASSWORD
