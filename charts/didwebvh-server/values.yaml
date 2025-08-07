@@ -16,13 +16,13 @@ networkPolicy:
 server:
   image:
     repository: ghcr.io/decentralized-identity/didwebvh-server-py
-    tag: 0.2.0
+    tag: 0.3.1
     pullPolicy: IfNotPresent
     pullSecrets: []
 
   host: example.com
 
-  workers: "4"
+  workers: 4
 
   # Policies should be configured according to governance decisions
   policies:
@@ -43,14 +43,6 @@ server:
     type: ClusterIP
     apiPort: 8000
     servicePort: 8000
-
-  resources:
-    limits:
-      cpu: 100m
-      memory: 512Mi
-    requests:
-      cpu: 10m
-      memory: 128Mi
 
   networkPolicy:
     ingress:
@@ -78,13 +70,6 @@ postgresql:
       enabled: false
     podSecurityContext:
       enabled: false
-    resources:
-      limits:
-        cpu: 800m
-        memory: 500Mi
-      requests:
-        cpu: 100m
-        memory: 100Mi
     service:
       ports:
         postgresql: 5432

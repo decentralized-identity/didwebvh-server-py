@@ -12,7 +12,7 @@ data:
   DOMAIN: {{ .Values.server.host | quote }}
   APP_PORT: {{ .Values.server.service.apiPort | quote }}
   {{- if .Values.server.workers }}
-  APP_WORKERS: {{ .Values.server.workers }}
+  APP_WORKERS: {{ .Values.server.workers | quote }}
   {{- end }}
   {{- if .Values.server.known_witness_key }}
   KNOWN_WITNESS_KEY: {{ .Values.server.known_witness_key | quote }}
