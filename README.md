@@ -48,26 +48,26 @@ When a rule is enforced, the server will reject any request that doesn't match s
 #### Known Witnesses Registry
 
 - WEBVH_KNOWN_WITNESS_KEY: A default known witness key to provision the server.
-    - ex: `WEBVH_KNOWN_WITNESS_KEY=z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP`
+    - ex: `WEBVH_KNOWN_WITNESS_KEY="z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP"`
 
 - WEBVH_KNOWN_WITNESS_REGISTRY: A list of known witnesses is used for validating witness policies. This will be cached every time a witness can't be found.
-    - ex: `WEBVH_KNOWN_WITNESS_REGISTRY=https://known-witnesses.example.com`
+    - ex: `WEBVH_KNOWN_WITNESS_REGISTRY="https://known-witnesses.example.com"`
 
 #### Attested Resource Endorsement
 
 - WEBVH_ENDORSEMENT: This will require a known witness proof on any attested resource uploaded or updated. It's up to the witness service to determine which resources to endorse from the controller.
-    - ex: `WEBVH_ENDORSEMENT=true`
+    - ex: `WEBVH_ENDORSEMENT="true"`
 
 #### WebVH Parameters
 
 The following policy variables can be used to enforce parameters from the did:webvh specification:
 - WEBVH_VERSION: Specify a webvh method version to enforce
-    - ex: `WEBVH_VERSION=1.0`
+    - ex: `WEBVH_VERSION="1.0"`
 - WEBVH_WITNESS: Enforce the use of witness with a minimum threshold of 1. At least 1 witness from the known witness registry will need to be used.
-    - ex: `WEBVH_WITNESS=true`
+    - ex: `WEBVH_WITNESS="true"`
 - WEBVH_PORTABILITY: Ensure that portability is enabled.
-    - ex: `WEBVH_PORTABILITY=true`
+    - ex: `WEBVH_PORTABILITY="true"`
 - WEBVH_WATCHER: Request a specific watcher to be included in the watchers array
     - ex: `WEBVH_WATCHER=https://watcher.example.com`
 - WEBVH_PREROTATION: Enforce the use of prerotation
-    - ex: `WEBVH_PREROTATION=true`
+    - ex: `WEBVH_PREROTATION="true"`

@@ -19,19 +19,19 @@ server:
     tag: 0.2.0
     pullPolicy: IfNotPresent
     pullSecrets: []
-    default_witness_key: null
 
   host: example.com
 
-  workers: 4
+  workers: "4"
 
+  # Policies should be configured according to governance decisions
   policies:
     webvh_version: "1.0"
-    webvh_witness: true
-    webvh_watcher: null
-    webvh_prerotation: true
-    webvh_portability: true
-    webvh_endorsement: true
+    webvh_witness: "true"
+    webvh_watcher: ""
+    webvh_prerotation: "true"
+    webvh_portability: "true"
+    webvh_endorsement: "true"
 
   replicaCount: 1
 
