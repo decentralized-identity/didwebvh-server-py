@@ -29,7 +29,7 @@ spec:
           imagePullPolicy: {{ .Values.server.image.pullPolicy }}
           envFrom:
             - configMapRef:
-              name: {{ include "server.fullname" . }}
+                name: {{ include "server.fullname" . }}
           env:
             - name: API_KEY
               valueFrom:

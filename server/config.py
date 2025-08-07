@@ -46,11 +46,11 @@ class Settings(BaseSettings):
     KNOWN_WITNESS_REGISTRY: Union[str, None] = os.environ.get("KNOWN_WITNESS_REGISTRY", None)
 
     WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "1.0")
-    WEBVH_WITNESS: bool = os.environ.get("WEBVH_WITNESS", True)
+    WEBVH_WITNESS: bool = eval(os.environ.get("WEBVH_WITNESS", "true").capitalize())
     WEBVH_WATCHER: Union[str, None] = os.environ.get("WEBVH_WATCHER", None)
-    WEBVH_PREROTATION: bool = os.environ.get("WEBVH_PREROTATION", True)
-    WEBVH_PORTABILITY: bool = os.environ.get("WEBVH_PORTABILITY", True)
-    WEBVH_ENDORSEMENT: bool = os.environ.get("WEBVH_ENDORSEMENT", False)
+    WEBVH_PREROTATION: bool = eval(os.environ.get("WEBVH_PREROTATION", "true").capitalize())
+    WEBVH_PORTABILITY: bool = eval(os.environ.get("WEBVH_PORTABILITY", "true").capitalize())
+    WEBVH_ENDORSEMENT: bool = eval(os.environ.get("WEBVH_ENDORSEMENT", "false").capitalize())
 
 
 settings = Settings()
