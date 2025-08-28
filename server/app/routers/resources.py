@@ -39,9 +39,6 @@ async def upload_attested_resource(namespace, identifier, request_body: Resource
         except AssertionError:
             raise HTTPException(status_code=400, detail="Invalid endorsement witness proof.")
 
-    else:
-        assert len(proofs) == 1
-
     secured_resource["proof"] = next(
         (proof for proof in proofs if proof["verificationMethod"].startswith("did:webvh:")), None
     )
