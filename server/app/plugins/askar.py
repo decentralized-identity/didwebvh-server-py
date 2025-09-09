@@ -104,6 +104,12 @@ class AskarStorage:
             else await self.store(category, data_key, data)
         )
 
+    async def get_category_entries(self, category, tag_filter=None):
+        """Return list of items from category."""
+        store = await self.open()
+        scan = store.scan(category=category, tag_filter=tag_filter)
+        return await scan.fetch_all()
+
 
 class AskarVerifier:
     """Askar verifier plugin."""

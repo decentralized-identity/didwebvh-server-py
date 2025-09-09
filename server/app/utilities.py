@@ -6,8 +6,47 @@ import json
 from multiformats import multibase, multihash
 from datetime import datetime, timezone, timedelta
 
+from operator import itemgetter
+
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
+
+def beautify_date(value):
+    """Returns a human readable date from a ISO datetime string."""
+    date_str = value.split('T')[0]
+    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+    return date_obj.strftime("%B %d, %Y")
+
+
+def resource_id_to_url(resource_id):
+    """Returns a resource url from it's id."""
+    author_id = resource_id.split('/')[0]
+    domain, namespace, identifier = itemgetter(3, 4, 5)(author_id.split(":"))
+    path = '/'.join(resource_id.split('/')[1:])
+    return f'https://{domain}/{namespace}/{identifier}/{path}'
+
+
+def resource_details(resource):
+    """Returns resource specific details."""
+    resource_type = resource.get('metadata').get('resourceType')
+    if resource_type == 'anonCredsSchema':
+        return {
+            'name': resource.get('content').get('name'),
+            'version': resource.get('content').get('version')
+        }
+    elif resource_type == 'anonCredsCredDef':
+        return {
+            'tag': resource.get('content').get('tag')
+        }
+    elif resource_type == 'anonCredsRevRegDef':
+        return {
+            'tag': '',
+            'size': ''
+        }
+    elif resource_type == 'anonCredsStatusList':
+        return {}
+    return {} 
+    
 
 def get_client_id(namespace, identifier):
     """Create the client id."""

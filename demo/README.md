@@ -1,173 +1,46 @@
 # DID WebVH Server Demo
 
-These are step by step instructions.
+## Pre-requisite
+
+### Docker compose
+
+Ensure you have docker compose installed. This can be verified with the following command.
+`docker compose --version`
+
+Instructions on how to install docker compose can be found here
+https://docs.docker.com/compose/install/
+
+### NGROK
+
+We strongly recommend setting up a free ngrok account prior to going through this demo.
+
+You can signup here:
+https://dashboard.ngrok.com/
+
+Once your account is created, you need to setup a free static endpoint and grab your API key.
+
+You can setup a free static domain in the domain section once logged in:
+https://dashboard.ngrok.com/domains
+
+To get an API key, go to the API key section:
+https://dashboard.ngrok.com/api-keys
+
+Once you have your static domain and your API, proceed with the demo.
 
 ## Setting up you local deployments
 
-You will need a docker installation, curl, jq and a bash shell.
-
-Once this is all checked, you can clone the repo, move to the demo repository and start the services:
+Start by cloning the repository
 ```bash
 git clone https://github.com/identity-foundation/didwebvh-server-py.git
-cd didwebvh-server-py/demo/ && ./manage start
-    
+cd didwebvh-server-py/demo/
 ```
 
-Confirm the services are up and running with the following curl commands
-```bash
-curl -H Host:server.docker.localhost \
-    http://127.0.0.1/server/status | jq .
-    
-curl -H Host:agent.docker.localhost \
-    http://127.0.0.1/status/ready | jq .
-    
-```
+Create your `.env` file and fill in the value using your ngrok account
+`cp .env-demo .env`
 
-*You can visit the following pages in your browser*
-- http://agent.docker.localhost/api/doc
-- http://server.docker.localhost/docs
+Build and start the service
+`docker compose up --build`
 
-You can continue reading to go through the steps of registering a DID. There's also a script available to automate this (`./register.sh`).
+This will run the server along with an acapy agent and run a script to provision some dids/resources.
 
-## Create a DID
-
-Time required: Less than 10 minutes
-
-DID web requires a public endpoint to be globally resolveable. For this demo, we will operate on a local docker network as a proof of concept.
-
-This demo also serves as an introduction to Data Integrity proof sets.
-
-At any time, you can reset this demo with the `./manage restart` command.
-
-### Request a did namespace and identifier
-```bash
-DID_REQUEST=$(curl -H Host:server.docker.localhost \
-    'http://127.0.0.1?namespace=demo&identifier=issuer' | jq .)
-
-DID_DOCUMENT=$(echo $DID_REQUEST | jq .didDocument)
-PROOF_OPTIONS=$(echo $DID_REQUEST | jq .proofOptions)
-
-```
-
-The proof options generated have a 10 minutes validity period, after which you will need to request a new set of options.
-
-## Create an update key for this did
-```bash
-# http://agent.docker.localhost/api/doc#/wallet/post_wallet_keys
-
-UPDATE_KEY=$(curl -X 'POST' -H Host:agent.docker.localhost \
-  'http://127.0.0.1/wallet/keys' \
-  -d '{}' | jq -r .multikey)
-CONTROLLER_VERIFICATION_METHOD="did:key:$UPDATE_KEY#$UPDATE_KEY"
-
-```
-
-## Sign the did document
-You can optionally add information to your did document containing the content you want to publish. Refer to the did core spec to get familiar with such features. For this demo, we will leave it as is.
-
-Sign with the proof options obtained from step 1.
-```bash
-# http://issuer.docker.localhost/api/doc#/wallet/post_wallet_di_add_proof
-
-# Add verificationMethod to the proof options
-CONTROLLER_PROOF_OPTIONS=$(jq '. += {"verificationMethod": "'"$CONTROLLER_VERIFICATION_METHOD"'"}' <<< "$PROOF_OPTIONS")
-
-# Construct the payload for the request
-PAYLOAD=$(cat <<EOF 
-{"document": $DID_DOCUMENT, "options": $CONTROLLER_PROOF_OPTIONS}
-EOF
-)
-
-# Request a signature on the did document
-SIGNED_DID_DOC=$(curl -X 'POST' -H Host:agent.docker.localhost \
-  -H 'Content-Type: application/json' \
-  'http://127.0.0.1/vc/di/add-proof' \
-  -d ''"$PAYLOAD"'' | jq .securedDocument)
-
-```
-
-## Request an endorser signature
-Request an endorser signature on the signed did document.
-
-```bash
-# http://issuer.docker.localhost/api/doc#/wallet/post_wallet_di_add_proof
-
-# Change verificationMethod to the proof options
-ENDORSER_KEY='z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i'
-ENDORSER_VERIFICATION_METHOD="did:key:$ENDORSER_KEY#$ENDORSER_KEY"
-ENDORSER_PROOF_OPTIONS=$(jq '. += {"verificationMethod": "'"$ENDORSER_VERIFICATION_METHOD"'"}' <<< "$PROOF_OPTIONS")
-
-# Construct the payload for the request
-PAYLOAD=$(cat <<EOF 
-{"document": $SIGNED_DID_DOC, "options": $ENDORSER_PROOF_OPTIONS}
-EOF
-)
-
-# Request a signature on the did document
-ENDORSED_DID_DOC=$(curl -X 'POST' -H Host:agent.docker.localhost \
-  -H 'Content-Type: application/json' \
-  'http://127.0.0.1/vc/di/add-proof' \
-  -d ''"$PAYLOAD"'' | jq .securedDocument)
-
-```
-
-## Send the request back to the server
-Now that we have a DID document with a proof set, we can send this back to the did web server to finalize the did registration.
-- http://server.docker.localhost/docs#/Identifiers/register_did__namespace___identifier__post
-
-If you completed the steps properly and within 10 minutes, your DID will now be available.
-
-If you get an error, try restarting the demo using the `./manage restart` command.
-
-```bash
-# Construct the payload for the request
-PAYLOAD=$(cat <<EOF 
-{"didDocument": $ENDORSED_DID_DOC}
-EOF
-)
-
-# Request a signature on the did document
-curl -X 'POST' -H Host:server.docker.localhost \
-  -H 'Content-Type: application/json' \
-  'http://127.0.0.1/' \
-  -d ''"$PAYLOAD"'' | jq .
-
-```
-
-## Resolve (locally) the DID
-```bash
-curl -H Host:server.docker.localhost http://127.0.0.1/demo/issuer/did.json | jq .
-```
-
-## Initialise the DID Log
-
-```bash
-# Request the provided helper log entry to sign
-LOG_ENTRY=$(curl -H Host:server.docker.localhost http://127.0.0.1/demo/issuer | jq .logEntry)
-
-# Sign with the controller
-PAYLOAD=$(cat <<EOF 
-{"document": $LOG_ENTRY, "options": $CONTROLLER_PROOF_OPTIONS}
-EOF
-)
-SIGNED_LOG_ENTRY=$(curl -X 'POST' -H Host:agent.docker.localhost \
-  -H 'Content-Type: application/json' \
-  'http://127.0.0.1/vc/di/add-proof' \
-  -d ''"$PAYLOAD"'' | jq .securedDocument)
-
-# Send response to server
-PAYLOAD=$(cat <<EOF 
-{"logEntry": $SIGNED_LOG_ENTRY}
-EOF
-)
-curl -X 'POST' -H Host:server.docker.localhost \
-  -H 'Content-Type: application/json' \
-  'http://127.0.0.1/demo/issuer' \
-  -d ''"$PAYLOAD"'' | jq .
-
-```
-
-## Resolve (locally) the DID Log
-```bash
-curl -H Host:server.docker.localhost http://127.0.0.1/demo/issuer/did.jsonl
-```
+You can visit the webvh explorer at your ngrok domain `/explorer`.

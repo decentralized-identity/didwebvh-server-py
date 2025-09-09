@@ -1,0 +1,148 @@
+{% include('components/did_modal.jinja')%}
+<div class="card">
+    <div class="card-table">
+        <form action="dids" method="get">
+            <div class="card-header">
+                <div class="row w-full">
+                    <div class="col-4">
+                        <h3 class="card-title mb-0">DIDs</h3>
+                        <p class="text-secondary m-0">List of DIDs processed by their log entries.</p>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-3">
+                            <div class="form-label">Filters</div>
+                            <input name="scid" id="scid" class="form-control form-control-sm mb-3" type="text"
+                                placeholder="scid">
+                            <input name="namespace" id="namespace" class="form-control form-control-sm mb-3" type="text"
+                                placeholder="namespace">
+                            <input name="identifier" id="identifier" class="form-control form-control-sm mb-3"
+                                type="text" placeholder="identifier">
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-3">
+                            <div class="form-label">Status</div>
+                            <div>
+                                <label class="form-check">
+                                    <input class="form-check-input" type="radio" name="status" value="all" checked />
+                                    <span class="form-check-label">All</span>
+                                </label>
+                                <label class="form-check">
+                                    <input class="form-check-input" type="radio" name="status" value="active" />
+                                    <span class="form-check-label">Active</span>
+                                </label>
+                                <label class="form-check">
+                                    <input class="form-check-input" type="radio" name="status" value="deactivated" />
+                                    <span class="form-check-label">Deactivated</span>
+                                </label>
+                            </div>
+                        </div>
+                        <input type="submit" value="Query" class="btn w-100">
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div id="advanced-table">
+        <div class="table-responsive">
+            <table class="table table-vcenter table-selectable">
+                <thead>
+                    <tr>
+                        <th>
+                            <button class="table-sort d-flex justify-content-between"
+                                data-sort="sort-status">Status</button>
+                        </th>
+                        <th>
+                            <button class="table-sort d-flex justify-content-between"
+                                data-sort="sort-created">Created</button>
+                        </th>
+                        <th>
+                            <button class="table-sort d-flex justify-content-between"
+                                data-sort="sort-updated">Updated</button>
+                        </th>
+                        <th>
+                            <button class="table-sort d-flex justify-content-between"
+                                data-sort="sort-namespace">Namespace</button>
+                        </th>
+                        <th>
+                            <button class="table-sort d-flex justify-content-between"
+                                data-sort="sort-identifier">Identifier</button>
+                        </th>
+                        <th class="w-1"></th>
+                    </tr>
+                </thead>
+                <tbody class="table-tbody">
+                    {% for did in results %}
+                    <tr>
+                        <td class="sort-status">
+                            {% if did.deactivated == "True" %}
+                            <span class="badge bg-danger-lt"><small>Deactivated</small></span>
+                            {% else %}
+                            <span class="badge bg-success-lt"><small>Active</small></span>
+                            {% endif %}
+                        </td>
+                        <td class="sort-created"><small>{{ did.created }}</small></td>
+                        <td class="sort-updated"><small>{{ did.updated }}</small></td>
+                        <td class="sort-namespace"><small>{{ did.namespace }}</small></td>
+                        <td class="sort-identifier"><small>{{ did.identifier }}</small></td>
+                        <td>
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#modal-did-{{ loop.index }}">Details</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer d-flex align-items-center">
+            <div><span class="me-1">{{ results|length }}</span><span>records</span></div>
+            <ul class="pagination m-0 ms-auto">
+                <li class="page-item active"><a class="page-link cursor-pointer" data-i="1" data-page="20">1</a>
+                </li>
+                <li class="page-item"><a class="page-link cursor-pointer" data-i="2" data-page="20">2</a></li>
+                <li class="page-item disabled"><a class="page-link cursor-pointer">...</a></li>
+                <li class="page-item"><a class="page-link cursor-pointer" data-i="7" data-page="20">7</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    const advancedTable = {
+        headers: [
+            { "data-sort": "sort-status", name: "Status" },
+            { "data-sort": "sort-created", name: "Created" },
+            { "data-sort": "sort-updated", name: "Updated" },
+            { "data-sort": "sort-namespace", name: "Namespace" },
+            { "data-sort": "sort-identifier", name: "Identifier" },
+        ],
+    };
+    const setPageListItems = (e) => {
+        window.tabler_list["advanced-table"].page = parseInt(e.target.dataset.value);
+        window.tabler_list["advanced-table"].update();
+        document.querySelector("#page-count").innerHTML = e.target.dataset.value;
+    };
+    window.tabler_list = window.tabler_list || {};
+    document.addEventListener("DOMContentLoaded", function () {
+        const list = (window.tabler_list["advanced-table"] = new List("advanced-table", {
+            sortClass: "table-sort",
+            listClass: "table-tbody",
+            page: parseInt("10"),
+            pagination: {
+                item: (value) => {
+                    return `<li class="page-item"><a class="page-link cursor-pointer">${value.page}</a></li>`;
+                },
+                innerWindow: 1,
+                outerWindow: 1,
+                left: 0,
+                right: 0,
+            },
+            valueNames: advancedTable.headers.map((header) => header["data-sort"]),
+        }));
+        const searchInput = document.querySelector("#advanced-table-search");
+        if (searchInput) {
+            searchInput.addEventListener("input", () => {
+                list.search(searchInput.value);
+            });
+        }
+    });
+</script>

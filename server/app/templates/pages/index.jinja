@@ -1,0 +1,50 @@
+{% extends 'layouts/base.jinja' %}
+{% block page %}
+<div class="page-wrapper">
+    <div class="page-header d-print-none" aria-label="Page header">
+        <div class="container">
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <h2 class="page-title">DID WebVH Server Explorer</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="page-body">
+        <div class="container">
+            <div class="row row-cards">
+                <div class="col-6">
+                    <a class="card card-link" href="dids">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-auto">
+                                    <span class="avatar avatar-2 rounded" style="background-image: url()"> </span>
+                                </div>
+                                <div class="col">
+                                    <div class="font-weight-medium">DIDs</div>
+                                    <div class="text-secondary">Browse DIDs</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a class="card card-link" href="resources">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-auto">
+                                    <span class="avatar avatar-2 rounded" style="background-image: url()"> </span>
+                                </div>
+                                <div class="col">
+                                    <div class="font-weight-medium">Resources</div>
+                                    <div class="text-secondary">Browse Attested Resources</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

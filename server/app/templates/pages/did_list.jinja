@@ -1,0 +1,19 @@
+{% extends 'layouts/base.jinja' %}
+{% block page %}
+<div class="page-wrapper">
+    {# <div class="page-header d-print-none" aria-label="Page header">
+        <div class="container-xl">
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <h2 class="page-title">DIDs</h2>
+                </div>
+            </div>
+        </div>
+    </div> #}
+    <div class="page-body">
+        <div class="container-xl">
+            {% include 'components/did_list.jinja' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

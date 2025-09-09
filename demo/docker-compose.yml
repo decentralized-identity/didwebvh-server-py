@@ -1,49 +1,61 @@
 ---
 services:
-  server:
-    build:
-      context: ../server
-      dockerfile: Dockerfile
-    environment:
-      DOMAIN: server.${DOMAIN}
-      SECRET_KEY: ${SECRET_KEY}
-      ENDORSER_MULTIKEY: ${ENDORSER_MULTIKEY}
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.server.rule=Host(`server.${DOMAIN}`)
-      - traefik.http.routers.server.entrypoints=web
-      - traefik.http.services.server.loadbalancer.server.port=8000
+  # webvh-server:
+  #   build:
+  #     context: ../server
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     DOMAIN: ${WEBVH_DOMAIN}
+  #     NGROK_TOKEN: ${NGROK_TOKEN}
+  #     WEBVH_WITNESS: false
+  #     WEBVH_PREROTATION: false
+  #     WEBVH_PORTABILITY: false
+  #     WEBVH_ENDORSEMENT: false
 
-  agent:
+  witness-agent:
     build:
-      context: https://github.com/hyperledger/aries-cloudagent-python.git
-      dockerfile: docker/Dockerfile
-    entrypoint: ["aca-py", "start"]
-    command: [
-      '--no-ledger',
-      '--no-transport',
-      '--auto-provision',
-      '--seed', '${ENDORSER_SEED}',
-      '--wallet-type', 'askar',
-      '--wallet-name', 'askar',
-      '--wallet-key', 'askar',
-      '--admin', '0.0.0.0', '8020',
-      '--admin-insecure',
-    ]
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.endorser.rule=Host(`agent.${DOMAIN}`)
-      - traefik.http.routers.endorser.entrypoints=web
-      - traefik.http.services.endorser.loadbalancer.server.port=8020
-
-  traefik:
-    image: traefik:v3.1
-    command:
-      - --api.insecure=true
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entryPoints.web.address=:80
+      context: .
+      dockerfile: Dockerfile.agent
     ports:
-      - 80:80
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - 8020:8020
+    configs:
+      - source: agent-config.yml
+        target: /home/aries/config.yml
+    entrypoint: ["aca-py", "start"]
+    command: ["--arg-file", "/home/aries/config.yml"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/status/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+  
+  demo_script:
+    build:
+      context: .
+      dockerfile: Dockerfile.script
+    environment:
+      WEBVH_SERVER_URL: https://${WEBVH_DOMAIN}
+      AGENT_ADMIN_API_URL: http://witness-agent:8020
+    depends_on:
+      witness-agent:
+        condition: service_healthy
+
+configs:
+  agent-config.yml:
+    content: |
+      admin: [0.0.0.0, 8020]
+      admin-insecure-mode: true
+      no-ledger: true
+      no-transport: true
+      auto-provision: true
+      wallet-key: test-wallet
+      wallet-name: test-wallet
+      wallet-type: askar-anoncreds
+      plugin:
+        - webvh
+      plugin-config-value:
+        - did-webvh.witness=true
+        - did-webvh.auto_attest=true
+        - did-webvh.endorsement=true
+        - did-webvh.server_url=https://${WEBVH_DOMAIN}
