@@ -14,15 +14,18 @@ services:
 
   witness-agent:
     build:
-      context: .
-      dockerfile: Dockerfile.agent
+      context: ../../acapy-plugins/webvh
+      dockerfile: docker/Dockerfile
     ports:
       - 8020:8020
     configs:
       - source: agent-config.yml
         target: /home/aries/config.yml
     entrypoint: ["aca-py", "start"]
-    command: ["--arg-file", "/home/aries/config.yml"]
+    command: [
+      "--arg-file", "/home/aries/config.yml",
+      "--tails-server-base-url", "https://tails.anoncreds.vc"
+    ]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8020/status/ready"]
       interval: 5s

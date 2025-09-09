@@ -8,9 +8,171 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Adipisci animi beatae delectus deleniti
-                dolorem eveniet facere fuga
-                iste nemo nesciunt nihil odio perspiciatis, quia quis reprehenderit sit tempora totam unde.
+                <div class="col-md-12 mb-3">
+                    <div class="">
+                        <div class="card-body">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-auto me-3">
+                                    <span class="avatar avatar-xl"
+                                        style="background-image: url({{ resource.author.avatar }})">
+                                    </span>
+                                    <div class="mt-3">
+                                        <span class="w-100">Author</span>
+                                    </div>
+                                </div>
+                                <div class="col ms">
+                                    <dl class="row">
+                                        <dt class="col-1">Digest:</dt>
+                                        <dd class="col-11">
+                                            <h4 class="card-title m-0">{{ resource.digest }}</h4>
+                                        </dd>
+                                        <dt class="col-1">Type:</dt>
+                                        <dd class="col-11">
+                                            <div class="text-secondary">{{ resource.type }}</div>
+                                        </dd>
+                                        <dt class="col-1">Details:</dt>
+                                        <dd class="col-11">
+                                            <div class="small mt-1">{{ resource.details }}</div>
+                                        </dd>
+                                    </dl>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="dropdown">
+                                        <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <!-- Download SVG icon from http://tabler.io/icons/icon/dots-vertical -->
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+                                                <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
+                                                <path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
+                                                <path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
+                                            </svg>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <a target="_blank" href="{{ resource.url }}" class="dropdown-item">Fetch
+                                                Resource</a>
+                                            <a href="dids?scid={{ resource.author.scid }}" class="dropdown-item">View
+                                                Author</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs nav-bordered card-header-tabs" data-bs-toggle="tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <a href="#tabs-content-{{ resource.digest }}" class="nav-link active"
+                                        data-bs-toggle="tab" aria-selected="true" role="tab">Content</a>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <a href="#tabs-metadata-{{ resource.digest }}" class="nav-link" data-bs-toggle="tab"
+                                        aria-selected="false" role="tab" tabindex="-1">Metadata</a>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <a href="#tabs-links-{{ resource.digest }}" class="nav-link" data-bs-toggle="tab"
+                                        aria-selected="false" role="tab" tabindex="-1">Links</a>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <a href="#tabs-author-{{ resource.digest }}" class="nav-link" data-bs-toggle="tab"
+                                        aria-selected="false" role="tab" tabindex="-1">Author</a>
+                                </li>
+                                <li class="nav-item ms-auto" role="presentation">
+                                    <a href="#tabs-settings-{{ resource.digest }}" class="nav-link" title="Settings"
+                                        data-bs-toggle="tab" aria-selected="false" role="tab"
+                                        tabindex="-1"><!-- Download SVG icon from http://tabler.io/icons/icon/settings -->
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+                                            <path
+                                                d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z">
+                                            </path>
+                                            <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path>
+                                        </svg></a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content">
+                                <div class="tab-pane active show" id="tabs-content-{{ resource.digest }}"
+                                    role="tabpanel">
+                                    <div class="row">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <div>
+                                                    {# <pre>{{ resource.content | to_json }}</pre> #}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="tabs-metadata-{{ resource.digest }}" role="tabpanel">
+                                    <div class="row">
+                                        {% for data in resource.metadata %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="tabs-links-{{ resource.digest }}" role="tabpanel">
+                                    <div class="row">
+                                        {% if resource.links %}
+                                        {% for link in resource.links %}
+                                        <div class="col-md-12">
+                                            <a class="card card-link" href="#">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col">
+                                                            <div class="font-weight-medium">{{ link.id }}</div>
+                                                            <div class="text-secondary">{{ link.digestMultibase }}</div>
+                                                            <div class="text-secondary">{{ link.timestamp }}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </div>
+                                        {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="tabs-author-{{ resource.digest }}" role="tabpanel">
+                                    <div class="row">
+                                        <div class="col-auto me-3">
+                                            <span class="avatar avatar-xl"
+                                                style="background-image: url({{ resource.author.avatar }})">
+                                            </span>
+                                        </div>
+                                        <div class="col ms">
+                                            <dl class="row">
+                                                <dt class="col-1">SCID:</dt>
+                                                <dd class="col-11">
+                                                    <h4 class="card-title m-0">{{ resource.author.scid }}</h4>
+                                                </dd>
+                                                <dt class="col-1">Domain:</dt>
+                                                <dd class="col-11">
+                                                    <div class="text-secondary">{{ resource.author.domain }}</div>
+                                                </dd>
+                                                <dt class="col-1">Namespace:</dt>
+                                                <dd class="col-11">
+                                                    <div class="small mt-1">{{ resource.author.namespace }}</div>
+                                                </dd>
+                                                <dt class="col-1">Identifier:</dt>
+                                                <dd class="col-11">
+                                                    <div class="small mt-1">{{ resource.author.identifier }}</div>
+                                                </dd>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="tabs-settings-{{ resource.digest }}" role="tabpanel">
+                                    <h4>Settings</h4>
+                                    <div>{{ resource.id }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn me-auto" data-bs-dismiss="modal">Close</button>

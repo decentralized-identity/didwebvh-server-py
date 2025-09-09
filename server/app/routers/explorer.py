@@ -125,8 +125,12 @@ async def explorer_resource_table(
         }
         resource = {
             'avatar': f'{settings.AVATAR_URL}?seed={digest}',
+            'id': attested_resource.get('id'),
             'url': resource_id_to_url(attested_resource.get('id')),
             'digest': digest,
+            'content': attested_resource.get('content'),
+            'metadata': attested_resource.get('metadata'),
+            'links': attested_resource.get('links'),
             'name': attested_resource.get('metadata').get('resourceName'),
             'type': attested_resource.get('metadata').get('resourceType'),
             'version': attested_resource.get('metadata').get('resourceVersion'),
@@ -145,21 +149,24 @@ async def explorer_resource_table(
                 'tag': attested_resource.get('content').get('tag')
             }
             name = attested_resource.get('content').get('tag')
-        elif resource.get('type') == 'anonCredsRevRegDef':
+        elif resource.get('type') == 'anonCredsRevocRegDef':
             resource['details'] = {
-                'tag': '',
-                'size': ''
+                'tag': attested_resource.get('content').get('tag'),
+                'size': attested_resource.get('content').get('value').get('maxCredNum')
             }
             name = attested_resource.get('content').get('tag')
         elif resource.get('type') == 'anonCredsStatusList':
-            resource['details'] = {}
+            resource['details'] = {
+                'timestamp': attested_resource.get('content').get('timestamp'),
+                'size': len(attested_resource.get('content').get('revocationList'))
+            }
             name = attested_resource.get('content').get('tag')
         tags = {
             'scid': author_scid,
             'author': author_scid,
             'type': attested_resource.get('metadata').get('resourceType'),
             'digest': digest,
-            'name': name
+            # 'name': name
         }
         await askar.update('resource', entry.name, entry.value_json, tags=tags)
         CONTEXT['results'].append(resource)

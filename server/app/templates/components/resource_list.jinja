@@ -44,6 +44,7 @@
                                 data-sort="sort-author">Author</button>
                         </th>
                         <th class="w-1"></th>
+                        <th class="w-1"></th>
                     </tr>
                 </thead>
                 <tbody class="table-tbody">
@@ -51,20 +52,24 @@
                     <tr>
                         <td class="sort-type"><small>{{ resource.type }}</small></td>
                         <td class="sort-details">
-                        {% if resource.type == 'anonCredsSchema' %}
-                        <small>{{ resource.details.name }} v{{ resource.details.version }}</small>
-                        {% elif resource.type == 'anonCredsCredDef' %}
-                        <small>{{ resource.details.tag }}</small>
-                        {% elif resource.type == 'anonCredsRevRegDef' %}
-                        <small>{{ resource.details.tag }} - Size: {{ resource.details.size }}</small>
-                        {% elif resource.type == 'anonCredsStatusList' %}
-                        <small></small></td>
-                        {% endif %}
+                            <small>{{ resource.details | string | replace("'","") | replace("{","") | replace("}","")
+                                }}</small>
                         </td>
                         <td class="sort-author"><small>{{ resource.author.scid }}</small></td>
                         <td>
-                            <a target="_blank" href="{{ resource.url }}">Open</a>
-                            <a href="#" data-bs-toggle="modal" data-bs-target="#modal-resource-{{ loop.index }}">Details</a>
+                            <a href="#" data-bs-toggle="modal"
+                                data-bs-target="#modal-resource-{{ loop.index }}">Details</a>
+                        </td>
+                        <td>
+                            <a target="_blank" href="{{ resource.url }}"><svg xmlns="http://www.w3.org/2000/svg"
+                                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                    class="icon icon-tabler icons-tabler-outline icon-tabler-external-link">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+                                    <path d="M11 13l9 -9" />
+                                    <path d="M15 4h5v5" />
+                                </svg></a>
                         </td>
                     </tr>
                     {% endfor %}
