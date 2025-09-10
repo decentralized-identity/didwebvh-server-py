@@ -10,6 +10,22 @@ from operator import itemgetter
 
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
+# def tag_identifier(value):
+#     return {
+#         'scid': scid,
+#         'author': controller_id,
+#         'type': attested_resource.get('metadata').get('resourceType'),
+#         'digest': resource_digest
+#     }
+
+# def tag_resource(value):
+#     return {
+#         'scid': scid,
+#         'author': controller_id,
+#         'type': attested_resource.get('metadata').get('resourceType'),
+#         'digest': resource_digest
+#     }
+
 
 def beautify_date(value):
     """Returns a human readable date from a ISO datetime string."""

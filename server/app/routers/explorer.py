@@ -81,7 +81,7 @@ async def explorer_did_table(
             })
         did_info['active'] = False if state.deactivated else True
         client_id = get_client_id(namespace, identifier)
-        did_info['witnesses'] = state.witness.get('witnesses')
+        did_info['witnesses'] = state.witness.get('witnesses') if state.witness else []
         whois_vp = await askar.fetch("whois", client_id)
         did_info['whois'] = whois_vp
         CONTEXT['results'].append(did_info)
@@ -113,21 +113,22 @@ async def explorer_resource_table(
     }
     for entry in entries:
         attested_resource = entry.value_json
-        author_id = attested_resource.get('id').split('/')[0]
-        author_scid = author_id.split(':')[2]
-        digest = attested_resource.get('id').split('/')[-1]
+        resource_id = attested_resource.get('id')
+        resource_digest = resource_id.split('/')[-1]
+        controller_id = resource_id.split('/')[0]
+        scid, domain, namespace, identifier = itemgetter(2, 3, 4, 5)(controller_id.split(":"))
         author = {
-            'avatar': f'{settings.AVATAR_URL}?seed={author_scid}',
-            'scid': author_scid,
-            'domain': 'sandbox.bcvh.vonx.io',
-            'namespace': 'test',
-            'identifier': 'df598728-bbeb-4f45-bd24-dc8f8154a472',
+            'avatar': f'{settings.AVATAR_URL}?seed={scid}',
+            'scid': scid,
+            'domain': domain,
+            'namespace': namespace,
+            'identifier': identifier,
         }
         resource = {
-            'avatar': f'{settings.AVATAR_URL}?seed={digest}',
+            'avatar': f'{settings.AVATAR_URL}?seed={resource_digest}',
             'id': attested_resource.get('id'),
             'url': resource_id_to_url(attested_resource.get('id')),
-            'digest': digest,
+            'digest': resource_digest,
             'content': attested_resource.get('content'),
             'metadata': attested_resource.get('metadata'),
             'links': attested_resource.get('links'),
@@ -137,36 +138,30 @@ async def explorer_resource_table(
             'author': author,
             'details': {}
         }
-        name = 'null'
         if resource.get('type') == 'anonCredsSchema':
             resource['details'] = {
                 'name': attested_resource.get('content').get('name'),
                 'version': attested_resource.get('content').get('version')
             }
-            name = attested_resource.get('content').get('name')
         elif resource.get('type') == 'anonCredsCredDef':
             resource['details'] = {
                 'tag': attested_resource.get('content').get('tag')
             }
-            name = attested_resource.get('content').get('tag')
         elif resource.get('type') == 'anonCredsRevocRegDef':
             resource['details'] = {
                 'tag': attested_resource.get('content').get('tag'),
                 'size': attested_resource.get('content').get('value').get('maxCredNum')
             }
-            name = attested_resource.get('content').get('tag')
         elif resource.get('type') == 'anonCredsStatusList':
             resource['details'] = {
                 'timestamp': attested_resource.get('content').get('timestamp'),
                 'size': len(attested_resource.get('content').get('revocationList'))
             }
-            name = attested_resource.get('content').get('tag')
         tags = {
-            'scid': author_scid,
-            'author': author_scid,
+            'scid': scid,
+            'author': controller_id,
             'type': attested_resource.get('metadata').get('resourceType'),
-            'digest': digest,
-            # 'name': name
+            'digest': resource_digest
         }
         await askar.update('resource', entry.name, entry.value_json, tags=tags)
         CONTEXT['results'].append(resource)
