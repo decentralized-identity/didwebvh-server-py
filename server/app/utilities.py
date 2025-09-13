@@ -27,6 +27,12 @@ MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 #     }
 
 
+def did_to_https(did):
+    """DID to https transformation."""
+    domain, namespace, identifier = itemgetter(3, 4, 5)(did.split(":"))
+    return f'https://{domain}/{namespace}/{identifier}'
+
+
 def beautify_date(value):
     """Returns a human readable date from a ISO datetime string."""
     date_str = value.split('T')[0]

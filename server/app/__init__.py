@@ -1,10 +1,9 @@
-from fastapi import FastAPI, APIRouter, Request, Response, status
+from fastapi import FastAPI, APIRouter, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routers import policies, identifiers, resources, explorer
-import json
 import logging
 from config import settings
 
@@ -39,7 +38,7 @@ async def server_status():
 
 
 api_router.include_router(explorer.router, prefix='/explorer', include_in_schema=False)
-api_router.include_router(policies.router)
+api_router.include_router(policies.router, prefix='/policy')
 api_router.include_router(resources.router)
 api_router.include_router(identifiers.router)
 

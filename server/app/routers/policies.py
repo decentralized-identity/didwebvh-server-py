@@ -38,14 +38,14 @@ def get_api_key(
     )
 
 
-@router.get("/policy")
+@router.get("/")
 async def get_active_policy(api_key: str = Security(get_api_key)):
     """Get active policy."""
     active_policy = await askar.fetch("policy", "active")
     return JSONResponse(status_code=200, content=active_policy)
 
 
-@router.get("/policy/known-witnesses")
+@router.get("/known-witnesses")
 async def get_known_witnesses(api_key: str = Security(get_api_key)):
     """Get known witnesses registry."""
     witness_registry = await askar.fetch("registry", "knownWitnesses")
@@ -56,7 +56,7 @@ async def get_known_witnesses(api_key: str = Security(get_api_key)):
     return JSONResponse(status_code=200, content=witness_registry)
 
 
-@router.post("/policy/known-witnesses")
+@router.post("/known-witnesses")
 async def add_known_witness(request_body: AddWitness, api_key: str = Security(get_api_key)):
     """Add known witness."""
     request_body = request_body.model_dump()
@@ -79,7 +79,7 @@ async def add_known_witness(request_body: AddWitness, api_key: str = Security(ge
     return JSONResponse(status_code=200, content=witness_registry)
 
 
-@router.delete("/policy/known-witnesses/{multikey}")
+@router.delete("/known-witnesses/{multikey}")
 async def remove_known_witness(multikey: str, api_key: str = Security(get_api_key)):
     """Remove known witness."""
     witness_registry = await askar.fetch("registry", "knownWitnesses")

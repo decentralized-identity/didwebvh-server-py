@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from operator import itemgetter
 
 from app.plugins import AskarStorage, DidWebVH
-from app.utilities import beautify_date, resource_id_to_url, resource_details, get_client_id
+from app.utilities import beautify_date, resource_id_to_url, resource_details, get_client_id, did_to_https
 
 from config import templates, settings
 
@@ -84,6 +84,13 @@ async def explorer_did_table(
         did_info['witnesses'] = state.witness.get('witnesses') if state.witness else []
         whois_vp = await askar.fetch("whois", client_id)
         did_info['whois'] = whois_vp
+        did_info['links'] = {
+            'resolver': f'{settings.UNIRESOLVER_URL}/#{did}',
+            'resources': f'{settings.UNIRESOLVER_URL}/#{did}',
+            'log_file': f'{did_to_https(did)}/did.jsonl',
+            'witness_file': f'{did_to_https(did)}/did-witness.json',
+            'whois': f'{did_to_https(did)}/whois.vp'
+        }
         CONTEXT['results'].append(did_info)
         
     if request.headers.get("Accept") == 'application/json':
