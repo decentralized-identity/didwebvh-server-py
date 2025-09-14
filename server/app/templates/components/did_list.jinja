@@ -16,7 +16,7 @@
                             <input name="namespace" id="namespace" class="form-control form-control-sm mb-3" type="text"
                                 placeholder="namespace">
                             <input name="identifier" id="identifier" class="form-control form-control-sm mb-3"
-                                type="text" placeholder="identifier">
+                                type="text" placeholder="alias">
                         </div>
                     </div>
                     <div class="col-4">
@@ -66,7 +66,7 @@
                         </th>
                         <th>
                             <button class="table-sort d-flex justify-content-between"
-                                data-sort="sort-identifier">Identifier</button>
+                                data-sort="sort-identifier">Alias</button>
                         </th>
                         <th class="w-1"></th>
                         <th class="w-1"></th>
@@ -125,7 +125,7 @@
             { "data-sort": "sort-created", name: "Created" },
             { "data-sort": "sort-updated", name: "Updated" },
             { "data-sort": "sort-namespace", name: "Namespace" },
-            { "data-sort": "sort-identifier", name: "Identifier" },
+            { "data-sort": "sort-identifier", name: "Alias" },
         ],
     };
     const setPageListItems = (e) => {

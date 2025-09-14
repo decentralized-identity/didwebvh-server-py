@@ -81,7 +81,8 @@ async def explorer_did_table(
             })
         did_info['active'] = False if state.deactivated else True
         client_id = get_client_id(namespace, identifier)
-        did_info['witnesses'] = state.witness.get('witnesses') if state.witness else []
+        did_info['witnesses'] = state.witness.get('witnesses', [])
+        did_info['watchers'] = state.params.get('watchers', [])
         whois_vp = await askar.fetch("whois", client_id)
         did_info['whois'] = whois_vp
         did_info['links'] = {

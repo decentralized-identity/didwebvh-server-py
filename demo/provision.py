@@ -11,7 +11,11 @@ AGENT_ADMIN_API_URL = os.getenv('AGENT_ADMIN_API_URL', 'http://witness-agent:802
 AGENT_ADMIN_API_HEADERS = {
     'X-API-KEY': os.getenv('AGENT_ADMIN_API_KEY', '')
 }
+WATCHER_API_HEADERS = {
+    'X-API-KEY': os.getenv('WATCHER_API_KEY', '')
+}
 WEBVH_SERVER_URL = os.getenv('WEBVH_SERVER_URL', None)
+WATCHER_URL = os.getenv('WATCHER_URL', None)
 
 def try_return(request):
     time.sleep(2)
@@ -28,10 +32,28 @@ def configure_plugin(server_url=WEBVH_SERVER_URL):
         headers=AGENT_ADMIN_API_HEADERS,
         json={
             'server_url': server_url,
+            'notify_watchers': True,
             'witness': True,
             'auto_attest': True,
             'endorsement': False
         }
+    )
+    return try_return(r)
+
+def register_watcher(did):
+    scid = itemgetter(2)(did.split(":"))
+    logger.info(f"Registering watcher {scid}")
+    r = requests.post(
+        f'{WATCHER_URL}/scid?did={did}',
+        headers=WATCHER_API_HEADERS
+    )
+    return try_return(r)
+
+def notify_watcher(did):
+    scid = itemgetter(2)(did.split(":"))
+    logger.info(f"Notifying watcher {scid}")
+    r = requests.post(
+        f'{WATCHER_URL}/log?did={did}'
     )
     return try_return(r)
 
@@ -44,6 +66,7 @@ def create_did(namespace):
             'options': {
                 'apply_policy': 1,
                 'witnessThreshold': 1,
+                'watchers': [WATCHER_URL],
                 'namespace': namespace,
                 'identifier': str(uuid.uuid4())[:6]
             }
@@ -135,8 +158,6 @@ def upload_whois(vp):
     holder_id = vp.get('holder')
     scid, namespace, alias = itemgetter(2, 4, 5)(holder_id.split(":"))
     logger.info(f"Uploading whois {scid}")
-    
-    logger.info(json.dumps(vp))
     r = requests.post(
         f'{WEBVH_SERVER_URL}/{namespace}/{alias}/whois',
         json={
@@ -189,16 +210,22 @@ webvh_config = configure_plugin(WEBVH_SERVER_URL)
 witness_id = webvh_config.get('witnesses')[0]
 logger.info(f'Witness Configured: {witness_id}')
 logger.info('Provisioning Server')
-for namespace in ['ns-01', 'ns-02', 'ns-03']:
-    for idx in range(2):
+# for namespace in ['ns-01', 'ns-02', 'ns-03']:
+for namespace in ['ns-01']:
+    # for idx in range(2):
+    for idx in range(1):
         time.sleep(2)
         log_entry = create_did(namespace)
         scid = log_entry.get('parameters', {}).get('scid')
         did = log_entry.get('state', {}).get('id')
         signing_key = log_entry.get('state', {}).get('verificationMethod')[0].get('publicKeyMultibase')
         logger.info(signing_key)
+        if WATCHER_URL:
+            register_watcher(did)
         update_did(scid)
+        notify_watcher(did)
         update_did(scid)
+        notify_watcher(did)
         vc = sign_credential(witness_id, did).get('securedDocument')
         vp = sign_presentation(signing_key, vc).get('securedDocument')
         whois = upload_whois(vp)

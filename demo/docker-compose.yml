@@ -38,6 +38,8 @@ services:
       context: .
       dockerfile: Dockerfile.script
     environment:
+      WATCHER_URL: ${WATCHER_URL}
+      WATCHER_API_KEY: ${WATCHER_API_KEY}
       WEBVH_SERVER_URL: https://${WEBVH_DOMAIN}
       AGENT_ADMIN_API_URL: http://witness-agent:8020
     depends_on:
