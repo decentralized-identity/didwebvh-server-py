@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Union
 
 from pydantic import BaseModel, Field
 
-from config import settings
 
 from .di_proof import DataIntegrityProof
 from .did_document import DidDocument

@@ -1,7 +1,6 @@
 from app.models.did_document import DidDocument
 from config import settings
-from app.models.did_document import DidDocument, VerificationMethodMultikey
-from app.models.di_proof import DataIntegrityProof
+from app.models.did_document import VerificationMethodMultikey
 from app.models.policy import ActivePolicy
 
 

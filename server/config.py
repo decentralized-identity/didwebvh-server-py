@@ -13,7 +13,8 @@ from typing import Union
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
 
-templates = Jinja2Templates(directory='app/templates')
+templates = Jinja2Templates(directory="app/templates")
+
 
 class Settings(BaseSettings):
     """App settings."""
@@ -23,7 +24,7 @@ class Settings(BaseSettings):
 
     API_KEY: str = os.environ.get("API_KEY", "webvh")
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
-        
+
     SCID_PLACEHOLDER: str = r"{SCID}"
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
@@ -54,16 +55,16 @@ class Settings(BaseSettings):
     WEBVH_PREROTATION: bool = eval(os.environ.get("WEBVH_PREROTATION", "true").capitalize())
     WEBVH_PORTABILITY: bool = eval(os.environ.get("WEBVH_PORTABILITY", "true").capitalize())
     WEBVH_ENDORSEMENT: bool = eval(os.environ.get("WEBVH_ENDORSEMENT", "false").capitalize())
-    
+
     BRANDING: dict = {
-        'app_name': 'DID WebVH Explorer',
-        'app_description': 'Visual user inteface to query DID WebVH logs and Attested Resources.',
-        'app_icon': 'https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/favicon.ico',
-        'app_logo': os.environ.get("APP_LOGO", ""),
-        'app_url': f'https://{DOMAIN}',
+        "app_name": "DID WebVH Explorer",
+        "app_description": "Visual user inteface to query DID WebVH logs and Attested Resources.",
+        "app_icon": "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/favicon.ico",
+        "app_logo": os.environ.get("APP_LOGO", ""),
+        "app_url": f"https://{DOMAIN}",
     }
-    AVATAR_URL: str = 'https://api.dicebear.com/9.x/identicon/svg'
-    UNIRESOLVER_URL: str = 'https://dev.uniresolver.io'
+    AVATAR_URL: str = "https://api.dicebear.com/9.x/identicon/svg"
+    UNIRESOLVER_URL: str = "https://dev.uniresolver.io"
 
 
 settings = Settings()

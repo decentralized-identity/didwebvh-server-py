@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Union
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from .di_proof import DataIntegrityProof
 
 

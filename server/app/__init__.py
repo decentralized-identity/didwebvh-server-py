@@ -37,8 +37,8 @@ async def server_status():
     return JSONResponse(status_code=200, content={"status": "ok", "domain": settings.DOMAIN})
 
 
-api_router.include_router(explorer.router, prefix='/explorer', include_in_schema=False)
-api_router.include_router(policies.router, prefix='/policy')
+api_router.include_router(explorer.router, prefix="/explorer", include_in_schema=False)
+api_router.include_router(policies.router, prefix="/policy")
 api_router.include_router(resources.router)
 api_router.include_router(identifiers.router)
 
