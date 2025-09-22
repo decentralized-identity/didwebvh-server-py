@@ -14,11 +14,12 @@ WATCHER_URL = os.getenv("WATCHER_URL", None)
 
 
 def try_return(request):
-    time.sleep(2)
+    time.sleep(1)
     try:
         return request.json()
     except requests.exceptions.JSONDecodeError:
-        logger.info(request.text)
+        logger.warning("Unexpected response from agent:")
+        logger.warning(request.text)
         raise requests.exceptions.JSONDecodeError
 
 
@@ -204,11 +205,11 @@ webvh_config = configure_plugin(WEBVH_SERVER_URL)
 witness_id = webvh_config.get("witnesses")[0]
 logger.info(f"Witness Configured: {witness_id}")
 logger.info("Provisioning Server")
-# for namespace in ['ns-01', 'ns-02', 'ns-03']:
-for namespace in ["ns-01"]:
-    # for idx in range(2):
-    for idx in range(1):
-        time.sleep(2)
+
+# Create DIDs in three namespaces
+for namespace in ["ns-01", "ns-02", "ns-03"]:
+    # Create 2 DIDs in each namespace
+    for idx in range(2):
         log_entry = create_did(namespace)
         scid = log_entry.get("parameters", {}).get("scid")
         did = log_entry.get("state", {}).get("id")
@@ -217,21 +218,30 @@ for namespace in ["ns-01"]:
             .get("verificationMethod")[0]
             .get("publicKeyMultibase")
         )
-        logger.info(signing_key)
+        logger.info(f"New signing key: {signing_key}")
+
+        # Register with watcher if configured
         if WATCHER_URL:
             register_watcher(did)
+
+        # Update the DID twice to generate some log entries
+        update_did(scid)
         update_did(scid)
         notify_watcher(did)
-        update_did(scid)
-        notify_watcher(did)
+
+        # Create a sample whois VP
         vc = sign_credential(witness_id, did).get("securedDocument")
         vp = sign_presentation(signing_key, vc).get("securedDocument")
         whois = upload_whois(vp)
+
+        # Create anoncreds schema and cred def
         schema = create_schema(did)
         schema_id = schema.get("schema_state", {}).get("schema_id", None)
         cred_def = create_cred_def(schema_id, revocation_size=10)
         cred_def_id = cred_def.get("credential_definition_state", {}).get(
             "credential_definition_id", None
         )
+
+        # Deactivate every second DID to generate some activity
         if idx == 1:
             deactivate_did(scid)

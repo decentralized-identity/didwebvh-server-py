@@ -16,7 +16,6 @@ webvh = DidWebVH()
 
 
 @router.get("/")
-# @router.get("/{namespace}/{identifier}")
 async def request_did(
     namespace: str = None,
     identifier: str = None,

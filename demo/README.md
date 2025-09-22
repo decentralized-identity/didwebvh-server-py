@@ -36,7 +36,7 @@ cd didwebvh-server-py/demo/
 ```
 
 Create your `.env` file and fill in the value using your ngrok account
-`cp .env-demo .env`
+`cp .env.demo .env`
 
 Build and start the service
 `docker compose up --build`
