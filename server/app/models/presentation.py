@@ -1,6 +1,6 @@
 """This module defines the Presentation model used for whois.vp."""
 
-from typing import Any, Dict, List, Union
+from typing import Dict, List, Union
 from pydantic import Field
 from .di_proof import DataIntegrityProof
 from .base import CustomBaseModel

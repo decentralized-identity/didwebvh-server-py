@@ -59,7 +59,7 @@ async def explorer_did_table(
         initial_log = logs[0]
         did = initial_log.get("state").get("id")
         scid, domain, namespace, identifier = itemgetter(2, 3, 4, 5)(did.split(":"))
-        
+
         did_info = LogEntryTags(
             did=did,
             scid=scid,
@@ -70,7 +70,7 @@ async def explorer_did_table(
             updated=beautify_date(logs[-1].get("versionTime")),
             deactivated=str(state.deactivated),
         ).model_dump()
-        
+
         await askar.update("logEntries", entry.name, entry.value_json, tags=did_info)
         did_info["avatar"] = f"{settings.AVATAR_URL}?seed={scid}"
         did_info["logs"] = logs
@@ -162,14 +162,14 @@ async def explorer_resource_table(
                 "timestamp": attested_resource.get("content").get("timestamp"),
                 "size": len(attested_resource.get("content").get("revocationList")),
             }
-        
+
         tags = AttestedResourceTags(
             did=controller_id,
             scid=scid,
             resource_type=attested_resource.get("metadata").get("resourceType"),
-            resource_id=resource_digest
+            resource_id=resource_digest,
         ).model_dump()
-        
+
         await askar.update("resource", entry.name, entry.value_json, tags=tags)
         CONTEXT["results"].append(resource)
 

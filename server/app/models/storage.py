@@ -4,6 +4,7 @@ from pydantic import Field
 
 from .base import CustomBaseModel
 
+
 class LogEntryTags(CustomBaseModel):
     """Tags for log entry model."""
 
@@ -16,9 +17,10 @@ class LogEntryTags(CustomBaseModel):
     updated: str = Field()
     deactivated: str = Field()
 
+
 class AttestedResourceTags(CustomBaseModel):
     """Tags for attested resource model."""
-    
+
     did: str = Field()
     scid: str = Field()
     resource_id: str = Field()

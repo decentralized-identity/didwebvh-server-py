@@ -1,13 +1,14 @@
 """DID Document model."""
 
 import re
-from typing import Any, Dict, List, Union
+from typing import List, Union
 
 import validators
 from multiformats import multibase
 from pydantic import Field, field_validator
 from .di_proof import DataIntegrityProof
 from .base import CustomBaseModel
+
 DID_WEB_REGEX = re.compile("did:web:((?:[a-zA-Z0-9._%-]*:)*[a-zA-Z0-9._%-]+)")
 DID_WEB_ID_REGEX = re.compile("did:web:((?:[a-zA-Z0-9._%-]*:)*[a-zA-Z0-9._%-]+)#([a-z0-9._%-]+)")
 

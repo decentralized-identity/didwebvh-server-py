@@ -1,6 +1,6 @@
 """DID Log models."""
 
-from typing import Any, Dict, List, Union
+from typing import List, Union
 from pydantic import Field
 from .di_proof import DataIntegrityProof
 from .did_document import DidDocument

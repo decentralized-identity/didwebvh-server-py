@@ -1,6 +1,6 @@
 """Models for attested resource handling and routes."""
 
-from typing import Dict, Any, List, Union
+from typing import List, Union
 from pydantic import Field
 from app.models.di_proof import DataIntegrityProof
 from config import settings

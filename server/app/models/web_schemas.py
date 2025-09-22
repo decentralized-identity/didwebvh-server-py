@@ -1,6 +1,6 @@
 """Pydantic models for the web schemas."""
 
-from typing import Any, Dict, List, Union
+from typing import List, Union
 
 from pydantic import Field
 from .did_document import SecuredDidDocument
