@@ -39,7 +39,7 @@ class LogEntry(CustomBaseModel):
         witness: WitnessParam = Field(None)
         watchers: List[str] = Field(None)
         deactivated: bool = Field(None)
-        ttl: bool = Field(None)
+        ttl: int = Field(None)
 
     versionId: str = Field()
     versionTime: str = Field()
