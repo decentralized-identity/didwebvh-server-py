@@ -43,26 +43,6 @@
                                         </dd>
                                     </dl>
                                 </div>
-                                <div class="col-auto">
-                                    <div class="dropdown">
-                                        <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <!-- Download SVG icon from http://tabler.io/icons/icon/dots-vertical -->
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                                stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
-                                                <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
-                                                <path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
-                                                <path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
-                                            </svg>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-end">
-                                            <a target="_blank" href="{{ did.resolver }}"
-                                                class="dropdown-item">Resolve</a>
-                                            <a href="resources?scid={{ did.scid }}" class="dropdown-item">Browse
-                                                Resources</a>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -105,21 +85,18 @@
                                         {% if did.whois %}
                                         {% for credential in did.whois.verifiableCredential %}
                                         <div class="col-md-12">
-                                            <a class="card card-link" href="#">
+                                            <div class="card mb-3">
                                                 <div class="card-body">
                                                     <div class="row">
-                                                        {# <div class="col-auto">
-                                                            <span class="avatar avatar-2 rounded"
-                                                                style="background-image: url(./static/avatars/004m.jpg)">
-                                                            </span>
-                                                        </div> #}
                                                         <div class="col">
-                                                            <div class="font-weight-medium">{{ credential.type }}</div>
-                                                            <div class="text-secondary">{{ credential.issuer }}</div>
+                                                            <div class="font-weight-medium">Type: {{ credential.type |
+                                                                tojson }}</div>
+                                                            <div class="font-weight-medium">Issuer: {{ credential.issuer
+                                                                | tojson }}</div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </a>
+                                            </div>
                                         </div>
                                         {% endfor %}
                                         {% endif %}
@@ -133,16 +110,10 @@
                                             <div class="card">
                                                 <div class="card-body">
                                                     <div class="row g-2 align-items-center">
-                                                        {# <div class="col-auto">
-                                                            <span class="avatar avatar-lg"
-                                                                style="background-image: url()">
-                                                            </span>
-                                                        </div> #}
                                                         <div class="col">
-                                                            <h4 class="card-title m-0">
-                                                                <a href="#">{{ witness.id }}</a>
-                                                            </h4>
-                                                            <div class="text-secondary">Witness Service</div>
+                                                            <h4 class="card-title m-0">Witness Service</h4>
+                                                            <div class="text-secondary"><a href="#">{{ witness.id }}</a>
+                                                            </div>
                                                             <div class="small mt-1"><span class="badge bg-green"></span>
                                                                 Online</div>
                                                         </div>
@@ -162,24 +133,22 @@
                                             <div class="card">
                                                 <div class="card-body">
                                                     <div class="row g-2 align-items-center">
-                                                        {# <div class="col-auto">
-                                                            <span class="avatar avatar-lg"
-                                                                style="background-image: url()">
-                                                            </span>
-                                                        </div> #}
                                                         <div class="col">
-                                                            <h4 class="card-title m-0">
-                                                                <a target="_blank" href="{{ watcher }}">{{ watcher }}</a>
-                                                            </h4>
-                                                            <div class="text-secondary">Watcher Service</div>
+                                                            <h4 class="card-title m-0">Watcher Service</h4>
+                                                            <div class="text-secondary"><a target="_blank"
+                                                                    href="{{ watcher }}">{{ watcher }}</a></div>
                                                             <div class="small mt-1"><span class="badge bg-green"></span>
                                                                 Online</div>
                                                         </div>
                                                         <div class="col-auto">
-                                                            <a target="_blank" href="{{ watcher+'/log?scid='+did.scid }}" class="btn"> Log File </a>
+                                                            <a target="_blank"
+                                                                href="{{ watcher+'/log?scid='+did.scid }}" class="btn">
+                                                                Log File </a>
                                                         </div>
                                                         <div class="col-auto">
-                                                            <a target="_blank" href="{{ watcher+'/witness?scid='+did.scid }}" class="btn"> Witness File </a>
+                                                            <a target="_blank"
+                                                                href="{{ watcher+'/witness?scid='+did.scid }}"
+                                                                class="btn"> Witness File </a>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -190,40 +159,33 @@
                                     </div>
                                 </div>
                                 <div class="tab-pane" id="tabs-history-{{ did.scid }}" role="tabpanel">
-                                    <div class="row">
-                                        {% for log in did.logs %}
-                                        <div class="col-md-12">
-                                            <a class="card card-link" href="#">
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        {# <div class="col-auto">
-                                                            <span class="avatar avatar-2 rounded"
-                                                                style="background-image: url(./static/avatars/004m.jpg)">
-                                                            </span>
-                                                        </div> #}
-                                                        <div class="col">
-                                                            <div class="font-weight-medium">{{ log.versionId }}</div>
-                                                            <div class="text-secondary">{{ log.versionTime }}</div>
-                                                        </div>
+
+                                    <div class="card-body">
+                                        <div class="row g-3">
+
+                                            {% for log in did.logs %}
+                                            <div class="col-12">
+                                                <div class="row g-3 align-items-center">
+                                                    <div class="col text-truncate">
+                                                        <div class="text-reset d-block text-truncate">{{
+                                                            log.versionId }}</div>
+                                                        <div class="text-secondary text-truncate mt-n1">{{
+                                                            log.versionTime }}</div>
                                                     </div>
                                                 </div>
-                                            </a>
+                                            </div>
+                                            {% endfor %}
+
                                         </div>
-                                        {% endfor %}
                                     </div>
                                 </div>
                                 <div class="tab-pane" id="tabs-resources-{{ did.scid }}" role="tabpanel">
                                     <div class="row">
                                         {% for resource in did.resources %}
-                                        <div class="col-md-12">
+                                        <div class="col-md-12 mb-1">
                                             <a class="card card-link" href="#">
                                                 <div class="card-body">
                                                     <div class="row">
-                                                        {# <div class="col-auto">
-                                                            <span class="avatar avatar-2 rounded"
-                                                                style="background-image: url(./static/avatars/004m.jpg)">
-                                                            </span>
-                                                        </div> #}
                                                         <div class="col">
                                                             <div class="font-weight-medium">{{ resource.type }}
                                                             </div>
@@ -238,7 +200,7 @@
                                 </div>
                                 <div class="tab-pane" id="tabs-settings-{{ did.scid }}" role="tabpanel">
                                     <h4>Settings</h4>
-                                    <div class="text-secondary">{{ did.id }}</div>
+                                    <div class="text-secondary">{{ did.did }}</div>
                                     <div><a href="resources?scid={{ did.scid }}"><i
                                                 class="icon ti ti-clipboard-search"></i> Browse Resources</a></div>
                                     <div><a target="_blank" href="{{ did.links.resolver }}"><i
@@ -257,7 +219,6 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn me-auto" data-bs-dismiss="modal">Close</button>
-                {# <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Save changes</button> #}
             </div>
         </div>
     </div>

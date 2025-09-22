@@ -1,18 +1,11 @@
 """WebVH Server Policy."""
 
 from typing import Any, Dict, Union
-from pydantic import BaseModel, Field
+from pydantic import Field
+from .base import CustomBaseModel
 
 
-class BaseModel(BaseModel):
-    """Base model for all models in the application."""
-
-    def model_dump(self, **kwargs) -> Dict[str, Any]:
-        """Dump the model to a dictionary."""
-        return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
-
-
-class ActivePolicy(BaseModel):
+class ActivePolicy(CustomBaseModel):
     """Model for server policies."""
 
     version: str = Field(None)
@@ -25,16 +18,16 @@ class ActivePolicy(BaseModel):
     witness_registry_url: Union[str, None] = Field(None)
 
 
-class KnownWitnessRegistry(BaseModel):
+class KnownWitnessRegistry(CustomBaseModel):
     """Model for witness registry."""
 
-    class RegistryMetadata(BaseModel):
+    class RegistryMetadata(CustomBaseModel):
         """Model for witness registry metadata."""
 
         created: str = Field()
         updates: str = Field()
 
-    class RegistryEntry(BaseModel):
+    class RegistryEntry(CustomBaseModel):
         """Model for witness registry entry."""
 
         url: str = Field(None)

@@ -1,20 +1,13 @@
 """Models for attested resource handling and routes."""
 
 from typing import Dict, Any, List, Union
-from pydantic import BaseModel, Field
+from pydantic import Field
 from app.models.di_proof import DataIntegrityProof
 from config import settings
+from .base import CustomBaseModel
 
 
-class BaseModel(BaseModel):
-    """Overwrite BaseModel dumping behavior."""
-
-    def model_dump(self, **kwargs) -> Dict[str, Any]:
-        """Transform the class into a python dict with some defaults."""
-        return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
-
-
-class ResourceMetadata(BaseModel):
+class ResourceMetadata(CustomBaseModel):
     """ResourceMetadata Field."""
 
     resourceId: str = Field(None)
@@ -23,7 +16,7 @@ class ResourceMetadata(BaseModel):
     resourceCollectionId: str = Field(None)
 
 
-class RelatedLink(BaseModel):
+class RelatedLink(CustomBaseModel):
     """RelatedLink Field."""
 
     id: str = Field()
@@ -32,7 +25,7 @@ class RelatedLink(BaseModel):
     digestMultibase: str = Field(None)
 
 
-class AttestedResource(BaseModel):
+class AttestedResource(CustomBaseModel):
     """AttestedResource Object."""
 
     context: List[str] = Field(

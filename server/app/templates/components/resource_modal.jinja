@@ -12,14 +12,14 @@
                     <div class="">
                         <div class="card-body">
                             <div class="row g-2 align-items-center">
-                                <div class="col-auto me-3">
+                                {# <div class="col-auto me-3">
                                     <span class="avatar avatar-xl"
                                         style="background-image: url({{ resource.author.avatar }})">
                                     </span>
                                     <div class="mt-3">
                                         <span class="w-100">Author</span>
                                     </div>
-                                </div>
+                                </div> #}
                                 <div class="col ms">
                                     <dl class="row">
                                         <dt class="col-1">Digest:</dt>
@@ -35,26 +35,6 @@
                                             <div class="small mt-1">{{ resource.details }}</div>
                                         </dd>
                                     </dl>
-                                </div>
-                                <div class="col-auto">
-                                    <div class="dropdown">
-                                        <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <!-- Download SVG icon from http://tabler.io/icons/icon/dots-vertical -->
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                                stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
-                                                <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
-                                                <path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
-                                                <path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
-                                            </svg>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-end">
-                                            <a target="_blank" href="{{ resource.url }}" class="dropdown-item">Fetch
-                                                Resource</a>
-                                            <a href="dids?scid={{ resource.author.scid }}" class="dropdown-item">View
-                                                Author</a>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -100,20 +80,19 @@
                                 <div class="tab-pane active show" id="tabs-content-{{ resource.digest }}"
                                     role="tabpanel">
                                     <div class="row">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <div>
-                                                    {# <pre>{{ resource.content | to_json }}</pre> #}
-                                                </div>
-                                            </div>
+                                        <div class="card-body">
+                                            <pre>{{ resource.content | tojson(indent=2) }}</pre>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="tab-pane" id="tabs-metadata-{{ resource.digest }}" role="tabpanel">
-                                    <div class="row">
+
+                                    <dl class="row">
                                         {% for data in resource.metadata %}
+                                        <dt class="col-2">{{ data }}:</dt>
+                                        <dd class="col-10">{{ resource.metadata[data] }}</dd>
                                         {% endfor %}
-                                    </div>
+                                    </dl>
                                 </div>
                                 <div class="tab-pane" id="tabs-links-{{ resource.digest }}" role="tabpanel">
                                     <div class="row">
@@ -124,8 +103,9 @@
                                                 <div class="card-body">
                                                     <div class="row">
                                                         <div class="col">
-                                                            <div class="font-weight-medium">{{ link.id }}</div>
-                                                            <div class="text-secondary">{{ link.digestMultibase }}</div>
+                                                            <div class="font-weight-medium">{{ link.type }}</div>
+                                                            <div class="text-secondary">{{ link.id.split('/')[-1] }}
+                                                            </div>
                                                             <div class="text-secondary">{{ link.timestamp }}</div>
                                                         </div>
                                                     </div>
@@ -145,20 +125,20 @@
                                         </div>
                                         <div class="col ms">
                                             <dl class="row">
-                                                <dt class="col-1">SCID:</dt>
-                                                <dd class="col-11">
+                                                <dt class="col-2">SCID:</dt>
+                                                <dd class="col-10">
                                                     <h4 class="card-title m-0">{{ resource.author.scid }}</h4>
                                                 </dd>
-                                                <dt class="col-1">Domain:</dt>
-                                                <dd class="col-11">
+                                                <dt class="col-2">Domain:</dt>
+                                                <dd class="col-10">
                                                     <div class="text-secondary">{{ resource.author.domain }}</div>
                                                 </dd>
-                                                <dt class="col-1">Namespace:</dt>
-                                                <dd class="col-11">
+                                                <dt class="col-2">Namespace:</dt>
+                                                <dd class="col-10">
                                                     <div class="small mt-1">{{ resource.author.namespace }}</div>
                                                 </dd>
-                                                <dt class="col-1">Alias:</dt>
-                                                <dd class="col-11">
+                                                <dt class="col-2">Alias:</dt>
+                                                <dd class="col-10">
                                                     <div class="small mt-1">{{ resource.author.identifier }}</div>
                                                 </dd>
                                             </dl>
@@ -167,7 +147,11 @@
                                 </div>
                                 <div class="tab-pane" id="tabs-settings-{{ resource.digest }}" role="tabpanel">
                                     <h4>Settings</h4>
-                                    <div>{{ resource.id }}</div>
+                                    <div class="text-secondary">{{ resource.id }}</div>
+                                    <div><a target="_blank" href="{{ resource.url }}"><i
+                                                class="icon ti ti-external-link"></i> Fetch Resource</a></div>
+                                    <div><a href="dids?scid={{ resource.author.scid }}"><i
+                                                class="icon ti ti-clipboard-search"></i> View Author</a></div>
                                 </div>
                             </div>
                         </div>

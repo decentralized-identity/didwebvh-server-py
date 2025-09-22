@@ -5,24 +5,14 @@ from typing import Any, Dict, List, Union
 
 import validators
 from multiformats import multibase
-from pydantic import BaseModel, Field, field_validator
-
+from pydantic import Field, field_validator
 from .di_proof import DataIntegrityProof
-
+from .base import CustomBaseModel
 DID_WEB_REGEX = re.compile("did:web:((?:[a-zA-Z0-9._%-]*:)*[a-zA-Z0-9._%-]+)")
-
 DID_WEB_ID_REGEX = re.compile("did:web:((?:[a-zA-Z0-9._%-]*:)*[a-zA-Z0-9._%-]+)#([a-z0-9._%-]+)")
 
 
-class BaseModel(BaseModel):
-    """Base model for all models in the application."""
-
-    def model_dump(self, **kwargs) -> Dict[str, Any]:
-        """Dump the model to a dictionary."""
-        return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
-
-
-class JsonWebKey(BaseModel):
+class JsonWebKey(CustomBaseModel):
     """JsonWebKey model."""
 
     kty: str = Field("OKP")
@@ -30,7 +20,7 @@ class JsonWebKey(BaseModel):
     x: str = Field()
 
 
-class VerificationMethod(BaseModel):
+class VerificationMethod(CustomBaseModel):
     """VerificationMethod model."""
 
     id: str = Field()
@@ -64,7 +54,7 @@ class VerificationMethod(BaseModel):
         return value
 
 
-class JsonWebKey(BaseModel):
+class JsonWebKey(CustomBaseModel):
     """JsonWebKey model."""
 
     kty: str = Field("OKP")
@@ -101,7 +91,7 @@ class VerificationMethodMultikey(VerificationMethod):
         return value
 
 
-class Service(BaseModel):
+class Service(CustomBaseModel):
     """Service model."""
 
     id: str = Field()
@@ -123,7 +113,7 @@ class Service(BaseModel):
         return value
 
 
-class DidDocument(BaseModel):
+class DidDocument(CustomBaseModel):
     """DID Document model."""
 
     context: Union[str, List[str]] = Field(

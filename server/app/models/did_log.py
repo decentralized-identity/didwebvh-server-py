@@ -1,39 +1,29 @@
 """DID Log models."""
 
 from typing import Any, Dict, List, Union
-
-from pydantic import BaseModel, Field
-
-
+from pydantic import Field
 from .di_proof import DataIntegrityProof
 from .did_document import DidDocument
+from .base import CustomBaseModel
 
 
-class BaseModel(BaseModel):
-    """Base model for all models in the application."""
-
-    def model_dump(self, **kwargs) -> Dict[str, Any]:
-        """Dump the model to a dictionary."""
-        return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
-
-
-class WitnessSignature(BaseModel):
+class WitnessSignature(CustomBaseModel):
     """WitnessSignature model."""
 
     versionId: str = Field()
     proof: List[DataIntegrityProof] = Field()
 
 
-class LogEntry(BaseModel):
+class LogEntry(CustomBaseModel):
     """LogEntry model."""
 
-    class Parameters(BaseModel):
+    class Parameters(CustomBaseModel):
         """LogParameters model."""
 
-        class WitnessParam(BaseModel):
+        class WitnessParam(CustomBaseModel):
             """WitnessParam model."""
 
-            class Witness(BaseModel):
+            class Witness(CustomBaseModel):
                 """Witness model."""
 
                 id: str = Field()

@@ -2,48 +2,41 @@
 
 from typing import Any, Dict, List, Union
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 from .did_document import SecuredDidDocument
 from .resource import AttestedResource
 from .did_log import LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
 from .presentation import VerifiablePresentation
+from .base import CustomBaseModel
 
 
-class BaseModel(BaseModel):
-    """Base model for all models in the application."""
-
-    def model_dump(self, **kwargs) -> Dict[str, Any]:
-        """Dump the model to a dictionary."""
-        return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
-
-
-class AddWitness(BaseModel):
+class AddWitness(CustomBaseModel):
     """AddWitness model."""
 
     label: str = Field()
     multikey: str = Field()
 
 
-class RegisterDID(BaseModel):
+class RegisterDID(CustomBaseModel):
     """RegisterDID model."""
 
     didDocument: SecuredDidDocument = Field()
 
 
-class NewLogEntry(BaseModel):
+class NewLogEntry(CustomBaseModel):
     """NewLogEntry model."""
 
     logEntry: LogEntry = Field()
     witnessSignature: Union[WitnessSignature, None] = Field(None)
 
 
-class UpdateLogEntry(BaseModel):
+class UpdateLogEntry(CustomBaseModel):
     """UpdateLogEntry model."""
 
     logEntry: LogEntry = Field()
 
-    class WitnessProof(BaseModel):
+    class WitnessProof(CustomBaseModel):
         """WitnessProof model."""
 
         versionId: str = Field()
@@ -52,14 +45,14 @@ class UpdateLogEntry(BaseModel):
     witnessProof: WitnessProof = Field(None)
 
 
-class DeactivateLogEntry(BaseModel):
+class DeactivateLogEntry(CustomBaseModel):
     """DeactivateLogEntry model."""
 
     logEntry: LogEntry = Field()
     witnessProof: WitnessSignature = Field()
 
 
-class ResourceUploadDocument(BaseModel):
+class ResourceUploadDocument(CustomBaseModel):
     """ResourceUploadDocument model."""
 
     context: List[str] = Field(alias="@context")
@@ -71,7 +64,7 @@ class ResourceUploadDocument(BaseModel):
     proof: dict = Field()
 
 
-class ResourceOptions(BaseModel):
+class ResourceOptions(CustomBaseModel):
     """ResourceOptions model."""
 
     resourceId: str = Field(None)
@@ -80,21 +73,21 @@ class ResourceOptions(BaseModel):
     resourceCollectionId: str = Field(None)
 
 
-class ResourceTemplate(BaseModel):
+class ResourceTemplate(CustomBaseModel):
     """ResourceTemplate model."""
 
     resourceContent: dict = Field()
     options: ResourceOptions = Field()
 
 
-class ResourceUpload(BaseModel):
+class ResourceUpload(CustomBaseModel):
     """ResourceUpload model."""
 
     attestedResource: AttestedResource = Field()
     options: ResourceOptions = Field(None)
 
 
-class WhoisUpdate(BaseModel):
+class WhoisUpdate(CustomBaseModel):
     """WhoisUpdate model."""
 
     verifiablePresentation: VerifiablePresentation = Field()

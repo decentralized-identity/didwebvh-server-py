@@ -1,30 +1,33 @@
 {% include('components/resource_modal.jinja')%}
 <div class="card">
     <div class="card-table">
-        <div class="card-header">
-            <div class="row w-full">
-                <div class="col-4">
-                    <h3 class="card-title mb-0">Resources</h3>
-                    <p class="text-secondary m-0">List of Attested Resources processed by their metadata.</p>
-                </div>
-                <div class="col-4">
-                    <div class="mb-3">
-                        <div class="form-label">Metadata</div>
-                        <input class="form-control form-control-sm mb-3" type="text" placeholder="type">
-                        <input class="form-control form-control-sm mb-3" type="text" placeholder="name / tag">
-                        <input class="form-control form-control-sm mb-3" type="text" placeholder="version">
+        <form action="resources" method="get">
+            <div class="card-header">
+                <div class="row w-full">
+                    <div class="col-4">
+                        <h3 class="card-title mb-0">Resources</h3>
+                        <p class="text-secondary m-0">List of Attested Resources processed by their metadata.</p>
                     </div>
-                </div>
-                <div class="col-4">
-                    <div class="mb-3">
-                        <div class="form-label">Filters</div>
-                        <input class="form-control form-control-sm mb-3" type="text" placeholder="digest">
-                        <input class="form-control form-control-sm mb-3" type="text" placeholder="author's did / scid">
+                    <div class="col-4">
+                        <div class="mb-3">
+                            <div class="form-label">Metadata</div>
+                            <input name="resource_type" id="resource_type" class="form-control form-control-sm mb-3" type="text" placeholder="Resource Type">
+                            <input name="resource_id" id="resource_id" class="form-control form-control-sm mb-3" type="text" placeholder="Resource ID (digest)">
+                        </div>
                     </div>
-                    <a href="#" class="btn w-100"> Query </a>
+                    <div class="col-4">
+                        <div class="mb-3">
+                            <div class="form-label">Filters</div>
+                            <input name="scid" id="scid" class="form-control form-control-sm mb-3" type="text"
+                                placeholder="Author's SCID">
+                            {# <input class="form-control form-control-sm mb-3" type="text" placeholder="name / tag"> #}
+                            {# <input class="form-control form-control-sm mb-3" type="text" placeholder="version"> #}
+                        </div>
+                        <a href="#" class="btn w-100"> Query </a>
+                    </div>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
     <div id="advanced-table">
         <div class="table-responsive">
