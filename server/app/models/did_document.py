@@ -98,6 +98,7 @@ class Service(CustomBaseModel):
     id: str = Field()
     type: Union[str, List[str]] = Field()
     serviceEndpoint: str = Field()
+    recipientKeys: List[str] = Field(None)
 
     @field_validator("id")
     @classmethod
@@ -122,8 +123,6 @@ class DidDocument(CustomBaseModel):
         alias="@context",
     )
     id: str = Field()
-    name: str = Field(None)
-    description: str = Field(None)
     controller: str = Field(None)
     alsoKnownAs: List[str] = Field(None)
     verificationMethod: List[Union[VerificationMethodMultikey, VerificationMethodJwk]] = Field(None)

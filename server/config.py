@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     WEBVH_PORTABILITY: bool = eval(os.environ.get("WEBVH_PORTABILITY", "true").capitalize())
     WEBVH_ENDORSEMENT: bool = eval(os.environ.get("WEBVH_ENDORSEMENT", "false").capitalize())
 
-    WEBVH_ICON: str = "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/favicon.ico"
+    WEBVH_ICON: str = "https://didwebvh.info/latest/assets/favicon.ico"
     BRANDING: dict = {
         "app_name": "DID WebVH Explorer",
         "app_description": "Visual user inteface to query DID WebVH logs and Attested Resources.",
