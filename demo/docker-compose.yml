@@ -6,7 +6,6 @@ services:
       dockerfile: Dockerfile
     environment:
       DOMAIN: ${WEBVH_DOMAIN}
-      # NGROK_TOKEN: ${NGROK_TOKEN}
       WEBVH_WITNESS: false
       WEBVH_PREROTATION: false
       WEBVH_PORTABILITY: false
@@ -14,8 +13,8 @@ services:
 
   witness-agent:
     build:
-      context: ../../acapy-plugins/webvh
-      dockerfile: docker/Dockerfile
+      context: .
+      dockerfile: Dockerfile.agent
     ports:
       - 8020:8020
     configs:
