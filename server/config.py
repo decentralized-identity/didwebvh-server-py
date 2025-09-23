@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
 
-    ATTESTED_RESOURCE_CTX: str = "https://opsecid.github.io/attested-resource/v1"
+    ATTESTED_RESOURCE_CTX: str = "https://identity.foundation/did-attested-resources/context/v0.1"
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
