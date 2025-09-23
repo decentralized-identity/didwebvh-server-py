@@ -947,27 +947,6 @@ multiformats = "*"
 dev = ["mypy", "pylint", "pytest", "pytest-cov"]
 
 [[package]]
-name = "ngrok"
-version = "1.5.1"
-description = "The ngrok Agent SDK for Python"
-optional = false
-python-versions = ">=3.12"
-groups = ["main"]
-files = [
-    {file = "ngrok-1.5.1-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:167828a97cfb71942665bc7c156f566045061c73be52f4b3d24403a4e24a03c0"},
-    {file = "ngrok-1.5.1-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:ffdb9fa30aa78fca17ee95e3fae565fe8d79c62ae3bd260dcba2d541aa76b1f2"},
-    {file = "ngrok-1.5.1-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:28202e448267bf19d8f9f50f07a67fef91e390294c43c8dbd919f5fc1ab9fc9b"},
-    {file = "ngrok-1.5.1-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:caca325e330e578a85bdde1e27044c45d5c4028adf4dbab0fb2d87971175e630"},
-    {file = "ngrok-1.5.1-cp310-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:affade8cd54661ec6cd41e121ba6791276841248e63b18eb0c5f7daf6f5a71f8"},
-    {file = "ngrok-1.5.1-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ac544a66b2946cc335cb46e8fdff17d9ae1dce314705f69929952eabfd75be00"},
-    {file = "ngrok-1.5.1-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:cb7a27fceae3924d68b114f82c24a640528225a6d83a3ce5e7a13116cd9d627c"},
-    {file = "ngrok-1.5.1-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:0f04b43cbc92a027d63e64e1afca43d8b3ec063c9d2c9cdee3a7f32df7c6386a"},
-    {file = "ngrok-1.5.1-cp310-abi3-win32.whl", hash = "sha256:1118e5e3762084024e620afc5da1e99721e1897ec132ba90d3d2bec9d801d298"},
-    {file = "ngrok-1.5.1-cp310-abi3-win_amd64.whl", hash = "sha256:6fa5da328ce57fd5e50d1f8fec685f936bf4315e08e147d0fd91fd5dafa5cac7"},
-    {file = "ngrok-1.5.1-cp310-abi3-win_arm64.whl", hash = "sha256:e24eadd6e3914e664f01bd964311c0892e59eda271d8e4bbcac7aa46fcb2587b"},
-]
-
-[[package]]
 name = "packaging"
 version = "25.0"
 description = "Core utilities for Python packages"
@@ -1680,4 +1659,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "7ea8e4540ae91a305cc97d826ca9b251f1078abbe84a4ce463ee6cd700c48aa5"
+content-hash = "9888d8d8625fedd6af2d1f33156741423b152627bb5df5e7c492e1ddbc767da3"
