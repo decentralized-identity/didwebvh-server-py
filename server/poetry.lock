@@ -421,14 +421,14 @@ files = [
 
 [[package]]
 name = "did-webvh"
-version = "1.0.0rc0"
+version = "1.0.0"
 description = "This repository includes Python libraries for working with `did:webvh` (did:web + Verified History) DID documents and the underlying log format."
 optional = false
 python-versions = "<4,>=3.10"
 groups = ["main"]
 files = [
-    {file = "did_webvh-1.0.0rc0-py3-none-any.whl", hash = "sha256:10d9cf497fb6f263ec1f9572c7ba5732786384501d977f214afce39a2af86a25"},
-    {file = "did_webvh-1.0.0rc0.tar.gz", hash = "sha256:bd8f115485ad24dffa9c333a87b09b9d7eb648ec5ed85d1c6d64bff180b73e00"},
+    {file = "did_webvh-1.0.0-py3-none-any.whl", hash = "sha256:8d47c2ecb46839db9140e4dd2c756254b3d3691e27353ad3a2b5ce854054d000"},
+    {file = "did_webvh-1.0.0.tar.gz", hash = "sha256:025f1a9e9efcc879b17c03456bcc00776cc20d703ad477e2adc1d35cfbe3bd8b"},
 ]
 
 [package.dependencies]
@@ -1659,4 +1659,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "9888d8d8625fedd6af2d1f33156741423b152627bb5df5e7c492e1ddbc767da3"
+content-hash = "51200442f40ffaf8b3b0179f7481d28c805c7047711fbe0cf5b5d9a43075f88a"
