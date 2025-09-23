@@ -224,15 +224,16 @@ for namespace in ["ns-01", "ns-02", "ns-03"]:
         if WATCHER_URL:
             register_watcher(did)
 
-        # Update the DID twice to generate some log entries
-        update_did(scid)
-        update_did(scid)
-        notify_watcher(did)
+        # NOTE, following lines depend on next plugin release
+        # # Update the DID twice to generate some log entries
+        # update_did(scid)
+        # update_did(scid)
+        # notify_watcher(did)
 
-        # Create a sample whois VP
-        vc = sign_credential(witness_id, did).get("securedDocument")
-        vp = sign_presentation(signing_key, vc).get("securedDocument")
-        whois = upload_whois(vp)
+        # # Create a sample whois VP
+        # vc = sign_credential(witness_id, did).get("securedDocument")
+        # vp = sign_presentation(signing_key, vc).get("securedDocument")
+        # whois = upload_whois(vp)
 
         # Create anoncreds schema and cred def
         schema = create_schema(did)
