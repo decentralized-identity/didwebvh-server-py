@@ -56,11 +56,12 @@ class Settings(BaseSettings):
     WEBVH_PORTABILITY: bool = eval(os.environ.get("WEBVH_PORTABILITY", "true").capitalize())
     WEBVH_ENDORSEMENT: bool = eval(os.environ.get("WEBVH_ENDORSEMENT", "false").capitalize())
 
+    WEBVH_ICON: str = "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/favicon.ico"
     BRANDING: dict = {
         "app_name": "DID WebVH Explorer",
         "app_description": "Visual user inteface to query DID WebVH logs and Attested Resources.",
-        "app_icon": "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/favicon.ico",
-        "app_logo": os.environ.get("APP_LOGO", ""),
+        "app_icon": os.environ.get("APP_ICON", WEBVH_ICON),
+        "app_logo": os.environ.get("APP_LOGO", WEBVH_ICON),
         "app_url": f"https://{DOMAIN}",
     }
     AVATAR_URL: str = "https://api.dicebear.com/9.x/identicon/svg"

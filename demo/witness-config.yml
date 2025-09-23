@@ -11,7 +11,6 @@ auto-provision: true
 recreate-wallet: false
 
 wallet-type: askar-anoncreds
-# wallet-storage-type: postgres_storage
 
 multitenant: true
 multitenant-admin: true
@@ -34,7 +33,3 @@ preserve-exchange-records: true
 
 plugin:
   - webvh
-
-# plugin-config-value:
-#   - multitenant_provider.manager.always_check_provided_wallet_key=true
-#   - multitenant_provider.manager.class_name="multitenant_provider.v1_0.manager.BasicMultitokenMultitenantManager"
