@@ -43,4 +43,4 @@ Build and start the service
 
 This will run the server along with an acapy agent and run a script to provision some dids/resources.
 
-You can visit the webvh explorer at your ngrok domain `/explorer`.
+You can visit the webvh explorer at your ngrok domain.
