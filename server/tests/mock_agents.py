@@ -1,10 +1,8 @@
-from aries_askar import Store, Key, KeyAlg
+from aries_askar import Key, KeyAlg
 from aries_askar.bindings import LocalKeyHandle
 from multiformats import multibase
 from hashlib import sha256
-import jcs
 import canonicaljson
-from config import settings
 from tests.fixtures import TEST_WITNESS_SEED, TEST_SIGNING_SEED, TEST_UPDATE_SEED, TEST_DID
 from tests.utils import key_to_multikey, transform, digest_multibase
 from app.models.resource import AttestedResource, ResourceMetadata

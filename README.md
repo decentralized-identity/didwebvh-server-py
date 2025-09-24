@@ -71,3 +71,7 @@ The following policy variables can be used to enforce parameters from the did:we
     - ex: `WEBVH_WATCHER=https://watcher.example.com`
 - WEBVH_PREROTATION: Enforce the use of prerotation
     - ex: `WEBVH_PREROTATION="true"`
+
+### Exploring the resources
+
+Have a look at the demo directory for instructions on how to browse the explorer.

@@ -6,10 +6,14 @@ import os
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
+from fastapi.templating import Jinja2Templates
+
 from typing import Union
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
+
+templates = Jinja2Templates(directory="app/templates")
 
 
 class Settings(BaseSettings):
@@ -19,14 +23,14 @@ class Settings(BaseSettings):
     PROJECT_VERSION: str = "v0"
 
     API_KEY: str = os.environ.get("API_KEY", "webvh")
-
     DOMAIN: str = os.environ.get("DOMAIN", "localhost")
+
     SCID_PLACEHOLDER: str = r"{SCID}"
     DID_WEB_PREFIX: str = "did:web:"
     DID_WEBVH_PREFIX: str = "did:webvh:"
     DID_WEB_BASE: str = f"{DID_WEB_PREFIX}{DOMAIN}"
 
-    ATTESTED_RESOURCE_CTX: str = "https://opsecid.github.io/attested-resource/v1"
+    ATTESTED_RESOURCE_CTX: str = "https://identity.foundation/did-attested-resources/context/v0.1"
 
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
@@ -51,6 +55,17 @@ class Settings(BaseSettings):
     WEBVH_PREROTATION: bool = eval(os.environ.get("WEBVH_PREROTATION", "true").capitalize())
     WEBVH_PORTABILITY: bool = eval(os.environ.get("WEBVH_PORTABILITY", "true").capitalize())
     WEBVH_ENDORSEMENT: bool = eval(os.environ.get("WEBVH_ENDORSEMENT", "false").capitalize())
+
+    WEBVH_ICON: str = "https://didwebvh.info/latest/assets/favicon.ico"
+    BRANDING: dict = {
+        "app_name": "DID WebVH Explorer",
+        "app_description": "Visual user inteface to query DID WebVH logs and Attested Resources.",
+        "app_icon": os.environ.get("APP_ICON", WEBVH_ICON),
+        "app_logo": os.environ.get("APP_LOGO", WEBVH_ICON),
+        "app_url": f"https://{DOMAIN}",
+    }
+    AVATAR_URL: str = "https://api.dicebear.com/9.x/identicon/svg"
+    UNIRESOLVER_URL: str = "https://dev.uniresolver.io"
 
 
 settings = Settings()

@@ -50,10 +50,12 @@ async def upload_attested_resource(namespace, identifier, request_body: Resource
     ):
         raise HTTPException(status_code=400, detail="Invalid author id value.")
 
-    # This will ensure the verification method is registered on the server and that the proof is valid
+    # This will ensure the verification method is registered on the server
+    # and that the proof is valid
     await verifier.verify_resource_proof(copy.deepcopy(secured_resource))
 
-    # This will ensure that the resource is properly assigned to it's issuer and double check the digested path
+    # This will ensure that the resource is properly assigned to it's issuer
+    # and double check the digested path
     webvh.validate_resource(copy.deepcopy(secured_resource))
 
     store_id = webvh.resource_store_id(copy.deepcopy(secured_resource))

@@ -9,6 +9,7 @@ from app.utilities import digest_multibase
 from app.plugins import AskarStorage
 import canonicaljson
 from did_webvh.core.state import DocumentState, verify_state_proofs
+from did_webvh.core.witness import verify_witness_proofs
 
 
 class PolicyError(Exception):
@@ -32,7 +33,7 @@ class DidWebVH:
         self.known_witness_registry = active_registry or {}
 
         # Reserved namespaces based on existing API routes
-        self.reserved_namespaces = ["policy"]
+        self.reserved_namespaces = ["explorer", "policy", "server"]
 
     def placeholder_id(self, namespace, identifier):
         """Return placeholder id."""
@@ -172,6 +173,22 @@ class DidWebVH:
         if not witness_proof:
             raise PolicyError("No witness proof")
 
+    async def check_witness(self, document_state, witness_signature=None):
+        """Apply witness checks."""
+        witness_file = []
+        if document_state.witness_rule:
+            if not isinstance(witness_signature, dict):
+                raise PolicyError("Missing witness signature.")
+
+            if witness_signature.get("versionId") != document_state.version_id:
+                raise PolicyError("Witness versionId mismatch.")
+
+            if not (await verify_witness_proofs([witness_signature]))[0]:
+                raise PolicyError("Witness check failed.")
+
+            witness_file.append(witness_signature)
+        return witness_file
+
     async def create_did(self, log_entry, witness_signature=None):
         """Apply policies to DID creation."""
 
@@ -182,16 +199,13 @@ class DidWebVH:
             self.validate_known_witness(document_state, witness_signature)
 
         log_entries = [document_state.history_line()]
-
-        witness_file = []
-        if witness_signature:
-            if witness_signature.get("versionId") != log_entry.get("versionId"):
-                raise PolicyError("Witness versionId mismatch")
-            witness_file.append(witness_signature)
+        witness_file = await self.check_witness(document_state, witness_signature)
 
         return log_entries, witness_file
 
-    def update_did(self, log_entry, log_entries, witness_signature=None, prev_witness_file=None):
+    async def update_did(
+        self, log_entry, log_entries, witness_signature=None, prev_witness_file=None
+    ):
         """Apply policies to DID updates."""
         prev_document_state = self.get_document_state(log_entries)
         if prev_document_state.params.get("deactivated"):
@@ -212,12 +226,8 @@ class DidWebVH:
             self.deactivate_did()
 
         log_entries.append(document_state.history_line())
+        witness_file = await self.check_witness(document_state, witness_signature)
 
-        witness_file = []
-        if witness_signature:
-            if witness_signature.get("versionId") != log_entry.get("versionId"):
-                raise PolicyError("Witness versionId mismatch")
-            witness_file.append(witness_signature)
         if prev_witness_file:
             witness_file += prev_witness_file
 

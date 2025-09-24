@@ -1,6 +1,5 @@
 import asyncio
 import json
-from datetime import datetime, timezone
 
 import pytest
 
@@ -13,22 +12,15 @@ from tests.fixtures import (
     TEST_DID_NAMESPACE,
     TEST_VERSION_TIME,
     TEST_UPDATE_TIME,
-    TEST_DOMAIN,
-    TEST_DID,
-    TEST_DID_DOCUMENT,
-    TEST_LOG_ENTRY,
     TEST_POLICY,
     TEST_PLACEHOLDER_ID,
-    TEST_PROOF_OPTIONS,
     TEST_WITNESS_REGISTRY,
     TEST_VERIFICATION_METHOD,
     TEST_NEXT_KEY_HASH,
     TEST_UPDATE_KEY,
 )
 from tests.mock_agents import WitnessAgent, ControllerAgent
-import json
-import asyncio
-from tests.signer import sign, verify
+from tests.signer import sign
 from did_webvh.core.state import DocumentState
 
 askar = AskarStorage()

@@ -1,13 +1,16 @@
-from fastapi import FastAPI, APIRouter, Request, Response, status
+from fastapi import FastAPI, APIRouter, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import policies, identifiers, resources
-import json
+from fastapi.staticfiles import StaticFiles
+from app.routers import policies, identifiers, resources, explorer
 import logging
 from config import settings
 
 app = FastAPI(title=settings.PROJECT_TITLE, version=settings.PROJECT_VERSION)
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,10 +34,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @api_router.get("/server/status", tags=["Server"], include_in_schema=False)
 async def server_status():
     """Server status endpoint."""
-    return JSONResponse(status_code=200, content={"status": "ok"})
+    return JSONResponse(status_code=200, content={"status": "ok", "domain": settings.DOMAIN})
 
 
-api_router.include_router(policies.router)
+api_router.include_router(explorer.router, prefix="/explorer", include_in_schema=False)
+api_router.include_router(policies.router, prefix="/policy")
 api_router.include_router(resources.router)
 api_router.include_router(identifiers.router)
 

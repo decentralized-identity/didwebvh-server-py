@@ -1,19 +1,10 @@
 """This module defines the DataIntegrityProof model used for data integrity proofs."""
 
-from typing import Any, Dict
-
-from pydantic import BaseModel, Field, field_validator
-
-
-class BaseModel(BaseModel):
-    """Base model for all models in the application."""
-
-    def model_dump(self, **kwargs) -> Dict[str, Any]:
-        """Dump the model to a dictionary."""
-        return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
+from pydantic import Field, field_validator
+from .base import CustomBaseModel
 
 
-class DataIntegrityProofOptions(BaseModel):
+class DataIntegrityProofOptions(CustomBaseModel):
     """DataIntegrityProofOptions model."""
 
     type: str = Field("DataIntegrityProof")
@@ -42,7 +33,7 @@ class DataIntegrityProofOptions(BaseModel):
         return value
 
 
-class DataIntegrityProof(BaseModel):
+class DataIntegrityProof(CustomBaseModel):
     """DataIntegrityProof model."""
 
     type: str = Field("DataIntegrityProof")

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "didwebvh-server-py"
-version = "0.0.5"
+version = "0.3.3"
 description = ""
 authors = []
 readme = "../README.md"
@@ -39,8 +39,11 @@ pytest-asyncio = "^0.25.2"
 jcs = "^0.2.1"
 anoncreds = "^0.2.0"
 pytest-dependency = "^0.6.0"
-did-webvh = "^1.0.0rc0"
+did-webvh = "^1.0.0"
 requests = "^2.32.4"
+jinja2 = "^3.1.6"
+loguru = "^0.7.3"
+jinja2-eval = "^0.1.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.9.1"

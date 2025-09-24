@@ -1,0 +1,132 @@
+{% include('components/resource_modal.jinja')%}
+<div class="card">
+    <div class="card-table">
+        <form action="resources" method="get">
+            <div class="card-header">
+                <div class="row w-full">
+                    <div class="col-4">
+                        <h3 class="card-title mb-0">Resources</h3>
+                        <p class="text-secondary m-0">List of Attested Resources processed by their metadata.</p>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-3">
+                            <div class="form-label">Metadata</div>
+                            <input name="resource_type" id="resource_type" class="form-control form-control-sm mb-3" type="text" placeholder="Resource Type">
+                            <input name="resource_id" id="resource_id" class="form-control form-control-sm mb-3" type="text" placeholder="Resource ID (digest)">
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-3">
+                            <div class="form-label">Filters</div>
+                            <input name="scid" id="scid" class="form-control form-control-sm mb-3" type="text"
+                                placeholder="Author's SCID">
+                            {# <input class="form-control form-control-sm mb-3" type="text" placeholder="name / tag"> #}
+                            {# <input class="form-control form-control-sm mb-3" type="text" placeholder="version"> #}
+                        </div>
+                        <a href="#" class="btn w-100"> Query </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div id="advanced-table">
+        <div class="table-responsive">
+            <table class="table table-vcenter table-selectable">
+                <thead>
+                    <tr>
+                        <th>
+                            <button class="table-sort d-flex justify-content-between"
+                                data-sort="sort-type">Type</button>
+                        </th>
+                        <th>
+                            <button class="table-sort d-flex justify-content-between"
+                                data-sort="sort-details">Details</button>
+                        </th>
+                        <th>
+                            <button class="table-sort d-flex justify-content-between"
+                                data-sort="sort-author">Author</button>
+                        </th>
+                        <th class="w-1"></th>
+                        <th class="w-1"></th>
+                    </tr>
+                </thead>
+                <tbody class="table-tbody">
+                    {% for resource in results %}
+                    <tr>
+                        <td class="sort-type"><small>{{ resource.type }}</small></td>
+                        <td class="sort-details">
+                            <small>{{ resource.details | string | replace("'","") | replace("{","") | replace("}","")
+                                }}</small>
+                        </td>
+                        <td class="sort-author"><small>{{ resource.author.scid }}</small></td>
+                        <td>
+                            <a href="#" data-bs-toggle="modal"
+                                data-bs-target="#modal-resource-{{ loop.index }}">Details</a>
+                        </td>
+                        <td>
+                            <a target="_blank" href="{{ resource.url }}"><svg xmlns="http://www.w3.org/2000/svg"
+                                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                    class="icon icon-tabler icons-tabler-outline icon-tabler-external-link">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+                                    <path d="M11 13l9 -9" />
+                                    <path d="M15 4h5v5" />
+                                </svg></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer d-flex align-items-center">
+            <div><span class="me-1">{{ results|length }}</span><span>records</span></div>
+            <ul class="pagination m-0 ms-auto">
+                <li class="page-item active"><a class="page-link cursor-pointer" data-i="1" data-page="20">1</a>
+                </li>
+                <li class="page-item"><a class="page-link cursor-pointer" data-i="2" data-page="20">2</a></li>
+                <li class="page-item disabled"><a class="page-link cursor-pointer">...</a></li>
+                <li class="page-item"><a class="page-link cursor-pointer" data-i="7" data-page="20">7</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    const advancedTable = {
+        headers: [
+            { "data-sort": "sort-type", name: "Type" },
+            { "data-sort": "sort-details", name: "Details" },
+            { "data-sort": "sort-author", name: "Author" },
+        ],
+    };
+    const setPageListItems = (e) => {
+        window.tabler_list["advanced-table"].page = parseInt(e.target.dataset.value);
+        window.tabler_list["advanced-table"].update();
+        document.querySelector("#page-count").innerHTML = e.target.dataset.value;
+    };
+    window.tabler_list = window.tabler_list || {};
+    document.addEventListener("DOMContentLoaded", function () {
+        const list = (window.tabler_list["advanced-table"] = new List("advanced-table", {
+            sortClass: "table-sort",
+            listClass: "table-tbody",
+            page: parseInt("10"),
+            pagination: {
+                item: (value) => {
+                    return `<li class="page-item"><a class="page-link cursor-pointer">${value.page}</a></li>`;
+                },
+                innerWindow: 1,
+                outerWindow: 1,
+                left: 0,
+                right: 0,
+            },
+            valueNames: advancedTable.headers.map((header) => header["data-sort"]),
+        }));
+        const searchInput = document.querySelector("#advanced-table-search");
+        if (searchInput) {
+            searchInput.addEventListener("input", () => {
+                list.search(searchInput.value);
+            });
+        }
+    });
+</script>

@@ -3,7 +3,7 @@
 import json
 
 from fastapi import APIRouter, HTTPException, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.models.web_schemas import NewLogEntry, WhoisUpdate
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH, PolicyError
@@ -21,6 +21,9 @@ async def request_did(
     identifier: str = None,
 ):
     """Request a DID document and proof options for a given namespace and identifier."""
+
+    if not namespace and not identifier:
+        return RedirectResponse(url="/explorer", status_code=302)
 
     if not namespace or not identifier:
         raise HTTPException(status_code=400, detail="Missing namespace or identifier query.")
@@ -88,7 +91,7 @@ async def new_log_entry(
 
     # Update DID
     try:
-        log_entries, witness_file = webvh.update_did(
+        log_entries, witness_file = await webvh.update_did(
             log_entry=log_entry,
             log_entries=prev_log_entries,
             witness_signature=witness_signature,

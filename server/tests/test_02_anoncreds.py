@@ -6,7 +6,6 @@ from tests.fixtures import (
     TEST_ANONCREDS_SCHEMA,
     TEST_DID_NAMESPACE,
     TEST_DID_IDENTIFIER,
-    TEST_DID,
 )
 from tests.mock_agents import WitnessAgent, ControllerAgent
 import pytest

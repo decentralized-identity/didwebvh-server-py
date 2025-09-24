@@ -1,20 +1,12 @@
 """This module defines the Presentation model used for whois.vp."""
 
-from typing import Any, Dict, List, Union
-
-from pydantic import BaseModel, Field, field_validator
+from typing import Dict, List, Union
+from pydantic import Field
 from .di_proof import DataIntegrityProof
+from .base import CustomBaseModel
 
 
-class BaseModel(BaseModel):
-    """Base model for all models in the application."""
-
-    def model_dump(self, **kwargs) -> Dict[str, Any]:
-        """Dump the model to a dictionary."""
-        return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
-
-
-class VerifiableCredential(BaseModel):
+class VerifiableCredential(CustomBaseModel):
     """VerifiableCredential model."""
 
     context: List[str] = Field(alias="@context")
@@ -39,7 +31,7 @@ class VerifiableCredential(BaseModel):
     proof: Union[List[DataIntegrityProof], DataIntegrityProof] = Field()
 
 
-class EnvelopedVerifiableCredential(BaseModel):
+class EnvelopedVerifiableCredential(CustomBaseModel):
     """VerifiableCredential model."""
 
     context: List[str] = Field(alias="@context")
@@ -47,7 +39,7 @@ class EnvelopedVerifiableCredential(BaseModel):
     type: Union[List[str], str] = Field()
 
 
-class VerifiablePresentation(BaseModel):
+class VerifiablePresentation(CustomBaseModel):
     """VerifiablePresentation model."""
 
     context: List[str] = Field(alias="@context")
