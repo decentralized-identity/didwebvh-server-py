@@ -6,7 +6,6 @@ from typing import List
 from .base import CustomBaseModel
 
 
-
 class DidRecordTags(CustomBaseModel):
     """Tags for log entry model."""
 
@@ -22,27 +21,25 @@ class DidRecordTags(CustomBaseModel):
 
 class DidRecord(DidRecordTags):
     """Did Record model."""
-        
-    log_file: List[dict] = Field()
-    witness_file: dict = Field()
+
+    logs: List[dict] = Field()
+    witness_file: List[dict] = Field()
     whois_presentation: dict = Field()
-    
+
     avatar: str = Field()
     active: bool = Field()
-    witnesses: List[str] = Field()
+    witnesses: List[dict] = Field()
     watchers: List[str] = Field()
-    
-    
-    
+
     class ResourceDetails(CustomBaseModel):
         """Resource details."""
 
         type: str = Field()
         digest: str = Field()
         details: dict = Field()
-        
+
     resources: List[ResourceDetails] = Field()
-    
+
     class DidLinks(CustomBaseModel):
         """Did related links."""
 
@@ -51,8 +48,8 @@ class DidRecord(DidRecordTags):
         witness_file: str = Field()
         resource_query: str = Field()
         whois_presentation: str = Field()
-        
-    links: List[DidLinks] = Field()
+
+    links: DidLinks = Field()
 
 
 class ResourceRecordTags(CustomBaseModel):
@@ -63,6 +60,21 @@ class ResourceRecordTags(CustomBaseModel):
     resource_id: str = Field()
     resource_type: str = Field()
 
+
 class ResourceRecord(ResourceRecordTags):
     """Resource Record model."""
+
     attested_resource: dict = Field()
+    details: dict = Field()
+    url: str = Field()
+
+    class ResourceAuthor(CustomBaseModel):
+        """Resource author details."""
+
+        avatar: str = Field()
+        scid: str = Field()
+        domain: str = Field()
+        namespace: str = Field()
+        alias: str = Field()
+
+    author: ResourceAuthor = Field()

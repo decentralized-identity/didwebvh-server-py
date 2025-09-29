@@ -53,12 +53,12 @@
                 <tbody class="table-tbody">
                     {% for resource in results %}
                     <tr>
-                        <td class="sort-type"><small>{{ resource.type }}</small></td>
+                        <td class="sort-type"><small>{{ resource.resource_type }}</small></td>
                         <td class="sort-details">
                             <small>{{ resource.details | string | replace("'","") | replace("{","") | replace("}","")
                                 }}</small>
                         </td>
-                        <td class="sort-author"><small>{{ resource.author.scid }}</small></td>
+                        <td class="sort-author"><small>{{ resource.scid }}</small></td>
                         <td>
                             <a href="#" data-bs-toggle="modal"
                                 data-bs-target="#modal-resource-{{ loop.index }}">Details</a>

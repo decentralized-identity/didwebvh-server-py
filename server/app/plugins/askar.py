@@ -96,12 +96,12 @@ class AskarStorage:
             logging.debug(f"Error fetching data {category}: {data_key}", exc_info=True)
             raise HTTPException(status_code=404, detail="Couldn't update record.")
 
-    async def store_or_update(self, category, data_key, data):
+    async def store_or_update(self, category, data_key, data, tags=None):
         """Store or update data in the store."""
         (
-            await self.update(category, data_key, data)
+            await self.update(category, data_key, data, tags)
             if await self.fetch(category, data_key)
-            else await self.store(category, data_key, data)
+            else await self.store(category, data_key, data, tags)
         )
 
     async def get_category_entries(self, category, tag_filter=None):

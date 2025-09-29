@@ -59,9 +59,15 @@ def resource_details(resource):
     elif resource_type == "anonCredsCredDef":
         return {"tag": resource.get("content").get("tag")}
     elif resource_type == "anonCredsRevRegDef":
-        return {"tag": "", "size": ""}
+        return {
+            "tag": resource.get("content").get("tag"),
+            "size": resource.get("content").get("value").get("maxCredNum"),
+        }
     elif resource_type == "anonCredsStatusList":
-        return {}
+        return {
+            "size": len(resource.get("content").get("revocationList")),
+            "timestamp": resource.get("content").get("timestamp"),
+        }
     return {}
 
 

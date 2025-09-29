@@ -14,7 +14,7 @@ WATCHER_URL = os.getenv("WATCHER_URL", None)
 
 
 def try_return(request):
-    time.sleep(1)
+    time.sleep(0.5)
     try:
         return request.json()
     except requests.exceptions.JSONDecodeError:
@@ -209,7 +209,7 @@ logger.info("Provisioning Server")
 # Create DIDs in three namespaces
 for namespace in ["ns-01", "ns-02", "ns-03"]:
     # Create 2 DIDs in each namespace
-    for idx in range(2):
+    for idx in range(1):
         log_entry = create_did(namespace)
         scid = log_entry.get("parameters", {}).get("scid")
         did = log_entry.get("state", {}).get("id")
@@ -237,12 +237,12 @@ for namespace in ["ns-01", "ns-02", "ns-03"]:
 
         # Create anoncreds schema and cred def
         schema = create_schema(did)
-        schema_id = schema.get("schema_state", {}).get("schema_id", None)
-        cred_def = create_cred_def(schema_id, revocation_size=10)
-        cred_def_id = cred_def.get("credential_definition_state", {}).get(
-            "credential_definition_id", None
-        )
+        # schema_id = schema.get("schema_state", {}).get("schema_id", None)
+        # cred_def = create_cred_def(schema_id, revocation_size=10)
+        # cred_def_id = cred_def.get("credential_definition_state", {}).get(
+        #     "credential_definition_id", None
+        # )
 
         # Deactivate every second DID to generate some activity
-        if idx == 1:
-            deactivate_did(scid)
+        # if idx == 1:
+        #     deactivate_did(scid)
