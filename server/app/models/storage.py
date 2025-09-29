@@ -1,11 +1,13 @@
 """DB Storage Tags models."""
 
 from pydantic import Field
+from typing import List
 
 from .base import CustomBaseModel
 
 
-class LogEntryTags(CustomBaseModel):
+
+class DidRecordTags(CustomBaseModel):
     """Tags for log entry model."""
 
     did: str = Field()
@@ -18,10 +20,49 @@ class LogEntryTags(CustomBaseModel):
     deactivated: str = Field()
 
 
-class AttestedResourceTags(CustomBaseModel):
+class DidRecord(DidRecordTags):
+    """Did Record model."""
+        
+    log_file: List[dict] = Field()
+    witness_file: dict = Field()
+    whois_presentation: dict = Field()
+    
+    avatar: str = Field()
+    active: bool = Field()
+    witnesses: List[str] = Field()
+    watchers: List[str] = Field()
+    
+    
+    
+    class ResourceDetails(CustomBaseModel):
+        """Resource details."""
+
+        type: str = Field()
+        digest: str = Field()
+        details: dict = Field()
+        
+    resources: List[ResourceDetails] = Field()
+    
+    class DidLinks(CustomBaseModel):
+        """Did related links."""
+
+        resolver: str = Field()
+        log_file: str = Field()
+        witness_file: str = Field()
+        resource_query: str = Field()
+        whois_presentation: str = Field()
+        
+    links: List[DidLinks] = Field()
+
+
+class ResourceRecordTags(CustomBaseModel):
     """Tags for attested resource model."""
 
     did: str = Field()
     scid: str = Field()
     resource_id: str = Field()
     resource_type: str = Field()
+
+class ResourceRecord(ResourceRecordTags):
+    """Resource Record model."""
+    attested_resource: dict = Field()
