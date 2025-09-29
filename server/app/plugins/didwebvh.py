@@ -215,9 +215,7 @@ class DidWebVH:
         self.verify_state_proofs(document_state, prev_document_state)
 
         if prev_document_state.next_key_hashes:
-            document_state._validate_key_rotation(
-                prev_document_state.next_key_hashes, document_state.update_keys
-            )
+            document_state._check_key_rotation()
 
         if self.active_policy.get("witness"):
             self.validate_known_witness(document_state, witness_signature)
