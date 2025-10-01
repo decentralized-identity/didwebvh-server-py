@@ -9,11 +9,9 @@ from datetime import datetime, timezone, timedelta
 from operator import itemgetter
 
 from app.models.storage import DidRecordTags, DidRecord, ResourceRecordTags, ResourceRecord
-from app.plugins import DidWebVH
 
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
-webvh = DidWebVH()
 
 # def tag_identifier(value):
 #     return {
