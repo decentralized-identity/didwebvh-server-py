@@ -4,7 +4,6 @@ from fastapi import APIRouter, HTTPException, Security, status
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 
-from operator import itemgetter
 
 from app.models.web_schemas import AddWitness
 from app.plugins import AskarStorage, DidWebVH
@@ -12,15 +11,10 @@ from config import settings
 from app.utilities import (
     timestamp,
     is_valid_multikey,
-    beautify_date,
-    did_to_https,
-    resource_details,
-    resource_id_to_url,
     sync_resource,
-    sync_did_info
+    sync_did_info,
 )
 
-from app.models.storage import DidRecordTags, DidRecord, ResourceRecordTags, ResourceRecord
 
 router = APIRouter(tags=["Admin"])
 askar = AskarStorage()
@@ -128,13 +122,13 @@ async def sync_storage(api_key: str = Security(get_api_key)):
         state = webvh.get_document_state(logs)
         did_record, tags = sync_did_info(
             state=state,
-            logs=logs, 
+            logs=logs,
             did_resources=[
-                resource.value_json for resource in 
-                await askar.get_category_entries("resource", {"scid": state.scid})
+                resource.value_json
+                for resource in await askar.get_category_entries("resource", {"scid": state.scid})
             ],
             witness_file=(await askar.fetch("witnessFile", entry.name) or []),
-            whois_presentation=(await askar.fetch("whois", entry.name) or {})
+            whois_presentation=(await askar.fetch("whois", entry.name) or {}),
         )
         await askar.update("logEntries", entry.name, entry.value_json, tags=tags)
         await askar.store_or_update("didRecord", entry.name, did_record, tags=tags)

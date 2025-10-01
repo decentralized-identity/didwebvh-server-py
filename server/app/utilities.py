@@ -58,6 +58,7 @@ def sync_resource(resource):
     ).model_dump()
     return resource_record, tags
 
+
 def sync_did_info(state, logs, did_resources, witness_file, whois_presentation):
     """Sync a DID info to it's explorer record."""
     did = state.document_id

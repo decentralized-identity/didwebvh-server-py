@@ -7,7 +7,13 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.models.web_schemas import NewLogEntry, WhoisUpdate
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH, PolicyError
-from app.utilities import get_client_id, first_proof, find_verification_method, timestamp, sync_did_info
+from app.utilities import (
+    get_client_id,
+    first_proof,
+    find_verification_method,
+    timestamp,
+    sync_did_info,
+)
 
 router = APIRouter(tags=["Identifiers"])
 askar = AskarStorage()
@@ -83,13 +89,13 @@ async def new_log_entry(
             log_entries, witness_file = await webvh.create_did(log_entry, witness_signature)
         except PolicyError as err:
             raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
-        
+
         did_record, tags = sync_did_info(
-            state=webvh.get_document_state(log_entries), 
-            logs=log_entries, 
-            did_resources=[], 
-            witness_file=witness_file, 
-            whois_presentation={}
+            state=webvh.get_document_state(log_entries),
+            logs=log_entries,
+            did_resources=[],
+            witness_file=witness_file,
+            whois_presentation={},
         )
 
         await askar.store("logEntries", client_id, log_entries, tags)
@@ -108,18 +114,18 @@ async def new_log_entry(
         )
     except PolicyError as err:
         raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
-    
-    state=webvh.get_document_state(log_entries)
-    
+
+    state = webvh.get_document_state(log_entries)
+
     did_record, tags = sync_did_info(
-        state=state, 
-        logs=log_entries, 
+        state=state,
+        logs=log_entries,
         did_resources=[
-            resource.value_json for resource in 
-            await askar.get_category_entries("resource", {"scid": state.scid})
-        ], 
-        witness_file=witness_file, 
-        whois_presentation=(await askar.fetch("whois", client_id) or {})
+            resource.value_json
+            for resource in await askar.get_category_entries("resource", {"scid": state.scid})
+        ],
+        witness_file=witness_file,
+        whois_presentation=(await askar.fetch("whois", client_id) or {}),
     )
 
     await askar.update("logEntries", client_id, log_entries, tags)

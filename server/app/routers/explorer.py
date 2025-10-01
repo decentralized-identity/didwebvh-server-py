@@ -62,12 +62,12 @@ async def explorer_resource_table(
 ):
     """Resource table."""
     tags = {
-        k: v for k, v in 
-        {
-            "scid": scid, 
-            "resource_type": resource_type, 
-            "resource_id": resource_id
-        }.items() 
+        k: v
+        for k, v in {
+            "scid": scid,
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+        }.items()
         if v is not None
     }
     CONTEXT = {
