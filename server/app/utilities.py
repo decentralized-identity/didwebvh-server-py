@@ -8,7 +8,12 @@ from datetime import datetime, timezone, timedelta
 
 from operator import itemgetter
 
+from app.models.storage import DidRecordTags, DidRecord, ResourceRecordTags, ResourceRecord
+from app.plugins import DidWebVH
+
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
+
+webvh = DidWebVH()
 
 # def tag_identifier(value):
 #     return {
@@ -25,6 +30,75 @@ MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 #         'type': attested_resource.get('metadata').get('resourceType'),
 #         'digest': resource_digest
 #     }
+
+
+def sync_resource(resource):
+    """Sync an attested resource to it's explorer record."""
+    controller_id = resource.get("id").split("/")[0]
+    scid, domain, namespace, alias = itemgetter(2, 3, 4, 5)(controller_id.split(":"))
+    tags = ResourceRecordTags(
+        did=controller_id,
+        scid=scid,
+        resource_id=resource.get("metadata").get("resourceId"),
+        resource_type=resource.get("metadata").get("resourceType"),
+    ).model_dump()
+
+    resource_record = ResourceRecord(
+        attested_resource=resource,
+        details=resource_details(resource),
+        url=resource_id_to_url(resource.get("id")),
+        author=ResourceRecord.ResourceAuthor(
+            avatar=f"{settings.AVATAR_URL}?seed={scid}",
+            scid=scid,
+            domain=domain,
+            namespace=namespace,
+            alias=alias,
+        ),
+        **tags,
+    ).model_dump()
+    return resource_record, tags
+
+def sync_did_info(state, logs, did_resources, witness_file, whois_presentation):
+    """Sync a DID info to it's explorer record."""
+    did = state.document_id
+    scid, domain, namespace, identifier = itemgetter(2, 3, 4, 5)(did.split(":"))
+    tags = DidRecordTags(
+        did=did,
+        scid=scid,
+        domain=domain,
+        namespace=namespace,
+        identifier=identifier,
+        created=beautify_date(logs[0].get("versionTime")),
+        updated=beautify_date(logs[-1].get("versionTime")),
+        deactivated=str(state.deactivated),
+    ).model_dump()
+
+    did_record = DidRecord(
+        logs=logs,
+        witness_file=witness_file,
+        whois_presentation=whois_presentation,
+        avatar=f"{settings.AVATAR_URL}?seed={scid}",
+        active=False if state.deactivated else True,
+        witnesses=state.witness.get("witnesses", []) if state.witness else [],
+        watchers=state.params.get("watchers", []),
+        resources=[
+            DidRecord.ResourceDetails(
+                type=resource.get("metadata").get("resourceType"),
+                digest=resource.get("metadata").get("resourceId"),
+                details=resource_details(resource),
+            )
+            for resource in did_resources
+        ],
+        links=DidRecord.DidLinks(
+            resolver=f"{settings.UNIRESOLVER_URL}/#{did}",
+            log_file=f"{did_to_https(did)}/did.jsonl",
+            witness_file=f"{did_to_https(did)}/did-witness.json",
+            resource_query=f"https://{settings.DOMAIN}/explorer/resources?scid={scid}",
+            whois_presentation=f"{did_to_https(did)}/whois.vp",
+        ),
+        **tags,
+    ).model_dump()
+    return did_record, tags
 
 
 def did_to_https(did):

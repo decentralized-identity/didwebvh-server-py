@@ -16,6 +16,8 @@ from app.utilities import (
     did_to_https,
     resource_details,
     resource_id_to_url,
+    sync_resource,
+    sync_did_info
 )
 
 from app.models.storage import DidRecordTags, DidRecord, ResourceRecordTags, ResourceRecord
@@ -117,78 +119,24 @@ async def sync_storage(api_key: str = Security(get_api_key)):
     """Sync storage."""
 
     for entry in await askar.get_category_entries("resource"):
-        resource = entry.value_json
-        controller_id = resource.get("id").split("/")[0]
-        scid, domain, namespace, alias = itemgetter(2, 3, 4, 5)(controller_id.split(":"))
-        tags = ResourceRecordTags(
-            did=controller_id,
-            scid=scid,
-            resource_id=resource.get("metadata").get("resourceId"),
-            resource_type=resource.get("metadata").get("resourceType"),
-        ).model_dump()
-
+        resource_record, tags = sync_resource(entry.value_json)
         await askar.update("resource", entry.name, entry.value_json, tags=tags)
-
-        resource_record = ResourceRecord(
-            attested_resource=resource,
-            details=resource_details(resource),
-            url=resource_id_to_url(resource.get("id")),
-            author=ResourceRecord.ResourceAuthor(
-                avatar=f"{settings.AVATAR_URL}?seed={scid}",
-                scid=scid,
-                domain=domain,
-                namespace=namespace,
-                alias=alias,
-            ),
-            **tags,
-        ).model_dump()
         await askar.store_or_update("resourceRecord", entry.name, resource_record, tags=tags)
 
     for entry in await askar.get_category_entries("logEntries"):
         logs = entry.value_json
         state = webvh.get_document_state(logs)
-        did = state.document_id
-        scid, domain, namespace, identifier = itemgetter(2, 3, 4, 5)(did.split(":"))
-        tags = DidRecordTags(
-            did=did,
-            scid=scid,
-            domain=domain,
-            namespace=namespace,
-            identifier=identifier,
-            created=beautify_date(logs[0].get("versionTime")),
-            updated=beautify_date(logs[-1].get("versionTime")),
-            deactivated=str(state.deactivated),
-        ).model_dump()
-        await askar.update("logEntries", entry.name, entry.value_json, tags=tags)
-
-        did_resources = await askar.get_category_entries("resource", {"scid": scid})
-        did_resources = [resource.value_json for resource in did_resources]
-
-        did_record = DidRecord(
-            logs=logs,
-            witness_file=(await askar.fetch("witnessFile", entry.name) or []),
-            whois_presentation=(await askar.fetch("whois", entry.name) or {}),
-            avatar=f"{settings.AVATAR_URL}?seed={scid}",
-            active=False if state.deactivated else True,
-            witnesses=state.witness.get("witnesses", []) if state.witness else [],
-            watchers=state.params.get("watchers", []),
-            resources=[
-                DidRecord.ResourceDetails(
-                    type=resource.get("metadata").get("resourceType"),
-                    digest=resource.get("metadata").get("resourceId"),
-                    details=resource_details(resource),
-                )
-                for resource in did_resources
+        did_record, tags = sync_did_info(
+            state=state,
+            logs=logs, 
+            did_resources=[
+                resource.value_json for resource in 
+                await askar.get_category_entries("resource", {"scid": state.scid})
             ],
-            links=DidRecord.DidLinks(
-                resolver=f"{settings.UNIRESOLVER_URL}/#{did}",
-                log_file=f"{did_to_https(did)}/did.jsonl",
-                witness_file=f"{did_to_https(did)}/did-witness.json",
-                resource_query=f"https://{settings.DOMAIN}/explorer/resources?scid={scid}",
-                whois_presentation=f"{did_to_https(did)}/whois.vp",
-            ),
-            **tags,
-        ).model_dump()
+            witness_file=(await askar.fetch("witnessFile", entry.name) or []),
+            whois_presentation=(await askar.fetch("whois", entry.name) or {})
+        )
+        await askar.update("logEntries", entry.name, entry.value_json, tags=tags)
         await askar.store_or_update("didRecord", entry.name, did_record, tags=tags)
 
     return JSONResponse(status_code=200, content={})
