@@ -29,6 +29,7 @@ MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
 def multipart_reader(request_body, boundary):
     """Read multipart header."""
+    file_content = None
     parts = request_body.split(b"--" + boundary)
     for part in parts:
         header_split = part.split(b"\r\n\r\n", 1)
