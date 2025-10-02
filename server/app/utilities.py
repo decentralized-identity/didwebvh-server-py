@@ -27,6 +27,17 @@ MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 #     }
 
 
+def multipart_reader(request_body, boundary):
+    """Read multipart header."""
+    parts = request_body.split(b"--" + boundary)
+    for part in parts:
+        header_split = part.split(b"\r\n\r\n", 1)
+        if len(header_split) == 2:
+            file_content = header_split[1].rstrip(b"\r\n--")
+            break
+    return file_content
+
+
 def did_to_https(did):
     """DID to https transformation."""
     domain, namespace, identifier = itemgetter(3, 4, 5)(did.split(":"))
