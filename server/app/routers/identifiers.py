@@ -5,6 +5,8 @@ import json
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 
+from config import settings
+
 from app.models.web_schemas import NewLogEntry, WhoisUpdate
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH, PolicyError
 from app.utilities import (
@@ -39,12 +41,7 @@ async def request_did(
     if await askar.fetch("logEntries", client_id):
         raise HTTPException(status_code=409, detail="Identifier unavailable.")
 
-    webvh = DidWebVH(
-        active_policy=await askar.fetch("policy", "active"),
-        active_registry=(await askar.fetch("registry", "knownWitnesses")).get("registry"),
-    )
-
-    if not webvh.namespace_available(namespace):
+    if namespace in settings.RESERVED_NAMESPACES:
         raise HTTPException(status_code=400, detail=f"Unavailable namespace: {namespace}.")
 
     return JSONResponse(

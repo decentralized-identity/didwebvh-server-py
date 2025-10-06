@@ -1,12 +1,12 @@
 import asyncio
-import json
 
 import pytest
 
+from fastapi.testclient import TestClient
+
+from app import app
 from app.models.did_log import LogEntry
-from app.models.web_schemas import NewLogEntry
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH
-from app.routers.identifiers import new_log_entry, read_did, read_did_log, request_did
 from tests.fixtures import (
     TEST_DID_IDENTIFIER,
     TEST_DID_NAMESPACE,
@@ -14,9 +14,9 @@ from tests.fixtures import (
     TEST_UPDATE_TIME,
     TEST_POLICY,
     TEST_PLACEHOLDER_ID,
+    TEST_WITNESS_KEY,
     TEST_WITNESS_REGISTRY,
     TEST_VERIFICATION_METHOD,
-    TEST_NEXT_KEY_HASH,
     TEST_UPDATE_KEY,
 )
 from tests.mock_agents import WitnessAgent, ControllerAgent
@@ -25,6 +25,8 @@ from did_webvh.core.state import DocumentState
 
 askar = AskarStorage()
 asyncio.run(askar.provision(recreate=True))
+asyncio.run(askar.store("registry", "knownWitnesses", {"registry": TEST_WITNESS_REGISTRY}))
+asyncio.run(askar.store("policy", "active", TEST_POLICY))
 
 verifier = AskarVerifier()
 webvh = DidWebVH()
@@ -35,59 +37,57 @@ controller = ControllerAgent()
 
 @pytest.mark.asyncio
 async def test_request_did():
-    response = await request_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    did_request = json.loads(response.body.decode())
-    assert did_request.get("state").get("id") == TEST_PLACEHOLDER_ID
+    with TestClient(app) as test_client:
+        response = test_client.get(
+            f"?namespace={TEST_DID_NAMESPACE}&identifier={TEST_DID_IDENTIFIER}"
+        )
+    assert response.status_code == 200
+    assert response.json().get("state").get("id") == TEST_PLACEHOLDER_ID
 
 
 @pytest.mark.asyncio
 async def test_create_did():
-    await askar.update("registry", "knownWitnesses", {"registry": TEST_WITNESS_REGISTRY})
-    await askar.update("policy", "active", TEST_POLICY)
+    with TestClient(app) as test_client:
+        response = test_client.get(
+            f"?namespace={TEST_DID_NAMESPACE}&identifier={TEST_DID_IDENTIFIER}"
+        )
 
-    response = await request_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    did_request = json.loads(response.body.decode())
-
-    parameters = did_request.get("parameters")
+    document = response.json().get("state")
+    parameters = response.json().get("parameters")
     parameters["updateKeys"] = [TEST_UPDATE_KEY]
-
-    if parameters.get("nextKeyHashes") == []:
-        parameters["nextKeyHashes"] = [TEST_NEXT_KEY_HASH]
-
-    if parameters.get("witness"):
-        pass
+    parameters["witness"] = {"threshold": 1, "witnesses": [{"id": f"did:key:{TEST_WITNESS_KEY}"}]}
 
     initial_state = DocumentState.initial(
         timestamp=TEST_VERSION_TIME,
         params=parameters,
-        document=did_request.get("state"),
+        document=document,
     )
     initial_log_entry = sign(initial_state.history_line())
 
     witness_signature = witness.create_log_entry_proof(initial_log_entry)
 
-    response = await new_log_entry(
-        TEST_DID_NAMESPACE,
-        TEST_DID_IDENTIFIER,
-        NewLogEntry.model_validate(
-            {"logEntry": initial_log_entry, "witnessSignature": witness_signature}
-        ),
-    )
-
-    assert LogEntry.model_validate(json.loads(response.body.decode()))
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            f"/{TEST_DID_NAMESPACE}/{TEST_DID_IDENTIFIER}",
+            json={"logEntry": initial_log_entry, "witnessSignature": witness_signature},
+        )
+    assert response.status_code == 201
+    assert LogEntry.model_validate(response.json())
 
 
 @pytest.mark.asyncio
 async def test_resolve_did():
-    response = await read_did(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    did_doc = json.loads(response.body.decode())
+    with TestClient(app) as test_client:
+        response = test_client.get(f"/{TEST_DID_NAMESPACE}/{TEST_DID_IDENTIFIER}/did.json")
+    did_doc = response.json()
     assert did_doc.get("alsoKnownAs")
 
 
 @pytest.mark.asyncio
 async def test_resolve_initial_did_log():
-    response = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    log_entries = response.body.decode().split("\n")[:-1]
+    with TestClient(app) as test_client:
+        response = test_client.get(f"/{TEST_DID_NAMESPACE}/{TEST_DID_IDENTIFIER}/did.jsonl")
+    log_entries = response.text.split("\n")[:-1]
     assert len(log_entries) == 1
     doc_state = None
     for log_entry in log_entries:
@@ -97,8 +97,9 @@ async def test_resolve_initial_did_log():
 
 @pytest.mark.asyncio
 async def test_update_did():
-    response = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    log_entries = response.body.decode().split("\n")[:-1]
+    with TestClient(app) as test_client:
+        response = test_client.get(f"/{TEST_DID_NAMESPACE}/{TEST_DID_IDENTIFIER}/did.jsonl")
+    log_entries = response.text.split("\n")[:-1]
     doc_state = None
 
     for log_entry in log_entries:
@@ -116,20 +117,22 @@ async def test_update_did():
 
     witness_signature = witness.create_log_entry_proof(next_log_entry)
 
-    log_request = NewLogEntry.model_validate(
-        {
-            "logEntry": next_log_entry,
-            "witnessSignature": witness_signature,
-        }
-    )
-    response = await new_log_entry(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER, log_request)
-    LogEntry.model_validate(json.loads(response.body.decode()))
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            f"/{TEST_DID_NAMESPACE}/{TEST_DID_IDENTIFIER}",
+            json={
+                "logEntry": next_log_entry,
+                "witnessSignature": witness_signature,
+            },
+        )
+    LogEntry.model_validate(response.json())
 
 
 @pytest.mark.asyncio
 async def test_resolve_updated_did_log():
-    response = await read_did_log(TEST_DID_NAMESPACE, TEST_DID_IDENTIFIER)
-    log_entries = response.body.decode().split("\n")[:-1]
+    with TestClient(app) as test_client:
+        response = test_client.get(f"/{TEST_DID_NAMESPACE}/{TEST_DID_IDENTIFIER}/did.jsonl")
+    log_entries = response.text.split("\n")[:-1]
     assert len(log_entries) == 2
     doc_state = None
     for log_entry in log_entries:
