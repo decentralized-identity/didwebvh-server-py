@@ -12,6 +12,7 @@ from app.models.storage import DidRecordTags, DidRecord, ResourceRecordTags, Res
 
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
+
 def sync_resource(resource):
     """Sync an attested resource to it's explorer record."""
     controller_id = resource.get("id").split("/")[0]
@@ -80,6 +81,8 @@ def sync_did_info(state, logs, did_resources, witness_file, whois_presentation):
         **tags,
     ).model_dump()
     return did_record, tags
+
+
 def multipart_reader(request_body, boundary):
     """Read multipart header."""
     file_content = None

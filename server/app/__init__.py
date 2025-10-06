@@ -6,7 +6,6 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routers import admin, identifiers, resources, explorer, tails
-import logging
 from config import settings
 
 logger = logging.getLogger(__name__)
