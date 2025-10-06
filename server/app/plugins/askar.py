@@ -10,8 +10,6 @@ from aries_askar import Key, Store
 from aries_askar.bindings import LocalKeyHandle
 from fastapi import HTTPException
 from multiformats import multibase
-from app.utilities import timestamp
-from app.models.policy import ActivePolicy
 
 from config import settings
 
@@ -40,42 +38,13 @@ class AskarStorage:
 
     async def provision(self, recreate=False):
         """Provision the Askar storage."""
-        logger.info("Starting DB provisioning.")
+        logger.warning("DB provisioning started.")
         try:
             await Store.provision(self.db, "none", recreate=recreate)
-            if not (witness_registry := await self.fetch("registry", "knownWitnesses")):
-                logger.info("Creating known witness registry.")
-                witness_registry = {
-                    "meta": {"created": timestamp(), "updated": timestamp()},
-                    "registry": {},
-                }
-                if settings.KNOWN_WITNESS_KEY:
-                    witness_did = f"did:key:{settings.KNOWN_WITNESS_KEY}"
-                    witness_registry["registry"][witness_did] = {"name": "Default Server Witness"}
-                await self.store("registry", "knownWitnesses", witness_registry)
-            else:
-                logger.info("Skipping known witness registry.")
-            logger.info(json.dumps(witness_registry))
-
-            if not (policy := await self.fetch("policy", "active")):
-                logger.info("Creating server policies.")
-                policy = ActivePolicy(
-                    version=settings.WEBVH_VERSION,
-                    witness=settings.WEBVH_WITNESS,
-                    watcher=settings.WEBVH_WATCHER,
-                    portability=settings.WEBVH_PORTABILITY,
-                    prerotation=settings.WEBVH_PREROTATION,
-                    endorsement=settings.WEBVH_ENDORSEMENT,
-                    witness_registry_url=settings.KNOWN_WITNESS_REGISTRY,
-                ).model_dump()
-                await self.store("policy", "active", policy)
-            else:
-                logger.info("Skipping server policies.")
-            logger.info(json.dumps(policy))
-
+            logger.warning("DB provisioning finished.")
         except Exception as e:
-            logger.warning("DB provisioning failed.")
-            logger.warning(str(e))
+            logger.error(f"DB provisioning failed: {str(e)}")
+            raise AskarStorageException(f"DB provisioning failed: {str(e)}")
 
     async def open(self):
         """Open the Askar storage."""

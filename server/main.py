@@ -9,7 +9,7 @@ import uvicorn
 from dotenv import load_dotenv
 
 from app.plugins import AskarStorage
-from app.tasks import sync_explorer_records
+from app.tasks import TaskManager  # set_policies, sync_explorer_records
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
@@ -24,9 +24,8 @@ class StartupBackgroundTasks(threading.Thread):
     def run(self):
         """Run tasks."""
         asyncio.run(AskarStorage().provision())
-
-        task_id = str(uuid.uuid4())
-        asyncio.run(sync_explorer_records(task_id))
+        asyncio.run(TaskManager(str(uuid.uuid4())).set_policies())
+        asyncio.run(TaskManager(str(uuid.uuid4())).sync_explorer_records())
 
 
 if __name__ == "__main__":

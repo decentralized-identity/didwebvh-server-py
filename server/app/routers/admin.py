@@ -10,7 +10,7 @@ from fastapi.security import APIKeyHeader
 
 from app.models.web_schemas import AddWitness
 from app.plugins import AskarStorage, DidWebVH
-from app.tasks import TaskType, sync_explorer_records
+from app.tasks import TaskManager, TaskStatus, TaskType
 from config import settings
 from app.utilities import timestamp, is_valid_multikey
 
@@ -116,11 +116,30 @@ async def sync_storage(
 ):
     """Start an administrative task."""
     task_id = str(uuid.uuid4())
-    if task_type == "sync_records":
-        tasks.add_task(sync_explorer_records, task_id, force)
+    print(task_type)
+    print(TaskType.SetPolicy)
+    print(TaskType.SyncRecords)
+    if task_type == TaskType.SetPolicy:
+        tasks.add_task(TaskManager(task_id).set_policies, force)
+    elif task_type == TaskType.SyncRecords:
+        tasks.add_task(TaskManager(task_id).sync_explorer_records, force)
     else:
         raise HTTPException(status_code=400, detail="Unknown task type.")
     return JSONResponse(status_code=201, content={"task_id": task_id})
+
+
+@router.get("/tasks")
+async def fetch_tasks(
+    task_type: TaskType = Query(None),
+    status: TaskStatus = Query(None),
+    api_key: str = Security(get_api_key),
+):
+    """Check the status of an administrative task."""
+    tags = {"task_type": task_type or None, "status": status or None}
+    tags = {k: v for k, v in tags.items() if v is not None}
+    tasks = await askar.get_category_entries("task", tags)
+    tasks = [entry.value_json for entry in tasks]
+    return JSONResponse(status_code=200, content={"tasks": tasks})
 
 
 @router.get("/tasks/{task_id}")
