@@ -36,10 +36,7 @@ async def server_status():
     """Server status endpoint."""
     return JSONResponse(status_code=200, content={"status": "ok", "domain": settings.DOMAIN})
 
-
-# if settings.ENABLE_TAILS:
 api_router.include_router(tails.router, prefix="/tails", tags=["Tails"])
-
 api_router.include_router(explorer.router, prefix="/explorer", include_in_schema=False)
 api_router.include_router(policies.router, prefix="/policy")
 api_router.include_router(resources.router)
