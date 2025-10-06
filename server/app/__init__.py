@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routers import policies, identifiers, resources, explorer
+from app.routers import policies, identifiers, resources, explorer, tails
 import logging
 from config import settings
 
@@ -37,6 +37,7 @@ async def server_status():
     return JSONResponse(status_code=200, content={"status": "ok", "domain": settings.DOMAIN})
 
 
+api_router.include_router(tails.router, prefix="/tails", tags=["Tails"])
 api_router.include_router(explorer.router, prefix="/explorer", include_in_schema=False)
 api_router.include_router(policies.router, prefix="/policy")
 api_router.include_router(resources.router)
