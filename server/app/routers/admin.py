@@ -1,19 +1,18 @@
 """Admin endpoints."""
 
-from fastapi import APIRouter, HTTPException, Security, status
+import uuid
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Security, status
+from fastapi.params import Query
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 
 
 from app.models.web_schemas import AddWitness
 from app.plugins import AskarStorage, DidWebVH
+from app.tasks import TaskType, sync_explorer_records
 from config import settings
-from app.utilities import (
-    timestamp,
-    is_valid_multikey,
-    sync_resource,
-    sync_did_info,
-)
+from app.utilities import timestamp, is_valid_multikey
 
 
 router = APIRouter(tags=["Admin"])
@@ -108,29 +107,25 @@ async def remove_known_witness(multikey: str, api_key: str = Security(get_api_ke
     return JSONResponse(status_code=200, content=witness_registry)
 
 
-@router.post("/sync")
-async def sync_storage(api_key: str = Security(get_api_key)):
-    """Sync storage."""
+@router.post("/tasks")
+async def sync_storage(
+    tasks: BackgroundTasks,
+    task_type: TaskType = Query(...),
+    force: bool = False,
+    api_key: str = Security(get_api_key),
+):
+    """Start an administrative task."""
+    task_id = str(uuid.uuid4())
+    if task_type == "sync_records":
+        tasks.add_task(sync_explorer_records, task_id, force)
+    else:
+        raise HTTPException(status_code=400, detail="Unknown task type.")
+    return JSONResponse(status_code=201, content={"task_id": task_id})
 
-    for entry in await askar.get_category_entries("resource"):
-        resource_record, tags = sync_resource(entry.value_json)
-        await askar.update("resource", entry.name, entry.value_json, tags=tags)
-        await askar.store_or_update("resourceRecord", entry.name, resource_record, tags=tags)
 
-    for entry in await askar.get_category_entries("logEntries"):
-        logs = entry.value_json
-        state = webvh.get_document_state(logs)
-        did_record, tags = sync_did_info(
-            state=state,
-            logs=logs,
-            did_resources=[
-                resource.value_json
-                for resource in await askar.get_category_entries("resource", {"scid": state.scid})
-            ],
-            witness_file=(await askar.fetch("witnessFile", entry.name) or []),
-            whois_presentation=(await askar.fetch("whois", entry.name) or {}),
-        )
-        await askar.update("logEntries", entry.name, entry.value_json, tags=tags)
-        await askar.store_or_update("didRecord", entry.name, did_record, tags=tags)
-
-    return JSONResponse(status_code=200, content={})
+@router.get("/tasks/{task_id}")
+async def check_task_status(task_id: str, api_key: str = Security(get_api_key)):
+    """Check the status of an administrative task."""
+    if not (task := await askar.fetch("task", task_id)):
+        raise HTTPException(status_code=404, detail="Task not found.")
+    return JSONResponse(status_code=200, content=task)
