@@ -4,16 +4,6 @@ from fastapi.testclient import TestClient
 
 from app import app
 
-TAILS_FILE_HASH = ""
-
-# @pytest.mark.asyncio
-# async def test_upload_tails_file():
-#     REQUEST_BODY = {}
-#     response = await upload_tails_file(REQUEST_BODY, TAILS_FILE_HASH)
-#     decoded_response = response.body.decode()
-#     assert decoded_response == TAILS_FILE_HASH
-
-
 @pytest.mark.asyncio
 async def test_upload_tails_file(valid_tails_file):
     tails_file, tails_hash = valid_tails_file
