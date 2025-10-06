@@ -44,6 +44,8 @@ class Settings(BaseSettings):
         logging.info("Using SQLite database")
         ASKAR_DB: str = "sqlite://app.db"
 
+    ENABLE_TAILS: bool = eval(os.environ.get("ENABLE_TAILS", "false").capitalize())
+
     # Recommended for production deployments
 
     KNOWN_WITNESS_KEY: Union[str, None] = os.environ.get("KNOWN_WITNESS_KEY", None)

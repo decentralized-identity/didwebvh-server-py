@@ -12,24 +12,6 @@ from app.models.storage import DidRecordTags, DidRecord, ResourceRecordTags, Res
 
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
-
-# def tag_identifier(value):
-#     return {
-#         'scid': scid,
-#         'author': controller_id,
-#         'type': attested_resource.get('metadata').get('resourceType'),
-#         'digest': resource_digest
-#     }
-
-# def tag_resource(value):
-#     return {
-#         'scid': scid,
-#         'author': controller_id,
-#         'type': attested_resource.get('metadata').get('resourceType'),
-#         'digest': resource_digest
-#     }
-
-
 def sync_resource(resource):
     """Sync an attested resource to it's explorer record."""
     controller_id = resource.get("id").split("/")[0]
@@ -98,6 +80,16 @@ def sync_did_info(state, logs, did_resources, witness_file, whois_presentation):
         **tags,
     ).model_dump()
     return did_record, tags
+def multipart_reader(request_body, boundary):
+    """Read multipart header."""
+    file_content = None
+    parts = request_body.split(b"--" + boundary)
+    for part in parts:
+        header_split = part.split(b"\r\n\r\n", 1)
+        if len(header_split) == 2:
+            file_content = header_split[1].rstrip(b"\r\n--")
+            break
+    return file_content
 
 
 def did_to_https(did):
