@@ -82,8 +82,8 @@
                             <div class="tab-content">
                                 <div class="tab-pane active show" id="tabs-whois-{{ did.scid }}" role="tabpanel">
                                     <div class="row">
-                                        {% if did.whois %}
-                                        {% for credential in did.whois.verifiableCredential %}
+                                        {% if did.whois_presentation %}
+                                        {% for credential in did.whois_presentation.verifiableCredential %}
                                         <div class="col-md-12">
                                             <div class="card mb-3">
                                                 <div class="card-body">
@@ -183,12 +183,11 @@
                                     <div class="row">
                                         {% for resource in did.resources %}
                                         <div class="col-md-12 mb-1">
-                                            <a class="card card-link" href="#">
+                                            <a class="card card-link" href="resources?resource_id={{ resource.digest }}">
                                                 <div class="card-body">
                                                     <div class="row">
                                                         <div class="col">
-                                                            <div class="font-weight-medium">{{ resource.type }}
-                                                            </div>
+                                                            <div class="font-weight-medium">{{ resource.type }}</div>
                                                             <div class="text-secondary">{{ resource.details }}</div>
                                                         </div>
                                                     </div>

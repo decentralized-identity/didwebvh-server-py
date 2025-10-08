@@ -91,12 +91,12 @@
                                         {% if resource.attested_resource.links %}
                                         {% for link in resource.attested_resource.links %}
                                         <div class="col-md-12">
-                                            <a class="card card-link" href="#">
+                                            <div class="card">
                                                 <div class="card-body">
                                                     <div class="row">
                                                         <div class="col">
                                                             <div class="font-weight-medium">{{ link.type }}</div>
-                                                            <div class="text-secondary">{{ link.id.split('/')[-1] }}
+                                                            <div class="text-secondary">{{ link.id }}
                                                             </div>
                                                             <div class="text-secondary">{{ link.timestamp }}</div>
                                                         </div>

@@ -14,7 +14,8 @@ WATCHER_URL = os.getenv("WATCHER_URL", None)
 
 
 def try_return(request):
-    time.sleep(0.5)
+    # Sleep to avoid rate limiting
+    time.sleep(1)
     try:
         return request.json()
     except requests.exceptions.JSONDecodeError:
@@ -206,10 +207,10 @@ witness_id = webvh_config.get("witnesses")[0]
 logger.info(f"Witness Configured: {witness_id}")
 logger.info("Provisioning Server")
 
-# Create DIDs in three namespaces
-for namespace in ["ns-01", "ns-02", "ns-03"]:
+# Create DIDs in two namespaces
+for namespace in ["ns-01", "ns-02"]:
     # Create 2 DIDs in each namespace
-    for idx in range(1):
+    for idx in range(2):
         log_entry = create_did(namespace)
         scid = log_entry.get("parameters", {}).get("scid")
         did = log_entry.get("state", {}).get("id")
