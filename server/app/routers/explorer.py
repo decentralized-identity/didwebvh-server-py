@@ -37,8 +37,6 @@ async def explorer_did_table(
         tags["deactivated"] = "False"
     elif status == "deactivated":
         tags["deactivated"] = "True"
-    # elif status == "all":
-    #     tags["deactivated"] = None
 
     tags = {k: v for k, v in tags.items() if v is not None}
     CONTEXT = {
@@ -62,14 +60,11 @@ async def explorer_resource_table(
 ):
     """Resource table."""
     tags = {
-        k: v
-        for k, v in {
-            "scid": scid,
-            "resource_type": resource_type,
-            "resource_id": resource_id,
-        }.items()
-        if v is not None
+        "scid": scid or None,
+        "resource_id": resource_id or None,
+        "resource_type": resource_type or None,
     }
+    tags = {k: v for k, v in tags.items() if v is not None}
     CONTEXT = {
         "results": [
             entry.value_json for entry in await askar.get_category_entries("resourceRecord", tags)

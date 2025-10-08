@@ -76,7 +76,7 @@ def update_did(scid):
     r = requests.post(
         f"{AGENT_ADMIN_API_URL}/did/webvh/update?scid={scid}",
         headers=AGENT_ADMIN_API_HEADERS,
-        json={"did_document": {}, "options": {}},
+        json={},
     )
     return try_return(r)
 
@@ -225,24 +225,24 @@ for namespace in ["ns-01", "ns-02", "ns-03"]:
             register_watcher(did)
 
         # NOTE, following lines depend on next plugin release
-        # # Update the DID twice to generate some log entries
-        # update_did(scid)
-        # update_did(scid)
-        # notify_watcher(did)
+        # Update the DID twice to generate some log entries
+        update_did(scid)
+        update_did(scid)
+        notify_watcher(did)
 
-        # # Create a sample whois VP
-        # vc = sign_credential(witness_id, did).get("securedDocument")
-        # vp = sign_presentation(signing_key, vc).get("securedDocument")
-        # whois = upload_whois(vp)
+        # Create a sample whois VP
+        vc = sign_credential(witness_id, did).get("securedDocument")
+        vp = sign_presentation(signing_key, vc).get("securedDocument")
+        whois = upload_whois(vp)
 
         # Create anoncreds schema and cred def
         schema = create_schema(did)
-        # schema_id = schema.get("schema_state", {}).get("schema_id", None)
-        # cred_def = create_cred_def(schema_id, revocation_size=10)
-        # cred_def_id = cred_def.get("credential_definition_state", {}).get(
-        #     "credential_definition_id", None
-        # )
+        schema_id = schema.get("schema_state", {}).get("schema_id", None)
+        cred_def = create_cred_def(schema_id, revocation_size=10)
+        cred_def_id = cred_def.get("credential_definition_state", {}).get(
+            "credential_definition_id", None
+        )
 
         # Deactivate every second DID to generate some activity
-        # if idx == 1:
-        #     deactivate_did(scid)
+        if idx == 1:
+            deactivate_did(scid)

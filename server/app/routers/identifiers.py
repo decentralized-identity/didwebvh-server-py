@@ -222,4 +222,9 @@ async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdat
 
     await askar.store_or_update("whois", client_id, whois_vp)
 
+    # Update DID record
+    did_record = await askar.fetch("didRecord", client_id)
+    did_record["whois_presentation"] = whois_vp
+    await askar.update("didRecord", client_id, did_record)
+
     return JSONResponse(status_code=200, content={"Message": "Whois VP updated."})

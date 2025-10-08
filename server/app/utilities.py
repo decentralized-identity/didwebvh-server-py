@@ -126,7 +126,7 @@ def resource_details(resource):
         }
     elif resource_type == "anonCredsCredDef":
         return {"tag": resource.get("content").get("tag")}
-    elif resource_type == "anonCredsRevRegDef":
+    elif resource_type == "anonCredsRevocRegDef":
         return {
             "tag": resource.get("content").get("tag"),
             "size": resource.get("content").get("value").get("maxCredNum"),

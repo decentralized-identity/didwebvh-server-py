@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from app.models.web_schemas import ResourceUpload
 from app.plugins import AskarVerifier, AskarStorage, DidWebVH
-from app.utilities import first_proof, sync_resource
+from app.utilities import first_proof, sync_resource, get_client_id, resource_details
 
 from config import settings
 
@@ -66,6 +66,18 @@ async def upload_attested_resource(namespace, identifier, request_body: Resource
 
     await storage.store("resource", store_id, secured_resource, tags)
     await storage.store("resourceRecord", store_id, resource_record, tags)
+
+    # Bind to owner
+    client_id = get_client_id(namespace, identifier)
+    did_record = await storage.fetch("didRecord", client_id)
+    did_record["resources"].append(
+        {
+            "type": secured_resource.get("metadata").get("resourceType"),
+            "digest": secured_resource.get("metadata").get("resourceId"),
+            "details": resource_details(secured_resource),
+        }
+    )
+    await storage.update("didRecord", client_id, did_record)
 
     return JSONResponse(status_code=201, content=secured_resource)
 
