@@ -1,16 +1,23 @@
 """Admin endpoints."""
 
-from fastapi import APIRouter, HTTPException, Security, status
+import uuid
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Security, status
+from fastapi.params import Query
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 
+
 from app.models.web_schemas import AddWitness
-from app.plugins import AskarStorage
+from app.plugins import AskarStorage, DidWebVH
+from app.tasks import TaskManager, TaskStatus, TaskType
 from config import settings
 from app.utilities import timestamp, is_valid_multikey
 
-router = APIRouter(tags=["Policies"])
+
+router = APIRouter(tags=["Admin"])
 askar = AskarStorage()
+webvh = DidWebVH()
 
 api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
 
@@ -38,14 +45,14 @@ def get_api_key(
     )
 
 
-@router.get("/")
+@router.get("/policy")
 async def get_active_policy(api_key: str = Security(get_api_key)):
     """Get active policy."""
     active_policy = await askar.fetch("policy", "active")
     return JSONResponse(status_code=200, content=active_policy)
 
 
-@router.get("/known-witnesses")
+@router.get("/policy/known-witnesses")
 async def get_known_witnesses(api_key: str = Security(get_api_key)):
     """Get known witnesses registry."""
     witness_registry = await askar.fetch("registry", "knownWitnesses")
@@ -56,7 +63,7 @@ async def get_known_witnesses(api_key: str = Security(get_api_key)):
     return JSONResponse(status_code=200, content=witness_registry)
 
 
-@router.post("/known-witnesses")
+@router.post("/policy/known-witnesses")
 async def add_known_witness(request_body: AddWitness, api_key: str = Security(get_api_key)):
     """Add known witness."""
     request_body = request_body.model_dump()
@@ -79,7 +86,7 @@ async def add_known_witness(request_body: AddWitness, api_key: str = Security(ge
     return JSONResponse(status_code=200, content=witness_registry)
 
 
-@router.delete("/known-witnesses/{multikey}")
+@router.delete("/policy/known-witnesses/{multikey}")
 async def remove_known_witness(multikey: str, api_key: str = Security(get_api_key)):
     """Remove known witness."""
     witness_registry = await askar.fetch("registry", "knownWitnesses")
@@ -98,3 +105,46 @@ async def remove_known_witness(multikey: str, api_key: str = Security(get_api_ke
     await askar.update("registry", "knownWitnesses", witness_registry)
 
     return JSONResponse(status_code=200, content=witness_registry)
+
+
+@router.post("/tasks")
+async def sync_storage(
+    tasks: BackgroundTasks,
+    task_type: TaskType = Query(...),
+    force: bool = False,
+    api_key: str = Security(get_api_key),
+):
+    """Start an administrative task."""
+    task_id = str(uuid.uuid4())
+    print(task_type)
+    print(TaskType.SetPolicy)
+    print(TaskType.SyncRecords)
+    if task_type == TaskType.SetPolicy:
+        tasks.add_task(TaskManager(task_id).set_policies, force)
+    elif task_type == TaskType.SyncRecords:
+        tasks.add_task(TaskManager(task_id).sync_explorer_records, force)
+    else:
+        raise HTTPException(status_code=400, detail="Unknown task type.")
+    return JSONResponse(status_code=201, content={"task_id": task_id})
+
+
+@router.get("/tasks")
+async def fetch_tasks(
+    task_type: TaskType = Query(None),
+    status: TaskStatus = Query(None),
+    api_key: str = Security(get_api_key),
+):
+    """Check the status of an administrative task."""
+    tags = {"task_type": task_type or None, "status": status or None}
+    tags = {k: v for k, v in tags.items() if v is not None}
+    tasks = await askar.get_category_entries("task", tags)
+    tasks = [entry.value_json for entry in tasks]
+    return JSONResponse(status_code=200, content={"tasks": tasks})
+
+
+@router.get("/tasks/{task_id}")
+async def check_task_status(task_id: str, api_key: str = Security(get_api_key)):
+    """Check the status of an administrative task."""
+    if not (task := await askar.fetch("task", task_id)):
+        raise HTTPException(status_code=404, detail="Task not found.")
+    return JSONResponse(status_code=200, content=task)

@@ -10,10 +10,23 @@ from aries_askar import Key, Store
 from aries_askar.bindings import LocalKeyHandle
 from fastapi import HTTPException
 from multiformats import multibase
-from app.utilities import timestamp
-from app.models.policy import ActivePolicy
 
 from config import settings
+
+logger = logging.getLogger(__name__)
+
+
+class AskarStorageException(Exception):
+    """Custom Askar exception."""
+
+    def __init__(self, message):
+        """Init."""
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        """Str."""
+        return self.message
 
 
 class AskarStorage:
@@ -25,28 +38,13 @@ class AskarStorage:
 
     async def provision(self, recreate=False):
         """Provision the Askar storage."""
-        await Store.provision(self.db, "none", recreate=recreate)
-        if not await self.fetch("registry", "knownWitnesses"):
-            witness_registry = {
-                "meta": {"created": timestamp(), "updated": timestamp()},
-                "registry": {},
-            }
-            if settings.KNOWN_WITNESS_KEY:
-                witness_did = f"did:key:{settings.KNOWN_WITNESS_KEY}"
-                witness_registry["registry"][witness_did] = {"name": "Default Server Witness"}
-            await self.store("registry", "knownWitnesses", witness_registry)
-
-        if not await self.fetch("policy", "active"):
-            policy = ActivePolicy(
-                version=settings.WEBVH_VERSION,
-                witness=settings.WEBVH_WITNESS,
-                watcher=settings.WEBVH_WATCHER,
-                portability=settings.WEBVH_PORTABILITY,
-                prerotation=settings.WEBVH_PREROTATION,
-                endorsement=settings.WEBVH_ENDORSEMENT,
-                witness_registry_url=settings.KNOWN_WITNESS_REGISTRY,
-            ).model_dump()
-            await self.store("policy", "active", policy)
+        logger.warning("DB provisioning started.")
+        try:
+            await Store.provision(self.db, "none", recreate=recreate)
+            logger.warning("DB provisioning finished.")
+        except Exception as e:
+            logger.error(f"DB provisioning failed: {str(e)}")
+            raise AskarStorageException(f"DB provisioning failed: {str(e)}")
 
     async def open(self):
         """Open the Askar storage."""
@@ -60,7 +58,7 @@ class AskarStorage:
                 data = await session.fetch(category, data_key)
             return json.loads(data.value)
         except Exception:
-            logging.debug(f"Error fetching data {category}: {data_key}", exc_info=True)
+            logger.debug(f"Askar error fetching data {category}: {data_key}", exc_info=True)
             return None
 
     async def store(self, category, data_key, data, tags=None):
@@ -70,8 +68,8 @@ class AskarStorage:
             async with store.session() as session:
                 await session.insert(category, data_key, json.dumps(data), tags=tags)
         except Exception:
-            logging.debug(f"Error storing data {category}: {data_key}", exc_info=True)
-            raise HTTPException(status_code=404, detail="Couldn't store record.")
+            logger.debug(f"Askar error storing data {category}: {data_key}", exc_info=True)
+            raise AskarStorageException(f"Askar error storing data {category}: {data_key}")
 
     async def update(self, category, data_key, data, tags=None):
         """Update data in the store."""
@@ -80,8 +78,8 @@ class AskarStorage:
             async with store.session() as session:
                 await session.replace(category, data_key, json.dumps(data), tags=tags)
         except Exception:
-            logging.debug(f"Error updating data {category}: {data_key}", exc_info=True)
-            raise HTTPException(status_code=404, detail="Couldn't update record.")
+            logger.debug(f"Askar error updating data {category}: {data_key}", exc_info=True)
+            raise AskarStorageException(f"Askar error updating data {category}: {data_key}")
 
     async def append(self, category, data_key, data, tags=None):
         """Append data in the store."""
@@ -93,15 +91,15 @@ class AskarStorage:
                 data_array = data_array.append(data)
                 await session.replace(category, data_key, json.dumps(data), tags=tags)
         except Exception:
-            logging.debug(f"Error fetching data {category}: {data_key}", exc_info=True)
-            raise HTTPException(status_code=404, detail="Couldn't update record.")
+            logger.debug(f"Askar error fetching data {category}: {data_key}", exc_info=True)
+            raise AskarStorageException(f"Askar error appending data {category}: {data_key}")
 
-    async def store_or_update(self, category, data_key, data):
+    async def store_or_update(self, category, data_key, data, tags=None):
         """Store or update data in the store."""
         (
-            await self.update(category, data_key, data)
+            await self.update(category, data_key, data, tags)
             if await self.fetch(category, data_key)
-            else await self.store(category, data_key, data)
+            else await self.store(category, data_key, data, tags)
         )
 
     async def get_category_entries(self, category, tag_filter=None):

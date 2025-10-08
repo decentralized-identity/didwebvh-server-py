@@ -7,23 +7,18 @@
                     <div class="col-4">
                         <h3 class="card-title mb-0">Resources</h3>
                         <p class="text-secondary m-0">List of Attested Resources processed by their metadata.</p>
-                    </div>
-                    <div class="col-4">
-                        <div class="mb-3">
-                            <div class="form-label">Metadata</div>
-                            <input name="resource_type" id="resource_type" class="form-control form-control-sm mb-3" type="text" placeholder="Resource Type">
-                            <input name="resource_id" id="resource_id" class="form-control form-control-sm mb-3" type="text" placeholder="Resource ID (digest)">
-                        </div>
+                        <input type="submit" value="Query" class="btn w-100 mt-3">
                     </div>
                     <div class="col-4">
                         <div class="mb-3">
                             <div class="form-label">Filters</div>
-                            <input name="scid" id="scid" class="form-control form-control-sm mb-3" type="text"
-                                placeholder="Author's SCID">
-                            {# <input class="form-control form-control-sm mb-3" type="text" placeholder="name / tag"> #}
-                            {# <input class="form-control form-control-sm mb-3" type="text" placeholder="version"> #}
+                            <input name="resource_type" id="resource_type" class="form-control form-control-sm mb-3" type="text" placeholder="Resource Type">
+                            <input name="resource_id" id="resource_id" class="form-control form-control-sm mb-3" type="text" placeholder="Resource ID (digest)">
+                            <input name="scid" id="scid" class="form-control form-control-sm mb-3" type="text" placeholder="Controller's SCID">
                         </div>
-                        <a href="#" class="btn w-100"> Query </a>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-3"></div>
                     </div>
                 </div>
             </div>
@@ -44,7 +39,7 @@
                         </th>
                         <th>
                             <button class="table-sort d-flex justify-content-between"
-                                data-sort="sort-author">Author</button>
+                                data-sort="sort-controller">Controller</button>
                         </th>
                         <th class="w-1"></th>
                         <th class="w-1"></th>
@@ -53,12 +48,12 @@
                 <tbody class="table-tbody">
                     {% for resource in results %}
                     <tr>
-                        <td class="sort-type"><small>{{ resource.type }}</small></td>
+                        <td class="sort-type"><small>{{ resource.resource_type }}</small></td>
                         <td class="sort-details">
                             <small>{{ resource.details | string | replace("'","") | replace("{","") | replace("}","")
                                 }}</small>
                         </td>
-                        <td class="sort-author"><small>{{ resource.author.scid }}</small></td>
+                        <td class="sort-controller"><small>{{ resource.scid }}</small></td>
                         <td>
                             <a href="#" data-bs-toggle="modal"
                                 data-bs-target="#modal-resource-{{ loop.index }}">Details</a>
@@ -97,7 +92,7 @@
         headers: [
             { "data-sort": "sort-type", name: "Type" },
             { "data-sort": "sort-details", name: "Details" },
-            { "data-sort": "sort-author", name: "Author" },
+            { "data-sort": "sort-controller", name: "Controller" },
         ],
     };
     const setPageListItems = (e) => {

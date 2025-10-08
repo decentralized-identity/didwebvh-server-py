@@ -5,9 +5,17 @@ import json
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 
+from config import settings
+
 from app.models.web_schemas import NewLogEntry, WhoisUpdate
 from app.plugins import AskarStorage, AskarVerifier, DidWebVH, PolicyError
-from app.utilities import get_client_id, first_proof, find_verification_method, timestamp
+from app.utilities import (
+    get_client_id,
+    first_proof,
+    find_verification_method,
+    timestamp,
+    sync_did_info,
+)
 
 router = APIRouter(tags=["Identifiers"])
 askar = AskarStorage()
@@ -33,12 +41,7 @@ async def request_did(
     if await askar.fetch("logEntries", client_id):
         raise HTTPException(status_code=409, detail="Identifier unavailable.")
 
-    webvh = DidWebVH(
-        active_policy=await askar.fetch("policy", "active"),
-        active_registry=(await askar.fetch("registry", "knownWitnesses")).get("registry"),
-    )
-
-    if not webvh.namespace_available(namespace):
+    if namespace in settings.RESERVED_NAMESPACES:
         raise HTTPException(status_code=400, detail=f"Unavailable namespace: {namespace}.")
 
     return JSONResponse(
@@ -69,7 +72,7 @@ async def new_log_entry(
     log_entry = request_body.model_dump().get("logEntry")
     witness_signature = request_body.model_dump().get("witnessSignature")
 
-    prev_log_entries = await askar.fetch("logEntries", client_id)
+    prev_log_entries = await askar.fetch("logEntries", client_id) or []
     prev_witness_file = await askar.fetch("witnessFile", client_id)
 
     webvh = DidWebVH(
@@ -84,8 +87,17 @@ async def new_log_entry(
         except PolicyError as err:
             raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
 
-        await askar.store("logEntries", client_id, log_entries)
-        await askar.store("witnessFile", client_id, witness_file)
+        did_record, tags = sync_did_info(
+            state=webvh.get_document_state(log_entries),
+            logs=log_entries,
+            did_resources=[],
+            witness_file=witness_file,
+            whois_presentation={},
+        )
+
+        await askar.store("logEntries", client_id, log_entries, tags)
+        await askar.store("witnessFile", client_id, witness_file, tags)
+        await askar.store("didRecord", client_id, did_record, tags)
 
         return JSONResponse(status_code=201, content=log_entries[-1])
 
@@ -100,8 +112,22 @@ async def new_log_entry(
     except PolicyError as err:
         raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
 
-    await askar.update("logEntries", client_id, log_entries)
-    await askar.update("witnessFile", client_id, witness_file)
+    state = webvh.get_document_state(log_entries)
+
+    did_record, tags = sync_did_info(
+        state=state,
+        logs=log_entries,
+        did_resources=[
+            resource.value_json
+            for resource in await askar.get_category_entries("resource", {"scid": state.scid})
+        ],
+        witness_file=witness_file,
+        whois_presentation=(await askar.fetch("whois", client_id) or {}),
+    )
+
+    await askar.update("logEntries", client_id, log_entries, tags)
+    await askar.update("witnessFile", client_id, witness_file, tags)
+    await askar.update("didRecord", client_id, did_record, tags)
 
     # Deactivate DID
     if log_entries[-1].get("parameters").get("deactivated"):
@@ -195,5 +221,10 @@ async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdat
         return JSONResponse(status_code=400, content={"Reason": "Verification failed."})
 
     await askar.store_or_update("whois", client_id, whois_vp)
+
+    # Update DID record
+    did_record = await askar.fetch("didRecord", client_id)
+    did_record["whois_presentation"] = whois_vp
+    await askar.update("didRecord", client_id, did_record)
 
     return JSONResponse(status_code=200, content={"Message": "Whois VP updated."})

@@ -14,6 +14,7 @@ WATCHER_URL = os.getenv("WATCHER_URL", None)
 
 
 def try_return(request):
+    # Sleep to avoid rate limiting
     time.sleep(1)
     try:
         return request.json()
@@ -76,7 +77,7 @@ def update_did(scid):
     r = requests.post(
         f"{AGENT_ADMIN_API_URL}/did/webvh/update?scid={scid}",
         headers=AGENT_ADMIN_API_HEADERS,
-        json={"did_document": {}, "options": {}},
+        json={},
     )
     return try_return(r)
 
@@ -206,8 +207,8 @@ witness_id = webvh_config.get("witnesses")[0]
 logger.info(f"Witness Configured: {witness_id}")
 logger.info("Provisioning Server")
 
-# Create DIDs in three namespaces
-for namespace in ["ns-01", "ns-02", "ns-03"]:
+# Create DIDs in two namespaces
+for namespace in ["ns-01", "ns-02"]:
     # Create 2 DIDs in each namespace
     for idx in range(2):
         log_entry = create_did(namespace)
@@ -225,15 +226,15 @@ for namespace in ["ns-01", "ns-02", "ns-03"]:
             register_watcher(did)
 
         # NOTE, following lines depend on next plugin release
-        # # Update the DID twice to generate some log entries
-        # update_did(scid)
-        # update_did(scid)
-        # notify_watcher(did)
+        # Update the DID twice to generate some log entries
+        update_did(scid)
+        update_did(scid)
+        notify_watcher(did)
 
-        # # Create a sample whois VP
-        # vc = sign_credential(witness_id, did).get("securedDocument")
-        # vp = sign_presentation(signing_key, vc).get("securedDocument")
-        # whois = upload_whois(vp)
+        # Create a sample whois VP
+        vc = sign_credential(witness_id, did).get("securedDocument")
+        vp = sign_presentation(signing_key, vc).get("securedDocument")
+        whois = upload_whois(vp)
 
         # Create anoncreds schema and cred def
         schema = create_schema(did)

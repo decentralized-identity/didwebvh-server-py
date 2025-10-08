@@ -69,5 +69,7 @@ class Settings(BaseSettings):
     AVATAR_URL: str = "https://api.dicebear.com/9.x/identicon/svg"
     UNIRESOLVER_URL: str = "https://dev.uniresolver.io"
 
+    RESERVED_NAMESPACES: list = ["explorer", "admin", "server", "tails"]
+
 
 settings = Settings()

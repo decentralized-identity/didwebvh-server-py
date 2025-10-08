@@ -9,7 +9,6 @@ from tests.fixtures import (
 )
 from tests.mock_agents import WitnessAgent, ControllerAgent
 import pytest
-import asyncio
 from anoncreds import (
     CredentialDefinition,
     RevocationRegistryDefinition,
@@ -21,7 +20,6 @@ from app.routers.resources import update_attested_resource, upload_attested_reso
 
 
 askar = AskarStorage()
-asyncio.run(askar.provision(recreate=True))
 verifier = AskarVerifier()
 didwebvh = DidWebVH()
 
