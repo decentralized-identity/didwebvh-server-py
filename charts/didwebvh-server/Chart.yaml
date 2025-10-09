@@ -4,7 +4,7 @@ icon: https://identity.foundation/didwebvh/didwebvh.jpg
 description: An api server to register and serve web dids with verifiable history.
 type: application
 version: 0.3.2
-appVersion: 0.3.3
+appVersion: 0.3.4
 
 maintainers:
   - name: PatStLouis
