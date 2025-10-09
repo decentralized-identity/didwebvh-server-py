@@ -16,7 +16,7 @@ networkPolicy:
 server:
   image:
     repository: ghcr.io/decentralized-identity/didwebvh-server-py
-    tag: 0.3.3
+    tag: 0.3.4
     pullPolicy: IfNotPresent
     pullSecrets: []
 
