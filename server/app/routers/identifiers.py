@@ -1,24 +1,29 @@
 """Identifier endpoints for DIDWeb and DIDWebVH."""
 
 import json
+import logging
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from config import settings
 
 from app.models.web_schemas import NewLogEntry, WhoisUpdate
-from app.plugins import AskarStorage, AskarVerifier, DidWebVH, PolicyError
+from app.plugins import PolicyError, DidWebVH, AskarVerifier
+from did_webvh.core.state import InvalidDocumentState
+from app.db.models import DidControllerRecord
 from app.utilities import (
-    get_client_id,
     first_proof,
     find_verification_method,
     timestamp,
-    sync_did_info,
 )
+from app.routers.dependencies import get_did_controller_dependency
+from app.plugins.storage import StorageManager
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Identifiers"])
-askar = AskarStorage()
+storage = StorageManager()
 verifier = AskarVerifier()
 webvh = DidWebVH()
 
@@ -36,9 +41,8 @@ async def request_did(
     if not namespace or not identifier:
         raise HTTPException(status_code=400, detail="Missing namespace or identifier query.")
 
-    client_id = get_client_id(namespace, identifier)
-
-    if await askar.fetch("logEntries", client_id):
+    # Check if identifier already exists in database
+    if storage.get_did_controller_by_alias(namespace, identifier):
         raise HTTPException(status_code=409, detail="Identifier unavailable.")
 
     if namespace in settings.RESERVED_NAMESPACES:
@@ -67,67 +71,56 @@ async def new_log_entry(
 ):
     """Create a new log entry for a given namespace and identifier."""
 
-    client_id = get_client_id(namespace, identifier)
-
     log_entry = request_body.model_dump().get("logEntry")
     witness_signature = request_body.model_dump().get("witnessSignature")
 
-    prev_log_entries = await askar.fetch("logEntries", client_id) or []
-    prev_witness_file = await askar.fetch("witnessFile", client_id)
+    # Get policy and registry from database
+    policy = storage.get_policy("active")
+    registry = storage.get_registry("knownWitnesses")
+
+    # Convert to format expected by DidWebVH
+    policy_data = policy.to_dict() if policy else None
+    registry_data = registry.registry_data if registry else {}
 
     webvh = DidWebVH(
-        active_policy=await askar.fetch("policy", "active"),
-        active_registry=(await askar.fetch("registry", "knownWitnesses")).get("registry"),
+        active_policy=policy_data,
+        active_registry=registry_data,
     )
 
-    # Create DID
-    if not prev_log_entries:
+    # Get existing DID controller if it exists
+    if not (did_controller := storage.get_did_controller_by_alias(namespace, identifier)):
         try:
             log_entries, witness_file = await webvh.create_did(log_entry, witness_signature)
         except PolicyError as err:
             raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
+        except InvalidDocumentState as err:
+            raise HTTPException(status_code=400, detail=f"Invalid document state: {err}")
 
-        did_record, tags = sync_did_info(
-            state=webvh.get_document_state(log_entries),
-            logs=log_entries,
-            did_resources=[],
-            witness_file=witness_file,
-            whois_presentation={},
+        # Create DID controller in database (extracts all data from logs)
+        controller = storage.create_did_controller(log_entries, witness_file)
+        logger.info(
+            f"Created DID controller: {controller.scid} ({controller.namespace}/{controller.alias})"
         )
-
-        await askar.store("logEntries", client_id, log_entries, tags)
-        await askar.store("witnessFile", client_id, witness_file, tags)
-        await askar.store("didRecord", client_id, did_record, tags)
 
         return JSONResponse(status_code=201, content=log_entries[-1])
 
     # Update DID
+
     try:
         log_entries, witness_file = await webvh.update_did(
             log_entry=log_entry,
-            log_entries=prev_log_entries,
+            log_entries=did_controller.logs,
             witness_signature=witness_signature,
-            prev_witness_file=prev_witness_file,
+            prev_witness_file=did_controller.witness_file,
         )
+
+        # Update DID controller in database (re-extracts state from logs)
+        storage.update_did_controller(did_controller.scid, log_entries, witness_file)
+
     except PolicyError as err:
         raise HTTPException(status_code=400, detail=f"Policy infraction: {err}")
-
-    state = webvh.get_document_state(log_entries)
-
-    did_record, tags = sync_did_info(
-        state=state,
-        logs=log_entries,
-        did_resources=[
-            resource.value_json
-            for resource in await askar.get_category_entries("resource", {"scid": state.scid})
-        ],
-        witness_file=witness_file,
-        whois_presentation=(await askar.fetch("whois", client_id) or {}),
-    )
-
-    await askar.update("logEntries", client_id, log_entries, tags)
-    await askar.update("witnessFile", client_id, witness_file, tags)
-    await askar.update("didRecord", client_id, did_record, tags)
+    except InvalidDocumentState as err:
+        raise HTTPException(status_code=400, detail=f"Invalid document state: {err}")
 
     # Deactivate DID
     if log_entries[-1].get("parameters").get("deactivated"):
@@ -139,70 +132,14 @@ async def new_log_entry(
     return JSONResponse(status_code=200, content=log_entries[-1])
 
 
-@router.get("/{namespace}/{identifier}/did.json", include_in_schema=False)
-async def read_did(namespace: str, identifier: str):
-    """See https://identity.foundation/didwebvh/next/#publishing-a-parallel-didweb-did."""
-    client_id = get_client_id(namespace, identifier)
-    log_entries = await askar.fetch("logEntries", client_id)
-
-    if not log_entries:
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    document_state = webvh.get_document_state(log_entries)
-    did_document = json.dumps(document_state.to_did_web())
-    return Response(did_document, media_type="application/did+ld+json")
-
-
-@router.get("/{namespace}/{identifier}/did.jsonl", include_in_schema=False)
-async def read_did_log(namespace: str, identifier: str):
-    """See https://identity.foundation/didwebvh/next/#the-did-log-file."""
-    client_id = get_client_id(namespace, identifier)
-    log_entries = await askar.fetch("logEntries", client_id)
-
-    if not log_entries:
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    log_entries = "\n".join([json.dumps(log_entry) for log_entry in log_entries]) + "\n"
-    return Response(log_entries, media_type="text/jsonl")
-
-
-@router.get("/{namespace}/{identifier}/did-witness.json", include_in_schema=False)
-async def read_witness_file(namespace: str, identifier: str):
-    """See https://identity.foundation/didwebvh/next/#the-witness-proofs-file."""
-    client_id = get_client_id(namespace, identifier)
-    witness_file = await askar.fetch("witnessFile", client_id)
-    if not witness_file:
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    return JSONResponse(status_code=200, content=witness_file)
-
-
-@router.get("/{namespace}/{identifier}/whois.vp", include_in_schema=False)
-async def read_whois(namespace: str, identifier: str):
-    """See https://identity.foundation/didwebvh/v1.0/#whois-linkedvp-service."""
-
-    client_id = get_client_id(namespace, identifier)
-    whois_vp = await askar.fetch("whois", client_id)
-
-    if not whois_vp:
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    return Response(json.dumps(whois_vp), media_type="application/vp")
-
-
 @router.post("/{namespace}/{identifier}/whois")
-async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdate):
+async def update_whois(
+    request_body: WhoisUpdate,
+    did_controller: DidControllerRecord = Depends(get_did_controller_dependency),
+):
     """See https://didwebvh.info/latest/whois/."""
 
-    client_id = get_client_id(namespace, identifier)
-
-    log_entries = await askar.fetch("logEntries", client_id)
-
-    if not log_entries:
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    doc_state = webvh.get_document_state(log_entries)
-
+    doc_state = webvh.get_document_state(did_controller.logs)
     whois_vp = request_body.model_dump().get("verifiablePresentation")
 
     whois_vp_copy = whois_vp.copy()
@@ -213,18 +150,54 @@ async def update_whois(namespace: str, identifier: str, request_body: WhoisUpdat
 
     multikey = find_verification_method(doc_state.document, proof.get("verificationMethod"))
 
-    if not multikey:
+    if not (
+        multikey := find_verification_method(doc_state.document, proof.get("verificationMethod"))
+    ):
         return JSONResponse(status_code=400, content={"Reason": "Invalid verification method."})
 
     verifier.purpose = "authentication"
     if not verifier.verify_proof(whois_vp_copy, proof, multikey):
         return JSONResponse(status_code=400, content={"Reason": "Verification failed."})
 
-    await askar.store_or_update("whois", client_id, whois_vp)
-
-    # Update DID record
-    did_record = await askar.fetch("didRecord", client_id)
-    did_record["whois_presentation"] = whois_vp
-    await askar.update("didRecord", client_id, did_record)
+    # Update DID controller with new WHOIS presentation
+    storage.update_did_controller(scid=did_controller.scid, whois_presentation=whois_vp)
 
     return JSONResponse(status_code=200, content={"Message": "Whois VP updated."})
+
+
+@router.get("/{namespace}/{identifier}/did.json")
+async def read_did(did_controller: DidControllerRecord = Depends(get_did_controller_dependency)):
+    """See https://identity.foundation/didwebvh/next/#publishing-a-parallel-didweb-did."""
+
+    document_state = webvh.get_document_state(did_controller.logs)
+
+    return Response(json.dumps(document_state.to_did_web()), media_type="application/did+ld+json")
+
+
+@router.get("/{namespace}/{identifier}/did.jsonl")
+async def read_did_log(
+    did_controller: DidControllerRecord = Depends(get_did_controller_dependency),
+):
+    """See https://identity.foundation/didwebvh/next/#the-did-log-file."""
+    log_entries = "\n".join([json.dumps(log_entry) for log_entry in did_controller.logs]) + "\n"
+    return Response(log_entries, media_type="text/jsonl")
+
+
+@router.get("/{namespace}/{identifier}/did-witness.json")
+async def read_witness_file(
+    did_controller: DidControllerRecord = Depends(get_did_controller_dependency),
+):
+    """See https://identity.foundation/didwebvh/next/#the-witness-proofs-file."""
+    if not did_controller.witness_file:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    return JSONResponse(status_code=200, content=did_controller.witness_file)
+
+
+@router.get("/{namespace}/{identifier}/whois.vp")
+async def read_whois(did_controller: DidControllerRecord = Depends(get_did_controller_dependency)):
+    """See https://identity.foundation/didwebvh/v1.0/#whois-linkedvp-service."""
+    if not did_controller.whois_presentation:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    return Response(json.dumps(did_controller.whois_presentation), media_type="application/vp")

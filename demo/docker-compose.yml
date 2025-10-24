@@ -10,27 +10,6 @@ services:
       WEBVH_PREROTATION: false
       WEBVH_PORTABILITY: false
       WEBVH_ENDORSEMENT: false
-
-  witness-agent:
-    build:
-      context: .
-      dockerfile: Dockerfile.agent
-    ports:
-      - 8020:8020
-    configs:
-      - source: agent-config.yml
-        target: /home/aries/config.yml
-    entrypoint: ["aca-py", "start"]
-    command: [
-      "--arg-file", "/home/aries/config.yml",
-      "--tails-server-base-url", "https://tails.anoncreds.vc"
-    ]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8020/status/ready"]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
   
   demo_script:
     build:
@@ -50,22 +29,3 @@ services:
     command: ["http", "webvh-server:8000", "--domain=${WEBVH_DOMAIN}"]
     environment:
       NGROK_AUTHTOKEN: ${NGROK_TOKEN}
-
-configs:
-  agent-config.yml:
-    content: |
-      admin: [0.0.0.0, 8020]
-      admin-insecure-mode: true
-      no-ledger: true
-      no-transport: true
-      auto-provision: true
-      wallet-key: test-wallet
-      wallet-name: test-wallet
-      wallet-type: askar-anoncreds
-      plugin:
-        - webvh
-      plugin-config-value:
-        - did-webvh.witness=true
-        - did-webvh.auto_attest=true
-        - did-webvh.endorsement=true
-        - did-webvh.server_url=https://${WEBVH_DOMAIN}

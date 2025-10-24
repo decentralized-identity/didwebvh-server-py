@@ -9,14 +9,15 @@ from fastapi.security import APIKeyHeader
 
 
 from app.models.web_schemas import AddWitness
-from app.plugins import AskarStorage, DidWebVH
 from app.tasks import TaskManager, TaskStatus, TaskType
 from config import settings
 from app.utilities import timestamp, is_valid_multikey
+from app.plugins import DidWebVH
+from app.plugins.storage import StorageManager
 
 
 router = APIRouter(tags=["Admin"])
-askar = AskarStorage()
+storage = StorageManager()
 webvh = DidWebVH()
 
 api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
@@ -48,26 +49,26 @@ def get_api_key(
 @router.get("/policy")
 async def get_active_policy(api_key: str = Security(get_api_key)):
     """Get active policy."""
-    active_policy = await askar.fetch("policy", "active")
-    return JSONResponse(status_code=200, content=active_policy)
+
+    if not (policy := storage.get_policy("active")):
+        raise HTTPException(status_code=404, detail="Active policy not found.")
+
+    return JSONResponse(status_code=200, content=policy.to_dict())
 
 
 @router.get("/policy/known-witnesses")
 async def get_known_witnesses(api_key: str = Security(get_api_key)):
     """Get known witnesses registry."""
-    witness_registry = await askar.fetch("registry", "knownWitnesses")
-
-    if not witness_registry:
+    if not (registry := storage.get_registry("knownWitnesses")):
         raise HTTPException(status_code=404, detail="Error, witness registry not found.")
 
-    return JSONResponse(status_code=200, content=witness_registry)
+    return JSONResponse(status_code=200, content=registry.to_dict())
 
 
 @router.post("/policy/known-witnesses")
 async def add_known_witness(request_body: AddWitness, api_key: str = Security(get_api_key)):
     """Add known witness."""
     request_body = request_body.model_dump()
-    witness_registry = await askar.fetch("registry", "knownWitnesses")
     multikey = request_body["multikey"]
 
     if not is_valid_multikey(multikey, alg="ed25519"):
@@ -75,36 +76,65 @@ async def add_known_witness(request_body: AddWitness, api_key: str = Security(ge
 
     witness_did = f"did:key:{multikey}"
 
-    if witness_registry["registry"].get(witness_did):
-        raise HTTPException(status_code=409, detail="Witness already exists.")
+    # Get existing registry or create new one
+    registry = storage.get_registry("knownWitnesses")
 
-    witness_registry["registry"][witness_did] = {"name": request_body["label"]}
-    witness_registry["meta"]["updated"] = timestamp()
+    if registry:
+        registry_data = registry.registry_data
+        if registry_data.get(witness_did):
+            raise HTTPException(status_code=409, detail="Witness already exists.")
 
-    await askar.update("registry", "knownWitnesses", witness_registry)
+        # Add new witness
+        registry_data[witness_did] = {"name": request_body["label"]}
+        meta = {"updated": timestamp()}
+    else:
+        # Create new registry with this witness
+        registry_data = {witness_did: {"name": request_body["label"]}}
+        meta = {"created": timestamp(), "updated": timestamp()}
 
-    return JSONResponse(status_code=200, content=witness_registry)
+    # Update registry in database
+    updated_registry = storage.create_or_update_registry(
+        registry_id="knownWitnesses",
+        registry_type="witnesses",
+        registry_data=registry_data,
+        meta=meta,
+    )
+
+    return JSONResponse(status_code=200, content=updated_registry.to_dict())
 
 
 @router.delete("/policy/known-witnesses/{multikey}")
 async def remove_known_witness(multikey: str, api_key: str = Security(get_api_key)):
     """Remove known witness."""
-    witness_registry = await askar.fetch("registry", "knownWitnesses")
-
     if not is_valid_multikey(multikey, alg="ed25519"):
         raise HTTPException(status_code=400, detail="Invalid multikey, must be ed25519 type.")
 
     witness_did = f"did:key:{multikey}"
 
-    if not witness_registry["registry"].get(witness_did):
+    # Get existing registry
+    registry = storage.get_registry("knownWitnesses")
+
+    if not registry:
+        raise HTTPException(status_code=404, detail="Witness registry not found.")
+
+    registry_data = registry.registry_data
+
+    if not registry_data.get(witness_did):
         raise HTTPException(status_code=404, detail="Witness not found.")
 
-    witness_registry["registry"].pop(witness_did)
-    witness_registry["meta"]["updated"] = timestamp()
+    # Remove witness
+    registry_data.pop(witness_did)
+    meta = {"updated": timestamp()}
 
-    await askar.update("registry", "knownWitnesses", witness_registry)
+    # Update registry in database
+    updated_registry = storage.create_or_update_registry(
+        registry_id="knownWitnesses",
+        registry_type="witnesses",
+        registry_data=registry_data,
+        meta=meta,
+    )
 
-    return JSONResponse(status_code=200, content=witness_registry)
+    return JSONResponse(status_code=200, content=updated_registry.to_dict())
 
 
 @router.post("/tasks")
@@ -135,16 +165,21 @@ async def fetch_tasks(
     api_key: str = Security(get_api_key),
 ):
     """Check the status of an administrative task."""
-    tags = {"task_type": task_type or None, "status": status or None}
-    tags = {k: v for k, v in tags.items() if v is not None}
-    tasks = await askar.get_category_entries("task", tags)
-    tasks = [entry.value_json for entry in tasks]
-    return JSONResponse(status_code=200, content={"tasks": tasks})
+    filters = {}
+    if task_type:
+        filters["task_type"] = task_type.value
+    if status:
+        filters["status"] = status.value
+
+    tasks = storage.get_tasks(filters if filters else None)
+    tasks_data = [task.to_dict() for task in tasks]
+
+    return JSONResponse(status_code=200, content={"tasks": tasks_data})
 
 
 @router.get("/tasks/{task_id}")
 async def check_task_status(task_id: str, api_key: str = Security(get_api_key)):
     """Check the status of an administrative task."""
-    if not (task := await askar.fetch("task", task_id)):
+    if not (task := storage.get_task(task_id)):
         raise HTTPException(status_code=404, detail="Task not found.")
-    return JSONResponse(status_code=200, content=task)
+    return JSONResponse(status_code=200, content=task.to_dict())

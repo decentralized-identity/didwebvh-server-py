@@ -158,10 +158,18 @@ class DidWebVH:
 
     def validate_known_witness(self, document_state, witness_signature):
         """Validate known witness."""
-        witness_id = document_state.params.get("witness").get("witnesses")[0].get("id")
+        # Check if witness is configured in parameters
+        witness_config = document_state.params.get("witness")
+        if not witness_config:
+            raise PolicyError("No witness configured in parameters")
 
+        witnesses = witness_config.get("witnesses", [])
+        if not witnesses:
+            raise PolicyError("No witnesses in configuration")
+
+        witness_id = witnesses[0].get("id")
         if not witness_id:
-            raise PolicyError("No witness")
+            raise PolicyError("No witness ID found")
 
         if not self.known_witness_registry.get(witness_id, None):
             self.cache_known_witness_registry()

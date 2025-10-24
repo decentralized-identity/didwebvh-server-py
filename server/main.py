@@ -8,7 +8,7 @@ import uvicorn
 
 from dotenv import load_dotenv
 
-from app.plugins import AskarStorage
+from app.plugins.storage import StorageManager
 from app.tasks import TaskManager  # set_policies, sync_explorer_records
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -23,11 +23,21 @@ class StartupBackgroundTasks(threading.Thread):
 
     def run(self):
         """Run tasks."""
-        asyncio.run(AskarStorage().provision())
+
+        # Provision SQLAlchemy database
+        asyncio.run(StorageManager().provision())
+
+        # Set initial policies
         asyncio.run(TaskManager(str(uuid.uuid4())).set_policies())
-        asyncio.run(TaskManager(str(uuid.uuid4())).sync_explorer_records())
 
 
 if __name__ == "__main__":
-    StartupBackgroundTasks().start()
-    uvicorn.run("app:app", host="0.0.0.0", port=APP_PORT, workers=APP_WORKERS, reload=True)
+    # Run startup tasks synchronously to ensure database is ready before accepting requests
+    print("Provisioning database...")
+    asyncio.run(StorageManager().provision())
+
+    print("Setting initial policies and witness registry...")
+    asyncio.run(TaskManager(str(uuid.uuid4())).set_policies())
+
+    print("Starting server...")
+    uvicorn.run("app:app", host="0.0.0.0", port=APP_PORT, workers=APP_WORKERS, reload=False)

@@ -133,7 +133,7 @@ class AskarVerifier:
         except AssertionError as msg:
             raise HTTPException(status_code=400, detail=str(msg))
 
-    async def verify_resource_proof(self, resource):
+    def verify_resource_proof(self, resource, controller_document):
         """Verify the proof."""
         proof = resource.pop("proof")
         if (
@@ -143,20 +143,10 @@ class AskarVerifier:
         ):
             raise HTTPException(status_code=400, detail="Invalid proof options")
 
-        did = proof.get("verificationMethod").split("#")[0]
-        namespace = did.split(":")[4]
-        identifier = did.split(":")[5]
-        profile_id = f"{namespace}:{identifier}"
-        issuer_log = await AskarStorage().fetch("logEntries", profile_id)
-
-        if not issuer_log:
-            raise HTTPException(status_code=400, detail="Unknown controller")
-
-        did_document = issuer_log[-1].get("state")
         multikey = next(
             (
                 vm["publicKeyMultibase"]
-                for vm in did_document["verificationMethod"]
+                for vm in controller_document["verificationMethod"]
                 if vm["id"] == proof.get("verificationMethod")
             ),
             None,

@@ -1,18 +1,20 @@
-FROM python:3.12
+FROM python:3.12-slim
 
 WORKDIR /fastapi
 
-ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-COPY poetry.lock pyproject.toml ./
+# Copy dependency files
+COPY pyproject.toml uv.lock README.md ./
 
-RUN pip install --upgrade pip
-RUN pip install poetry
-RUN poetry install
+# Install dependencies
+RUN uv sync --frozen --no-dev
 
+# Copy application code
 COPY app ./app
-COPY config.py main.py ./
+COPY config.py main.py init_db.py alembic.ini ./
+COPY alembic ./alembic
 
-CMD [ "python", "main.py" ]
+# Run the application using the synced environment (no reinstall on startup)
+CMD ["uv", "run", "python", "main.py"]

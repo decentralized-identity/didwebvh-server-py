@@ -7,18 +7,15 @@ from enum import Enum
 
 from config import settings
 
-from app.models.policy import ActivePolicy
 from app.models.task import TaskInstance
 from app.plugins import AskarStorage, DidWebVH
-from app.utilities import (
-    timestamp,
-    sync_resource,
-    sync_did_info,
-)
+from app.plugins.storage import StorageManager
+from app.utilities import timestamp
 
 logger = logging.getLogger(__name__)
 
 askar = AskarStorage()
+storage = StorageManager()
 webvh = DidWebVH()
 
 
@@ -60,21 +57,30 @@ class TaskManager:
             status=TaskStatus.started,
             progress={},
         )
-        await askar.store("task", self.task_id, self.task.model_dump(), self.task_tags())
+        # Store task in database
+        storage.create_task(
+            task_id=self.task_id,
+            task_type=task_type.value,
+            status=TaskStatus.started.value,
+            progress={},
+            message=None,
+        )
 
     async def update_task_progress(self, progress):
         """Update task progress."""
         logger.debug(f"Task {self.task_id} updated: {json.dumps(progress)}")
         self.task.progress.update(progress)
         self.task.updated = timestamp()
-        await askar.update("task", self.task_id, self.task.model_dump(), self.task_tags())
+        # Update task in database
+        storage.update_task(self.task_id, progress=self.task.progress)
 
     async def finish_task(self):
         """Finish existing task."""
         logger.info(f"Task {self.task_id} finished.")
         self.task.status = TaskStatus.finished
         self.task.updated = timestamp()
-        await askar.update("task", self.task_id, self.task.model_dump(), self.task_tags())
+        # Update task in database
+        storage.update_task(self.task_id, status=TaskStatus.finished.value)
 
     async def abandon_task(self, message=None):
         """Abandon existing task."""
@@ -82,7 +88,8 @@ class TaskManager:
         self.task.status = TaskStatus.abandonned
         self.task.message = message
         self.task.updated = timestamp()
-        await askar.update("task", self.task_id, self.task.model_dump(), self.task_tags())
+        # Update task in database
+        storage.update_task(self.task_id, status=TaskStatus.abandonned.value, message=message)
 
     async def set_policies(self, force=False):
         """Provision DB with policies."""
@@ -90,83 +97,45 @@ class TaskManager:
         await self.start_task(TaskType.SetPolicy)
 
         try:
-            if not (policy := await askar.fetch("policy", "active")):
+            # Check/create policy in database
+            if not (policy := storage.get_policy("active")):
                 logger.info("Creating server policies.")
-                policy = ActivePolicy(
-                    version=settings.WEBVH_VERSION,
-                    witness=settings.WEBVH_WITNESS,
-                    watcher=settings.WEBVH_WATCHER,
-                    portability=settings.WEBVH_PORTABILITY,
-                    prerotation=settings.WEBVH_PREROTATION,
-                    endorsement=settings.WEBVH_ENDORSEMENT,
-                    witness_registry_url=settings.KNOWN_WITNESS_REGISTRY,
-                ).model_dump()
-                await askar.store("policy", "active", policy)
+                policy_data = {
+                    "version": settings.WEBVH_VERSION,
+                    "witness": settings.WEBVH_WITNESS,
+                    "watcher": settings.WEBVH_WATCHER,
+                    "portability": settings.WEBVH_PORTABILITY,
+                    "prerotation": settings.WEBVH_PREROTATION,
+                    "endorsement": settings.WEBVH_ENDORSEMENT,
+                    "witness_registry_url": settings.KNOWN_WITNESS_REGISTRY,
+                }
+                policy = storage.create_or_update_policy("active", policy_data)
             else:
                 logger.info("Skipping server policies.")
 
-            await self.update_task_progress({"policy": json.dumps(policy)})
+            await self.update_task_progress({"policy": f"Policy {policy.version} active"})
 
-            if not (witness_registry := await askar.fetch("registry", "knownWitnesses")):
+            # Check/create witness registry in database
+            if not (registry := storage.get_registry("knownWitnesses")):
                 logger.info("Creating known witness registry.")
-                witness_registry = {
-                    "meta": {"created": timestamp(), "updated": timestamp()},
-                    "registry": {},
-                }
+                registry_data = {}
                 if settings.KNOWN_WITNESS_KEY:
                     witness_did = f"did:key:{settings.KNOWN_WITNESS_KEY}"
-                    witness_registry["registry"][witness_did] = {"name": "Default Server Witness"}
-                await askar.store("registry", "knownWitnesses", witness_registry)
+                    registry_data[witness_did] = {"name": "Default Server Witness"}
+
+                meta = {"created": timestamp(), "updated": timestamp()}
+                registry = storage.create_or_update_registry(
+                    registry_id="knownWitnesses",
+                    registry_type="witnesses",
+                    registry_data=registry_data,
+                    meta=meta,
+                )
             else:
                 logger.info("Skipping known witness registry.")
 
-            await self.update_task_progress({"knownWitnessRegistry": json.dumps(witness_registry)})
-
-            await self.finish_task()
-
-        except Exception as e:
-            await self.abandon_task(str(e))
-
-    async def sync_explorer_records(self, force=False):
-        """Sync explorer records."""
-
-        await self.start_task(TaskType.SyncRecords)
-
-        try:
-            entries = await askar.get_category_entries("resource")
-            for idx, entry in enumerate(entries):
-                await self.update_task_progress({"resourceRecords": f"{idx + 1}/{len(entries)}"})
-
-                if not force and await askar.fetch("resourceRecord", entry.name):
-                    continue
-
-                resource_record, tags = sync_resource(entry.value_json)
-                await askar.update("resource", entry.name, entry.value_json, tags)
-                await askar.store_or_update("resourceRecord", entry.name, resource_record, tags)
-
-            entries = await askar.get_category_entries("logEntries")
-            for idx, entry in enumerate(entries):
-                await self.update_task_progress({"didRecords": f"{idx + 1}/{len(entries)}"})
-
-                if not force and await askar.fetch("didRecord", entry.name):
-                    continue
-
-                logs = entry.value_json
-                state = webvh.get_document_state(logs)
-                did_record, tags = sync_did_info(
-                    state=state,
-                    logs=logs,
-                    did_resources=[
-                        resource.value_json
-                        for resource in await askar.get_category_entries(
-                            "resource", {"scid": state.scid}
-                        )
-                    ],
-                    witness_file=(await askar.fetch("witnessFile", entry.name) or []),
-                    whois_presentation=(await askar.fetch("whois", entry.name) or {}),
-                )
-                await askar.update("logEntries", entry.name, entry.value_json, tags=tags)
-                await askar.store_or_update("didRecord", entry.name, did_record, tags=tags)
+            await self.update_task_progress(
+                {"knownWitnessRegistry": f"{len(registry.registry_data)} witnesses registered"}
+            )
 
             await self.finish_task()
 
