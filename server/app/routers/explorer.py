@@ -5,7 +5,6 @@ from fastapi.responses import JSONResponse
 
 from app.db.models import AttestedResourceRecord
 from app.utilities import beautify_date, resource_details, resource_id_to_url
-from app.avatar_generator import generate_avatar
 from app.plugins import DidWebVH
 from app.plugins.storage import StorageManager
 
@@ -101,7 +100,6 @@ async def explorer_did_table(  # noqa: C901
                 else "",
                 "deactivated": str(controller.deactivated),
                 # Computed explorer fields
-                "avatar": generate_avatar(controller.scid),
                 "active": not controller.deactivated,
                 "witnesses": controller.parameters.get("witness", {}).get("witnesses", [])
                 if controller.parameters
@@ -235,7 +233,6 @@ async def explorer_resource_table(
                 "details": resource_details(attested_res),
                 "url": resource_id_to_url(res_id_full) if res_id_full else "",
                 "author": {
-                    "avatar": generate_avatar(row.scid),
                     "scid": row.scid,
                     "domain": domain,
                     "namespace": namespace,

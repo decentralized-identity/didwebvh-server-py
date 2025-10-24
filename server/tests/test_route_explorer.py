@@ -104,7 +104,6 @@ class TestExplorerDIDTable:
         assert did_result["did"] == did_webvh_id
         assert did_result["namespace"] == namespace
         assert did_result["identifier"] == identifier
-        assert "avatar" in did_result
         assert "links" in did_result
         assert "logs" in did_result
 

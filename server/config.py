@@ -10,15 +10,10 @@ from pydantic_settings import BaseSettings
 from fastapi.templating import Jinja2Templates
 from typing import Union
 
-from app.avatar_generator import generate_avatar
-
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
 
 templates = Jinja2Templates(directory="app/templates")
-
-# Add generate_avatar function to Jinja environment
-templates.env.globals["generate_avatar"] = generate_avatar
 
 
 # Add regex_replace filter to Jinja environment
