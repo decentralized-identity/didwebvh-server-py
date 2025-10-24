@@ -6,15 +6,14 @@ WORKDIR /fastapi
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Copy dependency files
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml README.md ./
 
 # Install dependencies
 RUN uv sync --frozen --no-dev
 
 # Copy application code
 COPY app ./app
-COPY config.py main.py init_db.py alembic.ini ./
-COPY alembic ./alembic
+COPY config.py main.py ./
 
 # Run the application using the synced environment (no reinstall on startup)
 CMD ["uv", "run", "python", "main.py"]
