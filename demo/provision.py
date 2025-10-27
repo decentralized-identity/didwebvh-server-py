@@ -1,3 +1,5 @@
+"""Provision script for DID WebVH server with sample data."""
+
 import os
 import requests
 import uuid
@@ -14,6 +16,7 @@ WATCHER_URL = os.getenv("WATCHER_URL", None)
 
 
 def try_return(request):
+    """Extract JSON from request with rate limiting delay."""
     # Sleep to avoid rate limiting
     time.sleep(1)
     try:
@@ -25,6 +28,7 @@ def try_return(request):
 
 
 def configure_plugin(server_url=WEBVH_SERVER_URL):
+    """Configure the DID WebVH plugin on the agent."""
     logger.info("Configuring plugin")
     r = requests.post(
         f"{AGENT_ADMIN_API_URL}/did/webvh/configuration",
@@ -41,6 +45,7 @@ def configure_plugin(server_url=WEBVH_SERVER_URL):
 
 
 def register_watcher(did):
+    """Register a DID with the watcher service."""
     scid = itemgetter(2)(did.split(":"))
     logger.info(f"Registering watcher {scid}")
     r = requests.post(f"{WATCHER_URL}/scid?did={did}", headers=WATCHER_API_HEADERS)
@@ -48,6 +53,7 @@ def register_watcher(did):
 
 
 def notify_watcher(did):
+    """Notify the watcher service about DID updates."""
     scid = itemgetter(2)(did.split(":"))
     logger.info(f"Notifying watcher {scid}")
     r = requests.post(f"{WATCHER_URL}/log?did={did}")
@@ -55,6 +61,7 @@ def notify_watcher(did):
 
 
 def create_did(namespace):
+    """Create a new DID in the specified namespace."""
     logger.info(f"Creating DID in {namespace}")
     r = requests.post(
         f"{AGENT_ADMIN_API_URL}/did/webvh/create",
@@ -73,6 +80,7 @@ def create_did(namespace):
 
 
 def update_did(scid):
+    """Update an existing DID by SCID."""
     logger.info(f"Updating DID {scid}")
     r = requests.post(
         f"{AGENT_ADMIN_API_URL}/did/webvh/update?scid={scid}",
@@ -83,6 +91,7 @@ def update_did(scid):
 
 
 def deactivate_did(scid):
+    """Deactivate a DID by SCID."""
     logger.info(f"Deactivating DID {scid}")
     r = requests.post(
         f"{AGENT_ADMIN_API_URL}/did/webvh/deactivate?scid={scid}",
@@ -93,6 +102,7 @@ def deactivate_did(scid):
 
 
 def sign_credential(issuer_id, subject_id):
+    """Sign a verifiable credential for the subject."""
     scid = itemgetter(2)(subject_id.split(":"))
     logger.info(f"Signing credential {scid}")
     issuer_key = issuer_id.split(":")[-1]
@@ -124,6 +134,7 @@ def sign_credential(issuer_id, subject_id):
 
 
 def sign_presentation(signing_key, credential):
+    """Sign a verifiable presentation containing the credential."""
     holder_id = credential.get("credentialSubject").get("id")
     scid = itemgetter(2)(holder_id.split(":"))
     logger.info(f"Signing presentation {scid}")
@@ -149,6 +160,7 @@ def sign_presentation(signing_key, credential):
 
 
 def upload_whois(vp):
+    """Upload a WHOIS verifiable presentation to the server."""
     holder_id = vp.get("holder")
     scid, namespace, alias = itemgetter(2, 4, 5)(holder_id.split(":"))
     logger.info(f"Uploading whois {scid}")
@@ -159,9 +171,10 @@ def upload_whois(vp):
     return try_return(r)
 
 
-def create_schema(
-    issuer_id, name="Test Schema", version="1.0", attributes=["test_attribute"]
-):
+def create_schema(issuer_id, name="Test Schema", version="1.0", attributes=None):
+    """Create an AnonCreds schema."""
+    if attributes is None:
+        attributes = ["test_attribute"]
     scid = itemgetter(2)(issuer_id.split(":"))
     logger.info(f"Creating schema {scid}")
     r = requests.post(
@@ -180,6 +193,7 @@ def create_schema(
 
 
 def create_cred_def(schema_id, tag="default", revocation_size=0):
+    """Create an AnonCreds credential definition for the schema."""
     issuer_id = schema_id.split("/")[0]
     scid = itemgetter(2)(issuer_id.split(":"))
     logger.info(f"Creating cred def {scid}")
@@ -215,9 +229,7 @@ for namespace in ["ns-01", "ns-02"]:
         scid = log_entry.get("parameters", {}).get("scid")
         did = log_entry.get("state", {}).get("id")
         signing_key = (
-            log_entry.get("state", {})
-            .get("verificationMethod")[0]
-            .get("publicKeyMultibase")
+            log_entry.get("state", {}).get("verificationMethod")[0].get("publicKeyMultibase")
         )
         logger.info(f"New signing key: {signing_key}")
 

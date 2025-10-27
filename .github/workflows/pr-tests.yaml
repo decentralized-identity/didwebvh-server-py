@@ -15,10 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-      - uses: abatilo/actions-poetry@v4
+      - uses: astral-sh/setup-uv@v4
       - name: Install project
         run: |
-          poetry install
+          uv sync
       - name: Run pytest
         run: |
-          poetry run pytest
+          uv run pytest

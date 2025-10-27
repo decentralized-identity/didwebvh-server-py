@@ -9,12 +9,11 @@ import re
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from fastapi.responses import StreamingResponse
 
-from app.plugins import AskarStorage
-
 from app.utilities import multipart_reader
+from app.plugins.storage import StorageManager
 
 router = APIRouter()
-askar = AskarStorage()
+storage = StorageManager()
 logger = logging.getLogger(__name__)
 
 RESPONSE_CHUNK_SIZE = 64 * 1024  # 64 KB
@@ -40,12 +39,13 @@ async def safe_request_body(request: Request) -> bytes:
 async def get_tails_file(tails_hash: str):
     """Get tails file."""
 
-    # Fetch file
-    if not (tails_file := await askar.fetch("tailsFile", tails_hash)):
+    # Fetch file from database
+    tails_file = storage.get_tails_file(tails_hash)
+    if not tails_file:
         raise HTTPException(status_code=404, detail="Not Found")
 
-    # Load memoryview
-    view = memoryview(bytes.fromhex(tails_file))
+    # Load memoryview from hex content
+    view = memoryview(bytes.fromhex(tails_file.file_content_hex))
 
     # Stream bytes in response
     async def byte_stream():
@@ -95,7 +95,9 @@ async def upload_tails_file(
         logger.warning("tailsHash does not match hash of file.")
         raise HTTPException(status_code=400, detail="tailsHash does not match hash of file.")
 
-    # Store file
-    await askar.store("tailsFile", tails_hash, file_content.hex())
+    # Store file in database
+    storage.create_tails_file(
+        tails_hash=tails_hash, file_content_hex=file_content.hex(), file_size=len(file_content)
+    )
 
     return Response(content=tails_hash, media_type="text/plain", status_code=201)

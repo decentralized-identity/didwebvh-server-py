@@ -1,5 +1,8 @@
 # Local Databases
-app.db
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
 tmp/
 
 # Linting

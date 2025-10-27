@@ -50,7 +50,7 @@ class ControllerAgent:
         self.update_key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_UPDATE_SEED)
         self.update_multikey = key_to_multikey(self.update_key)
         self.signing_key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, TEST_SIGNING_SEED)
-        self.signing_multikey = key_to_multikey(self.update_key)
+        self.signing_multikey = key_to_multikey(self.signing_key)  # Fixed: was using update_key
         self.signing_key_id = f"{self.issuer_id}#{self.signing_multikey}"
         self.verification_method = None
 
