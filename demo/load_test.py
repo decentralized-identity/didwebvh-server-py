@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
@@ -33,6 +34,8 @@ from multiformats import multibase, multihash
 import canonicaljson
 import jcs
 from hashlib import sha256
+from did_webvh.core.state import DocumentState
+from anoncreds import Schema
 
 # Default configuration
 DEFAULT_SERVER_URL = os.getenv("WEBVH_SERVER_URL", "http://localhost:8000")
@@ -132,8 +135,6 @@ class DidWebVHClient:
         parameters["watchers"] = ["https://did.observer"]
         
         # Create initial state
-        from did_webvh.core.state import DocumentState
-        
         initial_state = DocumentState.initial(
             timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             params=parameters,
@@ -190,8 +191,6 @@ class DidWebVHClient:
         update_document: Optional[Dict] = None,
     ) -> Dict:
         """Update an existing DID."""
-        from did_webvh.core.state import DocumentState
-        
         # Get current log
         log_entries = self.get_did_log(namespace, identifier)
         
@@ -246,8 +245,6 @@ class DidWebVHClient:
         signing_key: Key,
     ) -> Dict:
         """Add a verification method to a DID for signing WHOIS."""
-        from did_webvh.core.state import DocumentState
-        
         log_entries = self.get_did_log(namespace, identifier)
         
         doc_state = None
@@ -289,7 +286,6 @@ class DidWebVHClient:
         """Upload WHOIS verifiable presentation."""
         # Get DID ID from the log (did:webvh version, not did:web)
         log_entries = self.get_did_log(namespace, identifier)
-        from did_webvh.core.state import DocumentState
         
         doc_state = None
         for log_entry in log_entries:
@@ -360,7 +356,6 @@ class DidWebVHClient:
         """Upload an attested resource."""
         # Get DID ID from the log
         log_entries = self.get_did_log(namespace, identifier)
-        from did_webvh.core.state import DocumentState
         
         doc_state = None
         for log_entry in log_entries:
@@ -494,8 +489,6 @@ class DidWebVHAsyncClient:
         }
         parameters["watchers"] = ["https://did.observer"]
         
-        from did_webvh.core.state import DocumentState
-        
         initial_state = DocumentState.initial(
             timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             params=parameters,
@@ -540,8 +533,6 @@ class DidWebVHAsyncClient:
         """Update an existing DID."""
         log_entries = await self.get_did_log(namespace, identifier)
         
-        from did_webvh.core.state import DocumentState
-        
         doc_state = None
         for log_entry in log_entries:
             doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
@@ -578,8 +569,6 @@ class DidWebVHAsyncClient:
         """Add a verification method to a DID for signing WHOIS."""
         log_entries = await self.get_did_log(namespace, identifier)
         
-        from did_webvh.core.state import DocumentState
-        
         doc_state = None
         for log_entry in log_entries:
             doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
@@ -604,7 +593,6 @@ class DidWebVHAsyncClient:
     async def upload_whois(self, namespace: str, identifier: str, signing_key: Key, issuer_did: str) -> Dict:
         """Upload WHOIS verifiable presentation."""
         log_entries = await self.get_did_log(namespace, identifier)
-        from did_webvh.core.state import DocumentState
         
         doc_state = None
         for log_entry in log_entries:
@@ -657,7 +645,6 @@ class DidWebVHAsyncClient:
     async def upload_resource(self, namespace: str, identifier: str, signing_key: Key, resource_content: Dict, resource_type: str = "genericResource") -> Dict:
         """Upload an attested resource."""
         log_entries = await self.get_did_log(namespace, identifier)
-        from did_webvh.core.state import DocumentState
         
         doc_state = None
         for log_entry in log_entries:
@@ -705,8 +692,6 @@ def generate_keys() -> tuple[Key, Key, Key]:
 
 def create_anoncreds_schema(issuer_id: str, schema_name: str) -> Dict:
     """Create an AnonCreds schema."""
-    from anoncreds import Schema
-    
     schema = Schema.create(
         name=schema_name,
         version="1.0",
@@ -865,21 +850,22 @@ async def run_load_test(
     concurrent: bool = False,
 ) -> Dict:
     """Run the load test."""
-    logger.info("=" * 70)
-    logger.info(f"Starting Load Test")
-    logger.info(f"Server: {server_url}")
-    logger.info(f"DIDs to create: {count}")
-    logger.info(f"Namespace: {namespace}")
-    logger.info(f"Updates per DID: {updates_per_did}")
-    logger.info(f"Total log entries per DID: {updates_per_did + 2}")
-    logger.info("=" * 70)
+    logger.info(
+        f"\n{'=' * 70}\n"
+        f"Starting Load Test\n"
+        f"Server: {server_url}\n"
+        f"DIDs to create: {count}\n"
+        f"Namespace: {namespace}\n"
+        f"Updates per DID: {updates_per_did}\n"
+        f"Total log entries per DID: {updates_per_did + 2}\n"
+        f"{'=' * 70}"
+    )
     
     client = DidWebVHClient(server_url)
     start_time = time.time()
     results = []
     
     # Generate unique identifiers using timestamp + counter to avoid conflicts
-    import uuid
     run_id = uuid.uuid4().hex[:8]  # Short unique run ID
     identifiers = [f"{run_id}-{i:04d}" for i in range(count)]
     

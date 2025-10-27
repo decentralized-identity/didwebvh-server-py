@@ -1,5 +1,6 @@
 """Admin endpoints."""
 
+import logging
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Security, status
@@ -15,6 +16,7 @@ from app.utilities import timestamp, is_valid_multikey
 from app.plugins import DidWebVH
 from app.plugins.storage import StorageManager
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Admin"])
 storage = StorageManager()
@@ -146,9 +148,7 @@ async def sync_storage(
 ):
     """Start an administrative task."""
     task_id = str(uuid.uuid4())
-    print(task_type)
-    print(TaskType.SetPolicy)
-    print(TaskType.SyncRecords)
+    logger.debug(f"Task type: {task_type}, SetPolicy: {TaskType.SetPolicy}, SyncRecords: {TaskType.SyncRecords}")
     if task_type == TaskType.SetPolicy:
         tasks.add_task(TaskManager(task_id).set_policies, force)
     elif task_type == TaskType.SyncRecords:

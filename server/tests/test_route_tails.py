@@ -1,10 +1,13 @@
 """Unit tests for the tails router endpoints."""
 
+import io
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 
 from app import app
 from app.plugins.storage import StorageManager
+from tests.conftest import create_tails_hash, TAILS_FILE_HEX
 
 
 @pytest.fixture(autouse=True)
@@ -137,10 +140,6 @@ class TestTailsFileIntegration:
     async def test_upload_and_retrieve_multiple_files(self, valid_tails_file):
         """Test uploading and retrieving multiple tails files."""
         # Generate multiple unique tails files
-        from tests.conftest import create_tails_hash, TAILS_FILE_HEX
-        import uuid
-        import io
-
         files = []
         for _ in range(3):
             tails_file_hex = TAILS_FILE_HEX[:-6] + str(uuid.uuid4())[:6]

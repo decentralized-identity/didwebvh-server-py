@@ -1,5 +1,6 @@
 """SQLAlchemy Storage Manager."""
 
+import asyncio
 import logging
 from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine
@@ -16,6 +17,7 @@ from app.db.models import (
     KnownWitnessRegistry,
     TailsFile,
 )
+from app.plugins import DidWebVH
 
 logger = logging.getLogger(__name__)
 
@@ -89,16 +91,16 @@ class StorageManager:
         Args:
             recreate: If True, drop all tables before creating them (useful for tests)
         """
-        logger.warning("DB provisioning started.")
+        logger.info(f"DB provisioning started for {self.db_url} .")
         try:
             if recreate:
-                logger.warning("Dropping all existing tables...")
+                logger.info(f"Dropping all existing tables for {self.db_url}...")
                 Base.metadata.drop_all(bind=self._engine)
-                logger.warning("All tables dropped.")
+                logger.info(f"All tables dropped for {self.db_url}.")
 
             logger.info("Creating database tables...")
             Base.metadata.create_all(bind=self._engine)
-            logger.warning("DB provisioning finished.")
+            logger.info("DB provisioning finished.")
         except Exception as e:
             logger.error(f"DB provisioning failed: {str(e)}")
             raise Exception(f"DB provisioning failed: {str(e)}")
@@ -109,8 +111,6 @@ class StorageManager:
         This is a synchronous wrapper around provision for convenience.
         Use provision() for async contexts.
         """
-        import asyncio
-
         asyncio.run(self.provision())
 
     def get_session(self) -> Session:
@@ -196,8 +196,6 @@ class StorageManager:
         Returns:
             Optional[DidControllerRecord]: The updated record or None if not found
         """
-        from app.plugins import DidWebVH
-
         with self.get_session() as session:
             controller = (
                 session.query(DidControllerRecord).filter(DidControllerRecord.scid == scid).first()

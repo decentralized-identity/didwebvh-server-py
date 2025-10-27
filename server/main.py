@@ -1,6 +1,7 @@
 """Main entry point for the server."""
 
 import asyncio
+import logging
 import os
 import uuid
 import threading
@@ -10,6 +11,8 @@ from dotenv import load_dotenv
 
 from app.plugins.storage import StorageManager
 from app.tasks import TaskManager  # set_policies, sync_explorer_records
+
+logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
@@ -33,11 +36,11 @@ class StartupBackgroundTasks(threading.Thread):
 
 if __name__ == "__main__":
     # Run startup tasks synchronously to ensure database is ready before accepting requests
-    print("Provisioning database...")
+    logger.info("Provisioning database...")
     asyncio.run(StorageManager().provision())
 
-    print("Setting initial policies and witness registry...")
+    logger.info("Setting initial policies and witness registry...")
     asyncio.run(TaskManager(str(uuid.uuid4())).set_policies())
 
-    print("Starting server...")
+    logger.info("Starting server...")
     uvicorn.run("app:app", host="0.0.0.0", port=APP_PORT, workers=APP_WORKERS, reload=False)

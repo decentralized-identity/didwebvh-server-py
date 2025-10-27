@@ -5,11 +5,13 @@ This module provides reusable functions to reduce code duplication
 across test files.
 """
 
+import time
 from typing import Dict, Any, Tuple, Optional
 from fastapi.testclient import TestClient
 from did_webvh.core.state import DocumentState
 from tests.mock_agents import ControllerAgent, WitnessAgent
 from tests.signer import sign
+from tests.fixtures import TEST_UPDATE_KEY, TEST_WITNESS_KEY
 
 
 def create_unique_did(
@@ -32,10 +34,6 @@ def create_unique_did(
 
     document = response.json().get("state")
     parameters = response.json().get("parameters")
-
-    # Import here to avoid circular imports
-    from tests.fixtures import TEST_UPDATE_KEY, TEST_WITNESS_KEY
-    from tests.mock_agents import WitnessAgent
 
     parameters["updateKeys"] = [TEST_UPDATE_KEY]
     parameters["witness"] = {
@@ -189,8 +187,6 @@ def create_unique_identifier(base: str, suffix: str = "") -> str:
     Returns:
         Unique identifier
     """
-    import time
-
     timestamp = str(int(time.time() * 1000))[-6:]  # Last 6 digits of timestamp
     return f"{base}-{timestamp}{suffix}"
 

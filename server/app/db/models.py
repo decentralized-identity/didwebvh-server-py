@@ -4,6 +4,7 @@ from sqlalchemy import Column, String, Text, Boolean, Integer, DateTime, JSON, I
 from sqlalchemy.sql import func
 
 from .base import Base
+from app.plugins import DidWebVH
 
 
 # Type aliases for cleaner code (defined after classes below)
@@ -67,8 +68,6 @@ class DidControllerRecord(Base):
             whois_presentation: Optional whois presentation data
             **kwargs: Additional fields to override
         """
-        from app.plugins import DidWebVH
-
         # Get document state from logs
         webvh = DidWebVH()
         state = webvh.get_document_state(logs)

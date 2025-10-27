@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, APIRouter, Request, status
@@ -18,8 +19,6 @@ logger.setLevel(logging.INFO)
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup: Ensure database is provisioned (skip in test mode)
-    import os
-
     if not os.getenv("PYTEST_CURRENT_TEST"):
         logger.info("Provisioning database on startup...")
         await StorageManager().provision()

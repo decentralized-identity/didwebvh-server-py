@@ -1,6 +1,7 @@
 """Unit tests for SQLAlchemy database operations via StorageManager."""
 
 import json
+import time
 import pytest
 
 from app.plugins.storage import StorageManager
@@ -87,8 +88,6 @@ async def create_test_did_controller(storage=None, namespace=None, identifier=No
 
     # Generate unique identifier if not provided
     if namespace is None or identifier is None:
-        import time
-
         timestamp = str(int(time.time() * 1000))[-6:]
         namespace = namespace or f"{TEST_DID_NAMESPACE}-{timestamp}"
         identifier = identifier or f"{TEST_DID_IDENTIFIER}-{timestamp}"
