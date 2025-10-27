@@ -148,7 +148,10 @@ async def sync_storage(
 ):
     """Start an administrative task."""
     task_id = str(uuid.uuid4())
-    logger.debug(f"Task type: {task_type}, SetPolicy: {TaskType.SetPolicy}, SyncRecords: {TaskType.SyncRecords}")
+    logger.debug(
+        f"Task type: {task_type}, SetPolicy: {TaskType.SetPolicy}, "
+        f"SyncRecords: {TaskType.SyncRecords}"
+    )
     if task_type == TaskType.SetPolicy:
         tasks.add_task(TaskManager(task_id).set_policies, force)
     elif task_type == TaskType.SyncRecords:
