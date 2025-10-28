@@ -1,45 +1,187 @@
 {% extends 'layouts/base.jinja' %}
 {% block page %}
+<style>
+    .card-link-pop:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    .hero-logo {
+        max-width: 400px;
+        height: auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    .hero-logo:hover {
+        transform: scale(1.05);
+    }
+</style>
 <div class="page-wrapper">
-    <div class="page-header d-print-none" aria-label="Page header">
-        <div class="container">
-            <div class="row g-2 align-items-center">
-                <div class="col">
-                    <h2 class="page-title">DID WebVH Server Explorer</h2>
+    <!-- Hero Section -->
+    <div class="page-header d-print-none brand-hero" aria-label="Page header">
+        <div class="container-xl">
+            <div class="row g-2 align-items-center justify-content-center text-center py-5">
+                <div class="col-12">
+                    <div class="mb-4">
+                        <img src="{{ branding.app_logo }}" alt="{{ branding.app_name }}" class="hero-logo">
+                    </div>
+                    <h1 class="display-4 mb-3 fw-bold text-primary">{{ branding.app_name }}</h1>
+                    <p class="text-secondary fs-4 mb-4 mx-auto" style="max-width: 700px;">
+                        {{ branding.app_description }}
+                    </p>
+                    {% if branding.demo_anoncreds_url %}
+                    <div class="mt-4">
+                        <a href="{{ branding.demo_anoncreds_url }}" target="_blank" class="btn btn-lg btn-primary btn-pill px-5">
+                            <i class="ti ti-rocket me-2"></i>
+                            Try AnonCreds Demo
+                            <i class="ti ti-external-link ms-2"></i>
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Main Content -->
     <div class="page-body">
-        <div class="container">
-            <div class="row row-cards">
-                <div class="col-6">
-                    <a class="card card-link" href="dids">
-                        <div class="card-body">
-                            <div class="row">
+        <div class="container-xl">
+            {% if branding.demo_anoncreds_url %}
+            <!-- Demo Banner -->
+            <div class="card mb-4" style="background: linear-gradient(135deg, {{ branding.primary_color }} 0%, {{ branding.accent_color }} 100%);">
+                <div class="card-body py-4">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <div class="avatar avatar-lg rounded-circle bg-white" style="color: {{ branding.primary_color }};">
+                                <i class="ti ti-certificate" style="font-size: 1.75rem;"></i>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h3 class="text-white mb-1">
+                                <i class="ti ti-sparkles me-2"></i>
+                                Experience AnonCreds with DID WebVH
+                            </h3>
+                            <p class="text-white-50 mb-0">
+                                See how anonymous credentials work with WebVH DIDs - issue, verify, and revoke credentials in an interactive demo
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{{ branding.demo_anoncreds_url }}" target="_blank" class="btn btn-white">
+                                <i class="ti ti-rocket me-2"></i>
+                                Launch Demo
+                                <i class="ti ti-external-link ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Navigation Cards -->
+            <div class="row row-deck row-cards mb-5">
+                <div class="col-md-6">
+                    <a class="card card-link card-link-pop" href="dids">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
                                 <div class="col-auto">
-                                    <span class="avatar avatar-2 rounded" style="background-image: url()"> </span>
+                                    <span class="avatar avatar-xl rounded bg-primary-light">
+                                        <i class="ti ti-fingerprint text-primary" style="font-size: 2rem;"></i>
+                                    </span>
                                 </div>
                                 <div class="col">
-                                    <div class="font-weight-medium">DIDs</div>
-                                    <div class="text-secondary">Browse DIDs</div>
+                                    <h2 class="card-title mb-1 text-primary">Decentralized Identifiers</h2>
+                                    <p class="text-secondary mb-0">
+                                        Browse and search through all registered DIDs on this server
+                                    </p>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="ti ti-chevron-right text-primary" style="font-size: 2rem;"></i>
                                 </div>
                             </div>
                         </div>
                     </a>
                 </div>
-                <div class="col-6">
-                    <a class="card card-link" href="resources">
-                        <div class="card-body">
-                            <div class="row">
+                <div class="col-md-6">
+                    <a class="card card-link card-link-pop" href="resources">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
                                 <div class="col-auto">
-                                    <span class="avatar avatar-2 rounded" style="background-image: url()"> </span>
+                                    <span class="avatar avatar-xl rounded bg-secondary-light">
+                                        <i class="ti ti-files text-secondary" style="font-size: 2rem;"></i>
+                                    </span>
                                 </div>
                                 <div class="col">
-                                    <div class="font-weight-medium">Resources</div>
-                                    <div class="text-secondary">Browse Attested Resources</div>
+                                    <h2 class="card-title mb-1 text-secondary">Attested Resources</h2>
+                                    <p class="text-secondary mb-0">
+                                        Explore schemas, credential definitions, and other attested resources
+                                    </p>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="ti ti-chevron-right text-secondary" style="font-size: 2rem;"></i>
                                 </div>
                             </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Info Cards -->
+            <div class="row row-deck row-cards">
+                {% if branding.show_resources %}
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="ti ti-shield-check" style="font-size: 3rem; color: {{ branding.primary_color }};"></i>
+                            </div>
+                            <h3 class="card-title">Attested Resources</h3>
+                            <p class="text-secondary">
+                                Cryptographically signed and tamper-evident resources based on W3C standards
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if branding.show_witness_network %}
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="ti ti-eye-check" style="font-size: 3rem; color: {{ branding.secondary_color }};"></i>
+                            </div>
+                            <h3 class="card-title">Witness Network</h3>
+                            <p class="text-secondary">
+                                Distributed witness verification ensuring DID document integrity and history
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if branding.show_version_history %}
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="ti ti-git-branch" style="font-size: 3rem; color: {{ branding.accent_color }};"></i>
+                            </div>
+                            <h3 class="card-title">Version History</h3>
+                            <p class="text-secondary">
+                                Complete audit trail of DID document changes with cryptographic proofs
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="col-md-3">
+                    <a href="/docs" target="_blank" class="card card-link" style="text-decoration: none;">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="ti ti-code" style="font-size: 3rem; color: #17a2b8;"></i>
+                            </div>
+                            <h3 class="card-title">API Documentation</h3>
+                            <p class="text-secondary">
+                                Interactive API documentation for developers to integrate with this server
+                            </p>
                         </div>
                     </a>
                 </div>

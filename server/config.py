@@ -24,6 +24,10 @@ def regex_replace(s, pattern, replacement):
 
 templates.env.filters["regex_replace"] = regex_replace
 
+# Add generate_avatar as a global function for templates
+from app.avatar_generator import generate_avatar
+templates.env.globals["generate_avatar"] = generate_avatar
+
 
 class Settings(BaseSettings):
     """App settings."""
