@@ -266,9 +266,9 @@
                                     </div>
                                 </div>
                                 <div class="tab-pane" id="tabs-verification-methods-{{ did.scid }}" role="tabpanel">
-                                    {% if did.document_state and did.document_state.verificationMethod %}
+                                    {% if did.document and did.document.verificationMethod %}
                                     <div class="list-group list-group-flush">
-                                        {% for vm in did.document_state.verificationMethod %}
+                                        {% for vm in did.document.verificationMethod %}
                                         <div class="list-group-item">
                                             <div class="row align-items-center">
                                                 <div class="col-auto">
@@ -380,8 +380,8 @@
                                 </div>
                                 <div class="tab-pane" id="tabs-services-{{ did.scid }}" role="tabpanel">
                                     <div class="row">
-                                        {% if did.document_state and did.document_state.service %}
-                                        {% for service in did.document_state.service %}
+                                        {% if did.document and did.document.service %}
+                                        {% for service in did.document.service %}
                                         <div class="col-md-12 mb-3">
                                             <div class="card card-link-pop">
                                                 <div class="card-body">

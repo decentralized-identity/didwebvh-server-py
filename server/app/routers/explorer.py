@@ -119,7 +119,6 @@ async def explorer_did_table(  # noqa: C901
                 "witness_file": controller.witness_file,
                 "whois_presentation": controller.whois_presentation,
                 "document": controller.document,
-                "document_state": controller.document,  # Template expects document_state for VM and services
             }
         )
 
