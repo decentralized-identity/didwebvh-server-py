@@ -1,21 +1,5 @@
 {% extends 'layouts/base.jinja' %}
 {% block page %}
-<style>
-    .card-link-pop:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    }
-    .hero-logo {
-        max-width: 400px;
-        height: auto;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transition: transform 0.3s ease;
-    }
-    .hero-logo:hover {
-        transform: scale(1.05);
-    }
-</style>
 <div class="page-wrapper">
     <!-- Hero Section -->
     <div class="page-header d-print-none brand-hero" aria-label="Page header">
@@ -26,7 +10,7 @@
                         <img src="{{ branding.app_logo }}" alt="{{ branding.app_name }}" class="hero-logo">
                     </div>
                     <h1 class="display-4 mb-3 fw-bold text-primary">{{ branding.app_name }}</h1>
-                    <p class="text-secondary fs-4 mb-4 mx-auto" style="max-width: 700px;">
+                    <p class="text-secondary fs-4 mb-4 mx-auto hero-description">
                         {{ branding.app_description }}
                     </p>
                     {% if branding.demo_anoncreds_url %}
@@ -48,12 +32,12 @@
         <div class="container-xl">
             {% if branding.demo_anoncreds_url %}
             <!-- Demo Banner -->
-            <div class="card mb-4" style="background: linear-gradient(135deg, {{ branding.primary_color }} 0%, {{ branding.accent_color }} 100%);">
+            <div class="card mb-4 demo-banner-gradient">
                 <div class="card-body py-4">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <div class="avatar avatar-lg rounded-circle bg-white" style="color: {{ branding.primary_color }};">
-                                <i class="ti ti-certificate" style="font-size: 1.75rem;"></i>
+                            <div class="avatar avatar-lg rounded-circle bg-white demo-banner-avatar">
+                                <i class="ti ti-certificate icon-certificate"></i>
                             </div>
                         </div>
                         <div class="col">
@@ -85,7 +69,7 @@
                             <div class="row align-items-center">
                                 <div class="col-auto">
                                     <span class="avatar avatar-xl rounded bg-primary-light">
-                                        <i class="ti ti-fingerprint text-primary" style="font-size: 2rem;"></i>
+                                        <i class="ti ti-fingerprint text-primary icon-xl"></i>
                                     </span>
                                 </div>
                                 <div class="col">
@@ -95,7 +79,7 @@
                                     </p>
                                 </div>
                                 <div class="col-auto">
-                                    <i class="ti ti-chevron-right text-primary" style="font-size: 2rem;"></i>
+                                    <i class="ti ti-chevron-right text-primary icon-xl"></i>
                                 </div>
                             </div>
                         </div>
@@ -107,7 +91,7 @@
                             <div class="row align-items-center">
                                 <div class="col-auto">
                                     <span class="avatar avatar-xl rounded bg-secondary-light">
-                                        <i class="ti ti-files text-secondary" style="font-size: 2rem;"></i>
+                                        <i class="ti ti-files text-secondary icon-xl"></i>
                                     </span>
                                 </div>
                                 <div class="col">
@@ -117,7 +101,7 @@
                                     </p>
                                 </div>
                                 <div class="col-auto">
-                                    <i class="ti ti-chevron-right text-secondary" style="font-size: 2rem;"></i>
+                                    <i class="ti ti-chevron-right text-secondary icon-xl"></i>
                                 </div>
                             </div>
                         </div>
@@ -132,7 +116,7 @@
                     <div class="card">
                         <div class="card-body text-center p-4">
                             <div class="mb-3">
-                                <i class="ti ti-shield-check" style="font-size: 3rem; color: {{ branding.primary_color }};"></i>
+                                <i class="ti ti-shield-check icon-xxl info-card-icon-primary"></i>
                             </div>
                             <h3 class="card-title">Attested Resources</h3>
                             <p class="text-secondary">
@@ -147,7 +131,7 @@
                     <div class="card">
                         <div class="card-body text-center p-4">
                             <div class="mb-3">
-                                <i class="ti ti-eye-check" style="font-size: 3rem; color: {{ branding.secondary_color }};"></i>
+                                <i class="ti ti-eye-check icon-xxl info-card-icon-secondary"></i>
                             </div>
                             <h3 class="card-title">Witness Network</h3>
                             <p class="text-secondary">
@@ -162,7 +146,7 @@
                     <div class="card">
                         <div class="card-body text-center p-4">
                             <div class="mb-3">
-                                <i class="ti ti-git-branch" style="font-size: 3rem; color: {{ branding.accent_color }};"></i>
+                                <i class="ti ti-git-branch icon-xxl info-card-icon-accent"></i>
                             </div>
                             <h3 class="card-title">Version History</h3>
                             <p class="text-secondary">
@@ -173,10 +157,10 @@
                 </div>
                 {% endif %}
                 <div class="col-md-3">
-                    <a href="/docs" target="_blank" class="card card-link" style="text-decoration: none;">
+                    <a href="/docs" target="_blank" class="card card-link">
                         <div class="card-body text-center p-4">
                             <div class="mb-3">
-                                <i class="ti ti-code" style="font-size: 3rem; color: #17a2b8;"></i>
+                                <i class="ti ti-code icon-xxl info-card-icon-info"></i>
                             </div>
                             <h3 class="card-title">API Documentation</h3>
                             <p class="text-secondary">

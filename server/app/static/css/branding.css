@@ -119,6 +119,58 @@
     border-color: var(--brand-primary) !important;
 }
 
+/* Hero Logo Styling */
+.hero-logo {
+    max-width: 400px;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+.hero-logo:hover {
+    transform: scale(1.05);
+}
+
+/* Hero Description Max Width */
+.hero-description {
+    max-width: 700px;
+}
+
+/* Icon Size Utilities */
+.icon-xl {
+    font-size: 2rem;
+}
+.icon-xxl {
+    font-size: 3rem;
+}
+.icon-certificate {
+    font-size: 1.75rem;
+}
+
+/* Demo Banner Gradient */
+.demo-banner-gradient {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%);
+}
+
+/* Demo Banner Avatar */
+.demo-banner-avatar {
+    color: var(--brand-primary);
+}
+
+/* Info Card Icons */
+.info-card-icon-primary {
+    color: var(--brand-primary);
+}
+.info-card-icon-secondary {
+    color: var(--brand-secondary);
+}
+.info-card-icon-accent {
+    color: var(--brand-accent);
+}
+.info-card-icon-info {
+    color: #17a2b8;
+}
+
 /* Clean Modal Tab Styling - No Borders */
 .nav-tabs .nav-link {
     color: #6c757d !important;
