@@ -1,32 +1,41 @@
 <header class="navbar navbar-expand-md d-print-none">
     <div class="container-xl">
-        <div class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
-            <a href="." aria-label="WebVH"><img src="{{ branding.app_logo }}" alt="{{ branding.app_name }}" width="110" height="32"></a>
+        <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+            <a href="/" aria-label="{{ branding.app_name }}">
+                <img src="https://opsecid.github.io/did.observer/icon.ico" alt="{{ branding.app_name }}" height="32" class="navbar-brand-image">
+            </a>
+        </h1>
+        <div class="navbar-nav d-none d-md-flex align-items-center me-auto">
+            <div class="nav-item">
+                <span class="badge bg-white text-dark me-2 user-select-all">
+                    <i class="ti ti-world me-1"></i>{{ (branding.app_url | replace('https://', ''))[:64] }}
+                </span>
+            </div>
         </div>
         <div class="navbar-nav flex-row order-md-last">
-            <div class="nav-item d-none d-md-flex me-3">
-                <div class="btn-list">
-                    <a href="dids" class="btn btn-5" rel="noreferrer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="icon icon-tabler icons-tabler-outline icon-tabler-at">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                            <path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
-                            <path d="M16 12v1.5a2.5 2.5 0 0 0 5 0v-1.5a9 9 0 1 0 -5.5 8.28" />
-                        </svg>
-                        DIDs
+            <div class="d-none d-md-flex">
+                <div class="nav-item">
+                    <a href="/" class="nav-link px-3">
+                        <i class="ti ti-home me-1"></i>
+                        <span>Home</span>
                     </a>
-                    <a href="resources" class="btn btn-6" rel="noreferrer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="icon icon-tabler icons-tabler-outline icon-tabler-checklist">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                            <path d="M9.615 20h-2.615a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8" />
-                            <path d="M14 19l2 2l4 -4" />
-                            <path d="M9 8h4" />
-                            <path d="M9 12h2" />
-                        </svg>
-                        Resources
+                </div>
+                <div class="nav-item">
+                    <a href="dids" class="nav-link px-3">
+                        <i class="ti ti-fingerprint me-1"></i>
+                        <span>DIDs</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="resources" class="nav-link px-3">
+                        <i class="ti ti-files me-1"></i>
+                        <span>Resources</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/docs" class="nav-link px-3" target="_blank">
+                        <i class="ti ti-code me-1"></i>
+                        <span>API</span>
                     </a>
                 </div>
             </div>

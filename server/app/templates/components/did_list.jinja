@@ -1,151 +1,323 @@
+{% from 'macros/pagination.jinja' import render_pagination %}
 {% include('components/did_modal.jinja')%}
+
 <div class="card">
     <div class="card-table">
         <form action="dids" method="get">
-            <div class="card-header">
-                <div class="row w-full">
-                    <div class="col-4">
-                        <h3 class="card-title mb-0">DIDs</h3>
-                        <p class="text-secondary m-0">List of DIDs processed by their log entries.</p>
-                        <input type="submit" value="Query" class="btn w-100 mt-3">
-                    </div>
-                    <div class="col-4">
-                        <div class="mb-3">
-                            <div class="form-label">Filters</div>
-                            <input name="scid" id="scid" class="form-control form-control-sm mb-3" type="text"
-                                placeholder="scid">
-                            <input name="namespace" id="namespace" class="form-control form-control-sm mb-3" type="text"
-                                placeholder="namespace">
-                            <input name="identifier" id="identifier" class="form-control form-control-sm mb-3"
-                                type="text" placeholder="alias">
+            {% if pagination %}
+            <div class="card-header position-relative">
+                <div class="position-absolute top-0 end-0 p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <div class="subheader">Page Size</div>
+                            <div class="h2 mb-0">{{ pagination.limit }}</div>
                         </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="mb-3">
-                            <div class="form-label">Status</div>
-                            <div>
-                                <label class="form-check">
-                                    <input class="form-check-input" type="radio" name="status" value="all" checked />
-                                    <span class="form-check-label">All</span>
-                                </label>
-                                <label class="form-check">
-                                    <input class="form-check-input" type="radio" name="status" value="active" />
-                                    <span class="form-check-label">Active</span>
-                                </label>
-                                <label class="form-check">
-                                    <input class="form-check-input" type="radio" name="status" value="deactivated" />
-                                    <span class="form-check-label">Deactivated</span>
-                                </label>
+                        <div class="dropdown">
+                            <a class="dropdown-toggle text-secondary" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item" href="?limit=25">25 per page</a>
+                                <a class="dropdown-item" href="?limit=50">50 per page</a>
+                                <a class="dropdown-item" href="?limit=100">100 per page</a>
+                                <a class="dropdown-item" href="?limit=200">200 per page</a>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="row w-100">
+                    <div class="col-4">
+                        <div class="d-flex align-items-center">
+                            <div class="subheader">DIDs Returned</div>
+                        </div>
+                        <div class="d-flex align-items-baseline">
+                            <div class="h2 mb-0">{{ pagination.total }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="card-header">
+                <div class="row w-full">
+                    <div class="col-2">
+                        <div class="mb-2">
+                            <label class="form-label form-label-sm">
+                                SCID
+                            </label>
+                            <input name="scid" id="scid" class="form-control form-control-sm" type="text"
+                                placeholder="Enter SCID..." value="{{ request.query_params.get('scid', '') }}">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label form-label-sm">
+                                Domain
+                            </label>
+                            <input name="domain" id="domain" class="form-control form-control-sm" type="text"
+                                placeholder="e.g. localhost" value="{{ request.query_params.get('domain', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="mb-2">
+                            <label class="form-label form-label-sm">
+                                Namespace
+                            </label>
+                            <input name="namespace" id="namespace" class="form-control form-control-sm" type="text"
+                                placeholder="e.g. loadtest" value="{{ request.query_params.get('namespace', '') }}">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label form-label-sm">
+                                Alias
+                            </label>
+                            <input name="identifier" id="identifier" class="form-control form-control-sm"
+                                type="text" placeholder="Enter alias..." value="{{ request.query_params.get('identifier', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="mb-2">
+                            <label class="form-label form-label-sm">
+                                Status Filter
+                            </label>
+                            <div class="form-check">
+                                <input type="radio" name="status" value="all" class="form-check-input" {% if request.query_params.get('status', 'all') == 'all' %}checked{% endif %}>
+                                <label class="form-check-label">All</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" name="status" value="active" class="form-check-input" {% if request.query_params.get('status') == 'active' %}checked{% endif %}>
+                                <label class="form-check-label">
+                                    Active
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" name="status" value="deactivated" class="form-check-input" {% if request.query_params.get('status') == 'deactivated' %}checked{% endif %}>
+                                <label class="form-check-label">
+                                    Deactivated
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="mb-2">
+                            <label class="form-label form-label-sm">
+                                Has Resources
+                            </label>
+                            <div class="form-check">
+                                <input type="radio" name="has_resources" value="all" class="form-check-input" {% if request.query_params.get('has_resources', 'all') == 'all' %}checked{% endif %}>
+                                <label class="form-check-label">All</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" name="has_resources" value="yes" class="form-check-input" {% if request.query_params.get('has_resources') == 'yes' %}checked{% endif %}>
+                                <label class="form-check-label">Yes</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" name="has_resources" value="no" class="form-check-input" {% if request.query_params.get('has_resources') == 'no' %}checked{% endif %}>
+                                <label class="form-check-label">No</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <!-- Empty column for spacing -->
+                    </div>
+                    <div class="col-2">
+                        <h3 class="card-title mb-3">
+                            <i class="ti ti-filter me-2"></i>Filter DIDs
+                        </h3>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="ti ti-search me-1"></i>Apply Filters
+                        </button>
+                        <button onclick="window.location.reload()" class="btn btn-outline-secondary w-100" type="button">
+                            <i class="ti ti-refresh me-1"></i>Refresh Table
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
-    </div>
-    <div id="advanced-table">
-        <div class="table-responsive">
+        <div id="advanced-table">
+        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
             <table class="table table-vcenter table-selectable">
-                <thead>
+                <thead class="sticky-top" style="background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%); border-bottom: 2px solid #dee2e6;">
                     <tr>
-                        <th>
-                            <button class="table-sort d-flex justify-content-between"
-                                data-sort="sort-status">Status</button>
+                        <th class="text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
+                            <button class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
+                                data-sort="sort-controller">
+                                <span>Controller</span>
+                                <i class="ti ti-chevron-down ms-1"></i>
+                            </button>
                         </th>
-                        <th>
-                            <button class="table-sort d-flex justify-content-between"
-                                data-sort="sort-created">Created</button>
+                        <th class="text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
+                            <button class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
+                                data-sort="sort-status">
+                                <span>Status</span>
+                                <i class="ti ti-chevron-down ms-1"></i>
+                            </button>
                         </th>
-                        <th>
-                            <button class="table-sort d-flex justify-content-between"
-                                data-sort="sort-updated">Updated</button>
+                        <th class="text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
+                            <button class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
+                                data-sort="sort-created">
+                                <span>Created</span>
+                                <i class="ti ti-chevron-down ms-1"></i>
+                            </button>
                         </th>
-                        <th>
-                            <button class="table-sort d-flex justify-content-between"
-                                data-sort="sort-namespace">Namespace</button>
+                        <th class="text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
+                            <button class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
+                                data-sort="sort-updated">
+                                <span>Updated</span>
+                                <i class="ti ti-chevron-down ms-1"></i>
+                            </button>
                         </th>
-                        <th>
-                            <button class="table-sort d-flex justify-content-between"
-                                data-sort="sort-identifier">Alias</button>
-                        </th>
-                        <th class="w-1"></th>
-                        <th class="w-1"></th>
+                        <th class="w-1 text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="table-tbody">
+                    {% if results|length == 0 %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <div class="empty">
+                                <div class="empty-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 10l.01 0" /><path d="M15 10l.01 0" /><path d="M9.5 15.25a3.5 3.5 0 0 1 5 0" /></svg>
+                                </div>
+                                <p class="empty-title">No DIDs found</p>
+                                <p class="empty-subtitle text-secondary">
+                                    Try adjusting your filters or create new DIDs
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
                     {% for did in results %}
                     <tr>
+                        <td class="sort-controller">
+                            <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm me-2" style="background-image: url({{ did.avatar }})"></span>
+                                <div class="flex-fill">
+                                    <div class="fw-bold text-truncate" style="max-width: 200px; font-size: 0.875rem;" title="{{ did.domain }}:{{ did.namespace }}:{{ did.identifier }}">
+                                        {{ did.namespace | title }} / {{ did.identifier | replace('-', ' ') | title }}
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.75rem; word-break: break-all;" title="{{ did.scid }}">
+                                        {{ did.scid }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
                         <td class="sort-status">
                             {% if did.deactivated == "True" %}
-                            <span class="badge bg-danger-lt"><small>Deactivated</small></span>
+                            <span class="badge bg-red-lt">
+                                <i class="ti ti-circle-x me-1"></i>Deactivated
+                            </span>
                             {% else %}
-                            <span class="badge bg-success-lt"><small>Active</small></span>
+                            <span class="badge bg-green-lt">
+                                <i class="ti ti-circle-check me-1"></i>Active
+                            </span>
                             {% endif %}
                         </td>
-                        <td class="sort-created"><small>{{ did.created }}</small></td>
-                        <td class="sort-updated"><small>{{ did.updated }}</small></td>
-                        <td class="sort-namespace"><small>{{ did.namespace }}</small></td>
-                        <td class="sort-identifier"><small>{{ did.identifier }}</small></td>
-                        <td>
-                            <a href="#" data-bs-toggle="modal" data-bs-target="#modal-did-{{ loop.index }}">Details</a>
+                        <td class="sort-created">
+                            <div class="text-secondary"><small>{{ did.created }}</small></div>
+                        </td>
+                        <td class="sort-updated">
+                            <div class="text-secondary"><small>{{ did.updated }}</small></div>
                         </td>
                         <td>
-                            <a target="_blank" href="{{ did.links.resolver }}">Resolve<i class="ti ti-external-link"></i></a>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#modal-did-{{ loop.index }}" title="View Details">
+                                    <i class="ti ti-eye me-1"></i>Details
+                                </button>
+                                <a target="_blank" href="{{ did.links.resolver }}" class="btn btn-sm btn-outline-secondary rounded-pill" title="Resolve DID">
+                                    <i class="ti ti-external-link me-1"></i>Resolve
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
+                    {% endif %}
                 </tbody>
             </table>
         </div>
-        <div class="card-footer d-flex align-items-center">
-            <div><span class="me-1">{{ results|length }}</span><span>records</span></div>
-            <ul class="pagination m-0 ms-auto">
-                <li class="page-item active"><a class="page-link cursor-pointer" data-i="1" data-page="20">1</a>
-                </li>
-                <li class="page-item"><a class="page-link cursor-pointer" data-i="2" data-page="20">2</a></li>
-                <li class="page-item disabled"><a class="page-link cursor-pointer">...</a></li>
-                <li class="page-item"><a class="page-link cursor-pointer" data-i="7" data-page="20">7</a></li>
-            </ul>
-        </div>
+        {{ render_pagination(pagination, request) }}
     </div>
 </div>
 
 <script>
     const advancedTable = {
         headers: [
+            { "data-sort": "sort-controller", name: "Controller" },
             { "data-sort": "sort-status", name: "Status" },
             { "data-sort": "sort-created", name: "Created" },
             { "data-sort": "sort-updated", name: "Updated" },
-            { "data-sort": "sort-namespace", name: "Namespace" },
-            { "data-sort": "sort-identifier", name: "Alias" },
         ],
-    };
-    const setPageListItems = (e) => {
-        window.tabler_list["advanced-table"].page = parseInt(e.target.dataset.value);
-        window.tabler_list["advanced-table"].update();
-        document.querySelector("#page-count").innerHTML = e.target.dataset.value;
     };
     window.tabler_list = window.tabler_list || {};
     document.addEventListener("DOMContentLoaded", function () {
+        // Initialize List.js for client-side sorting only (server-side pagination)
         const list = (window.tabler_list["advanced-table"] = new List("advanced-table", {
             sortClass: "table-sort",
             listClass: "table-tbody",
-            page: parseInt("10"),
-            pagination: {
-                item: (value) => {
-                    return `<li class="page-item"><a class="page-link cursor-pointer">${value.page}</a></li>`;
-                },
-                innerWindow: 1,
-                outerWindow: 1,
-                left: 0,
-                right: 0,
-            },
+            // No pagination - using server-side pagination instead
             valueNames: advancedTable.headers.map((header) => header["data-sort"]),
         }));
         const searchInput = document.querySelector("#advanced-table-search");
         if (searchInput) {
             searchInput.addEventListener("input", () => {
                 list.search(searchInput.value);
+            });
+        }
+    });
+    
+    // Smooth pagination without full page reload
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('pagination-link')) {
+            e.preventDefault();
+            const page = e.target.getAttribute('data-page');
+            const currentUrl = new URL(window.location);
+            currentUrl.searchParams.set('page', page);
+            
+            // Show loading state
+            const tableContainer = document.getElementById('advanced-table');
+            tableContainer.style.opacity = '0.5';
+            tableContainer.style.pointerEvents = 'none';
+            
+            // Update URL without reload
+            window.history.pushState({}, '', currentUrl.toString());
+            
+            // Fetch new content
+            fetch(currentUrl.toString(), {
+                headers: {
+                    'Accept': 'text/html',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Parse the response and update only the table content
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Update the table content
+                const newTable = doc.querySelector('#advanced-table');
+                if (newTable) {
+                    document.getElementById('advanced-table').innerHTML = newTable.innerHTML;
+                }
+                
+                // Update pagination
+                const newPagination = doc.querySelector('.card-footer');
+                if (newPagination) {
+                    const currentPagination = document.querySelector('.card-footer');
+                    if (currentPagination) {
+                        currentPagination.innerHTML = newPagination.innerHTML;
+                    }
+                }
+                
+                // Reinitialize List.js for sorting on new content
+                if (window.tabler_list["advanced-table"]) {
+                    window.tabler_list["advanced-table"].reIndex();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Fallback to page reload
+                window.location.href = currentUrl.toString();
+            })
+            .finally(() => {
+                // Remove loading state
+                tableContainer.style.opacity = '1';
+                tableContainer.style.pointerEvents = 'auto';
             });
         }
     });

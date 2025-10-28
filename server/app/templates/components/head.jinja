@@ -29,7 +29,16 @@
     <meta property="og:description" content="{{ branding.app_description }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/css/tabler.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+    <link rel="stylesheet" href="/static/css/branding.css" />
     <style>
-        @import url("https://rsms.me/inter/inter.css");
+        /* CSS Variables - Dynamic branding colors */
+        :root {
+            --brand-primary: {{ branding.primary_color }};
+            --brand-secondary: {{ branding.secondary_color }};
+            --brand-accent: {{ branding.accent_color }};
+            --brand-primary-light: {{ branding.primary_color }}20;
+            --brand-secondary-light: {{ branding.secondary_color }}20;
+            --brand-accent-light: {{ branding.accent_color }}20;
+        }
     </style>
 </head>

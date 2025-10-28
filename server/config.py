@@ -3,12 +3,13 @@
 import logging
 import os
 import re
+from typing import Union
 
 from dotenv import load_dotenv
+from fastapi.templating import Jinja2Templates
 from pydantic_settings import BaseSettings
 
-from fastapi.templating import Jinja2Templates
-from typing import Union
+from app.avatar_generator import generate_avatar
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
@@ -23,6 +24,9 @@ def regex_replace(s, pattern, replacement):
 
 
 templates.env.filters["regex_replace"] = regex_replace
+
+# Add generate_avatar as a global function for templates
+templates.env.globals["generate_avatar"] = generate_avatar
 
 
 class Settings(BaseSettings):

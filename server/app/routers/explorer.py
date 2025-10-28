@@ -7,6 +7,7 @@ from app.db.models import AttestedResourceRecord
 from app.utilities import beautify_date, resource_details, resource_id_to_url
 from app.plugins import DidWebVH
 from app.plugins.storage import StorageManager
+from app.avatar_generator import generate_avatar
 
 from config import templates, settings
 from sqlalchemy import func
@@ -101,6 +102,7 @@ async def explorer_did_table(  # noqa: C901
                 "deactivated": str(controller.deactivated),
                 # Computed explorer fields
                 "active": not controller.deactivated,
+                "avatar": generate_avatar(controller.scid),  # Generate avatar from SCID
                 "witnesses": controller.parameters.get("witness", {}).get("witnesses", [])
                 if controller.parameters
                 else [],
@@ -237,6 +239,7 @@ async def explorer_resource_table(
                     "domain": domain,
                     "namespace": namespace,
                     "alias": alias,
+                    "avatar": generate_avatar(row.scid),  # Generate avatar from SCID
                 },
             }
         )
