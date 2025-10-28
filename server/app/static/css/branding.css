@@ -1,0 +1,143 @@
+/* Custom Branding Theme Styles */
+
+/* Custom Branding Theme Overrides */
+.btn-primary {
+    background-color: var(--brand-primary) !important;
+    border-color: var(--brand-primary) !important;
+}
+.btn-primary:hover {
+    background-color: var(--brand-primary) !important;
+    border-color: var(--brand-primary) !important;
+    opacity: 0.9;
+}
+.btn-outline-primary {
+    color: var(--brand-primary) !important;
+    border-color: var(--brand-primary) !important;
+}
+.btn-outline-primary:hover {
+    background-color: var(--brand-primary) !important;
+    border-color: var(--brand-primary) !important;
+}
+.btn-outline-secondary {
+    color: var(--brand-secondary) !important;
+    border-color: var(--brand-secondary) !important;
+}
+.btn-outline-secondary:hover {
+    background-color: var(--brand-secondary) !important;
+    border-color: var(--brand-secondary) !important;
+}
+.badge.bg-primary {
+    background-color: var(--brand-primary) !important;
+}
+.badge.bg-secondary {
+    background-color: var(--brand-secondary) !important;
+}
+.text-primary {
+    color: var(--brand-primary) !important;
+}
+.text-secondary {
+    color: var(--brand-secondary) !important;
+}
+.text-muted {
+    color: #6c757d !important; /* Keep default muted text color for dates */
+}
+.bg-primary {
+    background-color: var(--brand-primary) !important;
+}
+.bg-secondary {
+    background-color: var(--brand-secondary) !important;
+}
+.bg-primary-light {
+    background-color: var(--brand-primary-light) !important;
+}
+.bg-secondary-light {
+    background-color: var(--brand-secondary-light) !important;
+}
+.bg-accent-light {
+    background-color: var(--brand-accent-light) !important;
+}
+
+/* Custom Branding Header Styling */
+.navbar {
+    background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary) 100%) !important;
+    border-bottom: 3px solid var(--brand-secondary) !important;
+}
+.navbar-brand img {
+    filter: brightness(0) invert(1);
+}
+.nav-link {
+    color: white !important;
+}
+.nav-link:hover {
+    color: var(--brand-secondary) !important;
+}
+
+/* Custom Branding Card Styling */
+.card {
+    border: 1px solid rgba(0, 51, 102, 0.1);
+}
+.card-header {
+    background: linear-gradient(135deg, var(--brand-primary-light) 0%, var(--brand-secondary-light) 100%);
+    border-bottom: 2px solid var(--brand-primary);
+}
+
+/* Custom Branding Table Styling */
+.table thead th {
+    background-color: var(--brand-primary-light);
+    color: var(--brand-primary);
+    font-weight: 600;
+}
+.table tbody td {
+    color: #212529 !important; /* Keep default black text for table cells */
+}
+.table tbody td.text-muted {
+    color: #6c757d !important; /* Keep muted color for dates */
+}
+
+/* Custom Branding Footer Styling */
+.footer {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary) 100%);
+    color: white;
+}
+.footer a {
+    color: var(--brand-secondary);
+}
+.footer a:hover {
+    color: white;
+}
+
+/* Custom Branding Hero Section */
+.brand-hero {
+    background: linear-gradient(135deg, var(--brand-primary-light) 0%, var(--brand-secondary-light) 100%);
+    border-bottom: 3px solid var(--brand-secondary);
+}
+
+/* Custom Branding Navigation Cards */
+.card-link-pop:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 51, 102, 0.15);
+    border-color: var(--brand-primary) !important;
+}
+
+/* Clean Modal Tab Styling - No Borders */
+.nav-tabs .nav-link {
+    color: #6c757d !important;
+    background-color: transparent !important;
+    border: none !important;
+    font-weight: 500;
+}
+.nav-tabs .nav-link:hover {
+    color: var(--brand-primary) !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+.nav-tabs .nav-link.active {
+    color: var(--brand-primary) !important;
+    background-color: transparent !important;
+    border: none !important;
+    font-weight: 700;
+}
+.nav-tabs {
+    border-bottom: none !important;
+}
+
