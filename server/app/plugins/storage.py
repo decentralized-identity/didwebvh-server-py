@@ -2,6 +2,9 @@
 
 import asyncio
 import logging
+import json
+import base64
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -12,6 +15,7 @@ from app.db.base import Base
 from app.db.models import (
     DidControllerRecord,
     AttestedResourceRecord,
+    VerifiableCredentialRecord,
     AdminBackgroundTask,
     ServerPolicy,
     KnownWitnessRegistry,
@@ -475,7 +479,309 @@ class StorageManager:
             return False
 
     # ========== Credential Operations ==========
-    # TODO: VerifiableCredentialRecord operations temporarily removed
+
+    def create_credential(  # noqa: C901
+        self,
+        scid: str,
+        verifiable_credential: Dict,
+        custom_id: Optional[str] = None,
+        verified: bool = True,
+        verification_method: Optional[str] = None,
+    ) -> VerifiableCredentialRecord:
+        """Create a new credential.
+
+        Args:
+            scid: The SCID from the parent DidControllerRecord (FK relationship)
+            verifiable_credential: The full verifiable credential object
+            custom_id: Optional custom credential ID (overrides verifiable_credential.id)
+            verified: Whether the credential has been verified (defaults to True)
+            verification_method: Verification method ID used (e.g., did:webvh:...#key-1)
+
+        Returns:
+            VerifiableCredentialRecord: The created record
+        """
+        with self.get_session() as session:
+            # Check if this is an EnvelopedVerifiableCredential
+            vc_types = verifiable_credential.get("type", [])
+            if isinstance(vc_types, str):
+                vc_types = [vc_types]
+
+            is_enveloped = "EnvelopedVerifiableCredential" in vc_types
+
+            # For enveloped credentials, decode the JWT to extract metadata
+            if is_enveloped:
+                try:
+                    # Extract and validate JWT from data URL
+                    data_url = verifiable_credential.get("id", "")
+
+                    # Validate data URL format and media type
+                    if not data_url.startswith("data:"):
+                        raise ValueError(
+                            "EnvelopedVerifiableCredential must use a data URL for the 'id' field"
+                        )
+
+                    # Check media type - we only support VC-JOSE (application/vc+jwt)
+                    if not data_url.startswith("data:application/vc+jwt,"):
+                        # Extract the actual media type for a helpful error message
+                        media_type = (
+                            data_url.split(",")[0].replace("data:", "")
+                            if "," in data_url
+                            else "unknown"
+                        )
+                        raise ValueError(
+                            f"EnvelopedVerifiableCredential must use "
+                            f"'application/vc+jwt' media type. "
+                            f"Found: '{media_type}'. Only VC-JOSE format is supported."
+                        )
+
+                    # Extract JWT token after the media type
+                    if "," not in data_url:
+                        raise ValueError("Invalid data URL format - missing comma separator")
+
+                    jwt_token = data_url.split(",", 1)[1]
+                    parts = jwt_token.split(".")
+
+                    if len(parts) == 3:
+                        # Decode JWT payload (the actual credential)
+                        payload = parts[1]
+                        payload += "=" * (4 - len(payload) % 4)  # Add padding
+                        decoded_vc = json.loads(base64.urlsafe_b64decode(payload))
+
+                        # Validate JWT payload is a complete Verifiable Credential
+                        if "@context" not in decoded_vc:
+                            raise ValueError(
+                                "JWT payload in EnvelopedVerifiableCredential "
+                                "must have '@context' field"
+                            )
+
+                        if "id" not in decoded_vc and not custom_id:
+                            raise ValueError(
+                                "JWT payload in EnvelopedVerifiableCredential must have 'id' field"
+                            )
+
+                        if "type" not in decoded_vc:
+                            raise ValueError(
+                                "JWT payload in EnvelopedVerifiableCredential "
+                                "must have 'type' field"
+                            )
+
+                        # Validate type includes VerifiableCredential
+                        payload_types = decoded_vc.get("type", [])
+                        if isinstance(payload_types, str):
+                            payload_types = [payload_types]
+                        if "VerifiableCredential" not in payload_types:
+                            raise ValueError(
+                                "JWT payload 'type' must include 'VerifiableCredential'"
+                            )
+
+                        if "issuer" not in decoded_vc:
+                            raise ValueError(
+                                "JWT payload in EnvelopedVerifiableCredential "
+                                "must have 'issuer' field"
+                            )
+
+                        if "credentialSubject" not in decoded_vc:
+                            raise ValueError(
+                                "JWT payload in EnvelopedVerifiableCredential "
+                                "must have 'credentialSubject' field"
+                            )
+
+                        # Use decoded credential for metadata extraction
+                        credential_id = custom_id if custom_id else decoded_vc.get("id", data_url)
+
+                        # Extract issuer from decoded credential
+                        issuer = decoded_vc.get("issuer", {})
+                        issuer_did = issuer.get("id") if isinstance(issuer, dict) else issuer
+
+                        # Extract types from decoded credential
+                        credential_type = decoded_vc.get("type", [])
+                        if not isinstance(credential_type, list):
+                            credential_type = [credential_type]
+
+                        # Extract subject from decoded credential
+                        credential_subject = decoded_vc.get("credentialSubject", {})
+                        if isinstance(credential_subject, list):
+                            credential_subject = credential_subject[0] if credential_subject else {}
+                        subject_id = (
+                            credential_subject.get("id")
+                            if isinstance(credential_subject, dict)
+                            else None
+                        )
+
+                        # Extract validity from decoded credential
+                        valid_from_str = decoded_vc.get("validFrom")
+                        valid_until_str = decoded_vc.get("validUntil")
+                        valid_from = (
+                            self._parse_datetime(valid_from_str) if valid_from_str else None
+                        )
+                        valid_until = (
+                            self._parse_datetime(valid_until_str) if valid_until_str else None
+                        )
+                    else:
+                        raise ValueError(
+                            "Invalid JWT format in EnvelopedVerifiableCredential - "
+                            "must have 3 parts (header.payload.signature)"
+                        )
+                except Exception as e:
+                    logger.error(f"Failed to decode EnvelopedVerifiableCredential: {e}")
+                    raise ValueError(f"Failed to decode EnvelopedVerifiableCredential: {e}")
+            else:
+                # Regular credential - extract metadata directly
+                credential_id = custom_id if custom_id else verifiable_credential.get("id")
+                if not credential_id:
+                    raise ValueError(
+                        "Credential must have an 'id' field or custom_id must be provided"
+                    )
+
+                # Extract issuer DID
+                issuer = verifiable_credential.get("issuer", {})
+                issuer_did = issuer.get("id") if isinstance(issuer, dict) else issuer
+
+                # Extract credential types
+                credential_type = verifiable_credential.get("type", [])
+                if not isinstance(credential_type, list):
+                    credential_type = [credential_type]
+
+                # Extract subject ID
+                credential_subject = verifiable_credential.get("credentialSubject", {})
+                if isinstance(credential_subject, list):
+                    credential_subject = credential_subject[0] if credential_subject else {}
+                subject_id = (
+                    credential_subject.get("id") if isinstance(credential_subject, dict) else None
+                )
+
+                # Extract validity dates
+                valid_from_str = verifiable_credential.get("validFrom")
+                valid_until_str = verifiable_credential.get("validUntil")
+                valid_from = self._parse_datetime(valid_from_str) if valid_from_str else None
+                valid_until = self._parse_datetime(valid_until_str) if valid_until_str else None
+
+            # Create credential record
+            credential = VerifiableCredentialRecord(
+                credential_id=credential_id,
+                scid=scid,
+                issuer_did=issuer_did,
+                credential_type=credential_type,
+                subject_id=subject_id,
+                verifiable_credential=verifiable_credential,
+                valid_from=valid_from,
+                valid_until=valid_until,
+                verified=verified,
+                verification_method=verification_method,
+            )
+            session.add(credential)
+            session.commit()
+            session.refresh(credential)
+            return credential
+
+    def get_credential(self, credential_id: str) -> Optional[VerifiableCredentialRecord]:
+        """Get a credential by ID."""
+        with self.get_session() as session:
+            return (
+                session.query(VerifiableCredentialRecord)
+                .filter(VerifiableCredentialRecord.credential_id == credential_id)
+                .first()
+            )
+
+    def get_credentials(
+        self, filters: Optional[Dict[str, Any]] = None, limit: Optional[int] = None, offset: int = 0
+    ) -> List[VerifiableCredentialRecord]:
+        """Get credentials with optional filters and pagination."""
+        with self.get_session() as session:
+            query = session.query(VerifiableCredentialRecord)
+
+            if filters:
+                if "scid" in filters:
+                    query = query.filter(VerifiableCredentialRecord.scid == filters["scid"])
+                if "issuer_did" in filters:
+                    query = query.filter(
+                        VerifiableCredentialRecord.issuer_did == filters["issuer_did"]
+                    )
+                if "subject_id" in filters:
+                    query = query.filter(
+                        VerifiableCredentialRecord.subject_id == filters["subject_id"]
+                    )
+                if "credential_id" in filters:
+                    query = query.filter(
+                        VerifiableCredentialRecord.credential_id == filters["credential_id"]
+                    )
+                if "revoked" in filters:
+                    query = query.filter(VerifiableCredentialRecord.revoked == filters["revoked"])
+
+            if limit is not None:
+                query = query.offset(offset).limit(limit)
+
+            return query.all()
+
+    def count_credentials(self, filters: Optional[Dict[str, Any]] = None) -> int:
+        """Count credentials with optional filters."""
+        with self.get_session() as session:
+            query = session.query(VerifiableCredentialRecord)
+
+            if filters:
+                if "scid" in filters:
+                    query = query.filter(VerifiableCredentialRecord.scid == filters["scid"])
+                if "issuer_did" in filters:
+                    query = query.filter(
+                        VerifiableCredentialRecord.issuer_did == filters["issuer_did"]
+                    )
+                if "subject_id" in filters:
+                    query = query.filter(
+                        VerifiableCredentialRecord.subject_id == filters["subject_id"]
+                    )
+                if "credential_id" in filters:
+                    query = query.filter(
+                        VerifiableCredentialRecord.credential_id == filters["credential_id"]
+                    )
+                if "revoked" in filters:
+                    query = query.filter(VerifiableCredentialRecord.revoked == filters["revoked"])
+
+            return query.count()
+
+    def update_credential(
+        self,
+        credential_id: str,
+        verifiable_credential: Dict,
+        verification_method: Optional[str] = None,
+    ) -> Optional[VerifiableCredentialRecord]:
+        """Update an existing credential.
+
+        Args:
+            credential_id: The storage credential ID (simple ID used for lookups)
+            verifiable_credential: The full verifiable credential object
+            verification_method: Updated verification method ID
+
+        Returns:
+            Optional[VerifiableCredentialRecord]: The updated record or None if not found
+        """
+        with self.get_session() as session:
+            credential = (
+                session.query(VerifiableCredentialRecord)
+                .filter(VerifiableCredentialRecord.credential_id == credential_id)
+                .first()
+            )
+            if credential:
+                credential.verifiable_credential = verifiable_credential
+                if verification_method:
+                    credential.verification_method = verification_method
+                credential.updated = datetime.now(timezone.utc)
+                session.commit()
+                session.refresh(credential)
+            return credential
+
+    def delete_credential(self, credential_id: str) -> bool:
+        """Delete a credential."""
+        with self.get_session() as session:
+            credential = (
+                session.query(VerifiableCredentialRecord)
+                .filter(VerifiableCredentialRecord.credential_id == credential_id)
+                .first()
+            )
+            if credential:
+                session.delete(credential)
+                session.commit()
+                return True
+            return False
 
     # ========== Task Operations ==========
 
@@ -753,3 +1059,28 @@ class StorageManager:
         """Get a tails file by hash."""
         with self.get_session() as session:
             return session.query(TailsFile).filter(TailsFile.tails_hash == tails_hash).first()
+
+    # ========== Helper Methods ==========
+
+    def _parse_datetime(self, date_string: str) -> Optional[datetime]:
+        """Parse ISO 8601 datetime string to Python datetime object.
+
+        Args:
+            date_string: ISO 8601 formatted date string
+
+        Returns:
+            datetime object or None if parsing fails
+        """
+        if not date_string:
+            return None
+
+        try:
+            # Try ISO format with timezone
+            return datetime.fromisoformat(date_string.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            try:
+                # Try without timezone
+                return datetime.fromisoformat(date_string)
+            except (ValueError, AttributeError):
+                logger.warning(f"Failed to parse datetime: {date_string}")
+                return None

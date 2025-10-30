@@ -1,10 +1,12 @@
 """SQLAlchemy database models."""
 
 from sqlalchemy import Column, String, Text, Boolean, Integer, DateTime, JSON, Index, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from .base import Base
 from app.plugins import DidWebVH
+from app.avatar_generator import generate_avatar
 
 
 # Type aliases for cleaner code (defined after classes below)
@@ -41,10 +43,27 @@ class DidControllerRecord(Base):
     parameters = Column(JSON, nullable=False)
     document = Column(JSON, nullable=False)
 
+    # UI/Display fields
+    avatar = Column(Text, nullable=True)  # SVG data URI for visual identification
+
     # Metadata
     created = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    # Relationships
+    resources = relationship(
+        "AttestedResourceRecord",
+        foreign_keys="AttestedResourceRecord.scid",
+        lazy="selectin",  # Eager load with separate query (efficient for collections)
+        order_by="AttestedResourceRecord.created.desc()",
+    )
+    credentials = relationship(
+        "VerifiableCredentialRecord",
+        foreign_keys="VerifiableCredentialRecord.scid",
+        lazy="selectin",  # Eager load with separate query
+        order_by="VerifiableCredentialRecord.created.desc()",
     )
 
     # Composite indexes for common query patterns
@@ -79,6 +98,9 @@ class DidControllerRecord(Base):
         namespace = did_parts[4] if len(did_parts) > 4 else ""
         alias = did_parts[5] if len(did_parts) > 5 else ""
 
+        # Generate avatar for visual identification
+        avatar_svg = generate_avatar(state.scid)
+
         # Build the init data, only setting values not already in kwargs
         init_data = {
             "scid": state.scid,
@@ -92,6 +114,7 @@ class DidControllerRecord(Base):
             "whois_presentation": whois_presentation or {},
             "parameters": state.params,  # Use computed params from state
             "document": state.document,  # Store the DID document
+            "avatar": avatar_svg,  # Pre-generated avatar
         }
 
         # Merge with kwargs, giving precedence to kwargs
@@ -125,6 +148,12 @@ class AttestedResourceRecord(Base):
 
     # MediaType
     media_type = Column(String(255), nullable=False, default="application/jsonld")
+
+    # Timestamps
+    created = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
 
     # Composite indexes for common queries
     __table_args__ = (
@@ -165,6 +194,52 @@ class AttestedResourceRecord(Base):
             did=did,
             attested_resource=attested_resource,
         )
+
+
+class VerifiableCredentialRecord(Base):
+    """Verifiable credentials table."""
+
+    __tablename__ = "verifiable_credentials"
+
+    # Primary key (credential ID)
+    credential_id = Column(String(500), primary_key=True, index=True)
+
+    # Relationships - FK to DID controller (issuer)
+    scid = Column(String(255), ForeignKey("did_controllers.scid"), nullable=False, index=True)
+
+    # DID reference (denormalized for queries)
+    issuer_did = Column(String(500), nullable=False, index=True)
+
+    # Credential information
+    credential_type = Column(JSON, nullable=False)  # List of types
+    subject_id = Column(String(500), nullable=True, index=True)  # credentialSubject.id if present
+
+    # Credential data (full VC)
+    verifiable_credential = Column(JSON, nullable=False)
+
+    # Validity
+    valid_from = Column(DateTime(timezone=True), nullable=True)
+    valid_until = Column(DateTime(timezone=True), nullable=True)
+
+    # Status
+    revoked = Column(Boolean, default=False, index=True, nullable=False)
+
+    # Verification (stored at creation time)
+    verified = Column(Boolean, default=True, nullable=False)  # Only verified credentials stored
+    verification_method = Column(String(500), nullable=True)  # Verification method ID used
+
+    # Metadata
+    created = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    # Composite indexes for common queries
+    __table_args__ = (
+        Index("idx_credential_scid_revoked", "scid", "revoked"),
+        Index("idx_credential_issuer_revoked", "issuer_did", "revoked"),
+        Index("idx_credential_subject_revoked", "subject_id", "revoked"),
+    )
 
 
 class AdminBackgroundTask(Base):

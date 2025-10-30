@@ -1,14 +1,20 @@
 """Load test script for DID WebVH Server.
 
-This script creates multiple DIDs with log entries and WHOIS files to test server performance.
-
-NOTE: This script must be run from the server directory to access dependencies:
-    cd server
-    uv run python ../demo/load_test.py [options]
+This script creates multiple DIDs with log entries, WHOIS files, resources,
+and verifiable credentials to test server performance.
 
 Usage:
-    uv run python ../demo/load_test.py --count 10 --server http://localhost:8000
+    # From demo directory (recommended - uses demo/pyproject.toml)
+    cd demo
+    uv run python load_test.py --count 10 --server http://localhost:8000
+
+    # Or from server directory (uses server/pyproject.toml)
+    cd server
     uv run python ../demo/load_test.py -c 50 -s http://localhost:8000 --namespace loadtest
+
+    # Or use the magic.sh script (easiest!)
+    cd demo
+    ./magic.sh -c 10
 
 Environment Variables:
     WEBVH_SERVER_URL - Default server URL (default: http://localhost:8000)
@@ -59,7 +65,7 @@ class DidWebVHClient:
         """
         self.server_url = server_url.rstrip("/")
         self.session = requests.Session()
-        self.api_key = os.getenv("API_KEY", "webvh")
+        self.api_key = os.getenv("WEBVH_API_KEY", os.getenv("API_KEY", "webvh"))
 
     def register_witness(self, witness_key: Key, label: str = "Load Test Witness") -> Dict:
         """Register a witness in the known witness registry."""
@@ -333,7 +339,10 @@ class DidWebVHClient:
 
         # Sign credential (in real scenario, this would be signed by issuer)
         credential = self.sign_document(
-            credential, signing_key, verification_method_id, proof_purpose="assertionMethod"
+            credential,
+            signing_key,
+            verification_method_id,
+            proof_purpose="assertionMethod",
         )
 
         # Create verifiable presentation
@@ -346,7 +355,10 @@ class DidWebVHClient:
 
         # Sign presentation with authentication purpose (required for WHOIS)
         presentation = self.sign_document(
-            presentation, signing_key, verification_method_id, proof_purpose="authentication"
+            presentation,
+            signing_key,
+            verification_method_id,
+            proof_purpose="authentication",
         )
 
         # Upload to server
@@ -388,7 +400,8 @@ class DidWebVHClient:
 
         # Calculate content digest using multihash (same as server validation)
         resource_id = multibase.encode(
-            multihash.digest(jcs.canonicalize(resource_content), "sha2-256"), "base58btc"
+            multihash.digest(jcs.canonicalize(resource_content), "sha2-256"),
+            "base58btc",
         )
 
         # Create attested resource
@@ -408,7 +421,10 @@ class DidWebVHClient:
 
         # Sign the resource
         attested_resource = self.sign_document(
-            attested_resource, signing_key, verification_method_id, proof_purpose="assertionMethod"
+            attested_resource,
+            signing_key,
+            verification_method_id,
+            proof_purpose="assertionMethod",
         )
 
         # Upload to server
@@ -428,6 +444,139 @@ class DidWebVHClient:
         response.raise_for_status()
         return response.json()
 
+    def publish_credential(
+        self,
+        namespace: str,
+        identifier: str,
+        signing_key: Key,
+        subject_did: str,
+        credential_type: str = "TestCredential",
+        use_enveloped: bool = False,
+    ) -> Dict:
+        """Publish a verifiable credential.
+
+        Args:
+            namespace: DID namespace
+            identifier: DID identifier
+            signing_key: Key to sign the credential
+            subject_did: DID of the credential subject
+            credential_type: Type of credential to issue
+            use_enveloped: If True, create EnvelopedVerifiableCredential (VC-JOSE)
+
+        Returns:
+            Published credential response
+        """
+        # Get DID ID from the log
+        log_entries = self.get_did_log(namespace, identifier)
+
+        doc_state = None
+        for log_entry in log_entries:
+            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+
+        issuer_did = doc_state.document.get("id")
+        signing_multikey = self.key_to_multikey(signing_key)
+        verification_method_id = f"{issuer_did}#{signing_multikey}"
+
+        # Create credential ID
+        credential_id = (
+            f"http://example.com/credentials/{credential_type.lower()}-{uuid.uuid4().hex[:12]}"
+        )
+
+        if use_enveloped:
+            # Create EnvelopedVerifiableCredential (VC-JOSE format)
+            # Create the actual credential payload (must be a complete VC)
+            payload = {
+                "@context": [
+                    "https://www.w3.org/ns/credentials/v2",
+                    "https://www.w3.org/ns/credentials/examples/v2",
+                ],
+                "id": credential_id,
+                "type": ["VerifiableCredential", credential_type],
+                "issuer": {"id": issuer_did, "name": f"Load Test Issuer {identifier}"},
+                "credentialSubject": {
+                    "id": subject_did,
+                    "name": f"Subject for {credential_type}",
+                    "issuedBy": issuer_did,
+                },
+                "validFrom": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "validUntil": datetime.now(timezone.utc)
+                .replace(year=datetime.now().year + 1)
+                .strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+
+            # Create JWT header
+            header = {"alg": "EdDSA", "typ": "JWT", "kid": verification_method_id}
+
+            # Encode to JWT (simplified - in production use proper JWT library)
+            import base64
+
+            header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+            payload_b64 = (
+                base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+            )
+
+            # Create signature of header.payload
+            to_sign = f"{header_b64}.{payload_b64}".encode()
+            signature_bytes = signing_key.sign_message(to_sign)
+            signature_b64 = base64.urlsafe_b64encode(signature_bytes).decode().rstrip("=")
+
+            jwt_token = f"{header_b64}.{payload_b64}.{signature_b64}"
+
+            # Create EnvelopedVerifiableCredential
+            verifiable_credential = {
+                "@context": ["https://www.w3.org/ns/credentials/v2"],
+                "id": f"data:application/vc+jwt,{jwt_token}",
+                "type": ["EnvelopedVerifiableCredential"],
+            }
+
+            # Use custom credential ID for easier retrieval
+            custom_id = credential_id
+        else:
+            # Create regular VerifiableCredential with Data Integrity Proof
+            verifiable_credential = {
+                "@context": [
+                    "https://www.w3.org/ns/credentials/v2",
+                    "https://www.w3.org/ns/credentials/examples/v2",
+                ],
+                "id": credential_id,
+                "type": ["VerifiableCredential", credential_type],
+                "issuer": {"id": issuer_did, "name": f"Load Test Issuer {identifier}"},
+                "validFrom": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "validUntil": datetime.now(timezone.utc)
+                .replace(year=datetime.now().year + 1)
+                .strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "credentialSubject": {"name": f"Subject for {credential_type}"},
+            }
+
+            # Sign the credential
+            verifiable_credential = self.sign_document(
+                verifiable_credential,
+                signing_key,
+                verification_method_id,
+                proof_purpose="assertionMethod",
+            )
+            custom_id = None
+
+        # Upload to server
+        request_body = {"verifiableCredential": verifiable_credential}
+        if custom_id:
+            request_body["options"] = {"credentialId": custom_id}
+
+        response = self.session.post(
+            f"{self.server_url}/{namespace}/{identifier}/credentials",
+            json=request_body,
+        )
+
+        if response.status_code != 201:
+            try:
+                error_detail = response.json()
+                logger.error(f"Credential upload failed: {response.status_code} - {error_detail}")
+            except Exception:
+                logger.error(f"Credential upload failed: {response.status_code} - {response.text}")
+
+        response.raise_for_status()
+        return response.json()
+
 
 class DidWebVHAsyncClient:
     """Async client for interacting with DID WebVH Server (for concurrent requests)."""
@@ -441,7 +590,7 @@ class DidWebVHAsyncClient:
         """
         self.server_url = server_url.rstrip("/")
         self.session = session
-        self.api_key = os.getenv("API_KEY", "webvh")
+        self.api_key = os.getenv("WEBVH_API_KEY", os.getenv("API_KEY", "webvh"))
 
     # Copy all the signing methods from sync client (they don't use HTTP)
     def key_to_multikey(self, key: Key) -> str:
@@ -611,7 +760,12 @@ class DidWebVHAsyncClient:
         return response.json()
 
     async def add_verification_method_to_did(
-        self, namespace: str, identifier: str, update_key: Key, witness_key: Key, signing_key: Key
+        self,
+        namespace: str,
+        identifier: str,
+        update_key: Key,
+        witness_key: Key,
+        signing_key: Key,
     ) -> Dict:
         """Add a verification method to a DID for signing WHOIS."""
         log_entries = await self.get_did_log(namespace, identifier)
@@ -677,7 +831,10 @@ class DidWebVHAsyncClient:
         }
 
         credential = self.sign_document(
-            credential, signing_key, verification_method_id, proof_purpose="assertionMethod"
+            credential,
+            signing_key,
+            verification_method_id,
+            proof_purpose="assertionMethod",
         )
 
         presentation = {
@@ -688,7 +845,10 @@ class DidWebVHAsyncClient:
         }
 
         presentation = self.sign_document(
-            presentation, signing_key, verification_method_id, proof_purpose="authentication"
+            presentation,
+            signing_key,
+            verification_method_id,
+            proof_purpose="authentication",
         )
 
         response = await self.session.post(
@@ -726,7 +886,8 @@ class DidWebVHAsyncClient:
         verification_method_id = f"{did_id}#{signing_multikey}"
 
         resource_id = multibase.encode(
-            multihash.digest(jcs.canonicalize(resource_content), "sha2-256"), "base58btc"
+            multihash.digest(jcs.canonicalize(resource_content), "sha2-256"),
+            "base58btc",
         )
 
         attested_resource = {
@@ -741,7 +902,10 @@ class DidWebVHAsyncClient:
         }
 
         attested_resource = self.sign_document(
-            attested_resource, signing_key, verification_method_id, proof_purpose="assertionMethod"
+            attested_resource,
+            signing_key,
+            verification_method_id,
+            proof_purpose="assertionMethod",
         )
 
         response = await self.session.post(
@@ -755,6 +919,134 @@ class DidWebVHAsyncClient:
                 logger.error(f"Resource upload failed: {response.status_code} - {error_detail}")
             except Exception:
                 logger.error(f"Resource upload failed: {response.status_code} - {response.text}")
+
+        response.raise_for_status()
+        return response.json()
+
+    async def publish_credential(
+        self,
+        namespace: str,
+        identifier: str,
+        signing_key: Key,
+        subject_did: str,
+        credential_type: str = "TestCredential",
+        use_enveloped: bool = False,
+    ) -> Dict:
+        """Publish a verifiable credential (async).
+
+        Args:
+            namespace: DID namespace
+            identifier: DID identifier
+            signing_key: Key to sign the credential
+            subject_did: DID of the credential subject
+            credential_type: Type of credential to issue
+            use_enveloped: If True, create EnvelopedVerifiableCredential (VC-JOSE)
+
+        Returns:
+            Published credential response
+        """
+        # Get DID ID from the log
+        log_entries = await self.get_did_log(namespace, identifier)
+
+        doc_state = None
+        for log_entry in log_entries:
+            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+
+        issuer_did = doc_state.document.get("id")
+        signing_multikey = self.key_to_multikey(signing_key)
+        verification_method_id = f"{issuer_did}#{signing_multikey}"
+
+        # Create credential ID
+        credential_id = (
+            f"http://example.com/credentials/{credential_type.lower()}-{uuid.uuid4().hex[:12]}"
+        )
+
+        if use_enveloped:
+            # Create EnvelopedVerifiableCredential (VC-JOSE format)
+            import base64
+
+            # Create the actual credential payload (must be a complete VC)
+            payload = {
+                "@context": [
+                    "https://www.w3.org/ns/credentials/v2",
+                    "https://www.w3.org/ns/credentials/examples/v2",
+                ],
+                "id": credential_id,
+                "type": ["VerifiableCredential", credential_type],
+                "issuer": {"id": issuer_did, "name": f"Load Test Issuer {identifier}"},
+                "credentialSubject": {
+                    "id": subject_did,
+                    "name": f"Subject for {credential_type}",
+                    "issuedBy": issuer_did,
+                },
+                "validFrom": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "validUntil": datetime.now(timezone.utc)
+                .replace(year=datetime.now().year + 1)
+                .strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+
+            header = {"alg": "EdDSA", "typ": "JWT", "kid": verification_method_id}
+
+            header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+            payload_b64 = (
+                base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+            )
+
+            to_sign = f"{header_b64}.{payload_b64}".encode()
+            signature_bytes = signing_key.sign_message(to_sign)
+            signature_b64 = base64.urlsafe_b64encode(signature_bytes).decode().rstrip("=")
+
+            jwt_token = f"{header_b64}.{payload_b64}.{signature_b64}"
+
+            verifiable_credential = {
+                "@context": ["https://www.w3.org/ns/credentials/v2"],
+                "id": f"data:application/vc+jwt,{jwt_token}",
+                "type": ["EnvelopedVerifiableCredential"],
+            }
+
+            custom_id = credential_id
+        else:
+            # Create regular VerifiableCredential
+            verifiable_credential = {
+                "@context": ["https://www.w3.org/2018/credentials/v1"],
+                "id": credential_id,
+                "type": ["VerifiableCredential", credential_type],
+                "issuer": {"id": issuer_did, "name": f"Load Test Issuer {identifier}"},
+                "credentialSubject": {
+                    "id": subject_did,
+                    "name": f"Subject for {credential_type}",
+                    "issuedBy": issuer_did,
+                },
+                "validFrom": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "validUntil": datetime.now(timezone.utc)
+                .replace(year=datetime.now().year + 1)
+                .strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+
+            verifiable_credential = self.sign_document(
+                verifiable_credential,
+                signing_key,
+                verification_method_id,
+                proof_purpose="assertionMethod",
+            )
+            custom_id = None
+
+        # Upload to server
+        request_body = {"verifiableCredential": verifiable_credential}
+        if custom_id:
+            request_body["options"] = {"credentialId": custom_id}
+
+        response = await self.session.post(
+            f"{self.server_url}/{namespace}/{identifier}/credentials",
+            json=request_body,
+        )
+
+        if response.status_code != 201:
+            try:
+                error_detail = response.json()
+                logger.error(f"Credential upload failed: {response.status_code} - {error_detail}")
+            except Exception:
+                logger.error(f"Credential upload failed: {response.status_code} - {response.text}")
 
         response.raise_for_status()
         return response.json()
@@ -824,6 +1116,29 @@ async def create_did_with_updates_async(
         schema_id = schema_result.get("metadata", {}).get("resourceId", "unknown")
         logger.success(f"  [{identifier}] Schema uploaded: {schema_id[:20]}...")
 
+        # Publish verifiable credentials
+        # Issue a regular VC
+        _ = await client.publish_credential(
+            namespace,
+            identifier,
+            signing_key,
+            subject_did=f"did:example:subject-{identifier}",
+            credential_type="LoadTestCredential",
+            use_enveloped=False,
+        )
+        logger.success(f"  [{identifier}] Regular VC published")
+
+        # Issue an EnvelopedVerifiableCredential (VC-JOSE)
+        _ = await client.publish_credential(
+            namespace,
+            identifier,
+            signing_key,
+            subject_did=f"did:example:subject-{identifier}",
+            credential_type="LoadTestEnvelopedCredential",
+            use_enveloped=True,
+        )
+        logger.success(f"  [{identifier}] EnvelopedVC published (VC-JOSE)")
+
         elapsed = time.time() - start_time
 
         return {
@@ -833,6 +1148,7 @@ async def create_did_with_updates_async(
             "elapsed": elapsed,
             "log_entries": num_updates + 2,
             "schema_id": schema_id,
+            "credentials_published": 2,  # Regular + Enveloped
         }
 
     except Exception as e:
@@ -898,6 +1214,31 @@ async def create_did_with_updates(
         schema_id = schema_result.get("metadata", {}).get("resourceId", "unknown")
         logger.success(f"  ✓ Schema uploaded: {schema_id[:20]}...")
 
+        # Publish verifiable credentials
+        logger.info(f"  Publishing verifiable credentials for {identifier}")
+
+        # Issue a regular VC
+        _ = client.publish_credential(
+            namespace,
+            identifier,
+            signing_key,
+            subject_did=f"did:example:subject-{identifier}",
+            credential_type="LoadTestCredential",
+            use_enveloped=False,
+        )
+        logger.success("  ✓ Regular VC published")
+
+        # Issue an EnvelopedVerifiableCredential (VC-JOSE)
+        _ = client.publish_credential(
+            namespace,
+            identifier,
+            signing_key,
+            subject_did=f"did:example:subject-{identifier}",
+            credential_type="LoadTestEnvelopedCredential",
+            use_enveloped=True,
+        )
+        logger.success("  ✓ EnvelopedVC published (VC-JOSE)")
+
         elapsed = time.time() - start_time
 
         return {
@@ -907,6 +1248,7 @@ async def create_did_with_updates(
             "elapsed": elapsed,
             "log_entries": num_updates + 2,  # initial + updates + verification method
             "schema_id": schema_id,
+            "credentials_published": 2,  # Regular + Enveloped
         }
 
     except Exception as e:
@@ -936,6 +1278,7 @@ async def run_load_test(
         f"Namespace: {namespace}\n"
         f"Updates per DID: {updates_per_did}\n"
         f"Total log entries per DID: {updates_per_did + 2}\n"
+        f"Credentials per DID: 2 (1 regular + 1 enveloped VC-JOSE)\n"
         f"{'=' * 70}"
     )
 
@@ -1018,6 +1361,7 @@ async def run_load_test(
     failed = [r for r in results if not r.get("success")]
 
     schemas_created = sum(1 for r in successful if r.get("schema_id"))
+    credentials_published = sum(r.get("credentials_published", 0) for r in successful)
 
     stats = {
         "total_dids": count,
@@ -1027,6 +1371,7 @@ async def run_load_test(
         "avg_time_per_did": total_time / count if count > 0 else 0,
         "total_log_entries": sum(r.get("log_entries", 0) for r in successful),
         "schemas_created": schemas_created,
+        "credentials_published": credentials_published,
         "dids_per_second": count / total_time if total_time > 0 else 0,
     }
 
@@ -1042,6 +1387,12 @@ async def run_load_test(
     logger.info(f"Avg Time per DID: {stats['avg_time_per_did']:.2f}s")
     logger.info(f"Total Log Entries Created: {stats['total_log_entries']}")
     logger.info(f"AnonCreds Schemas Created: {stats['schemas_created']}")
+    regular_creds = stats["credentials_published"] // 2
+    enveloped_creds = stats["credentials_published"] // 2
+    logger.info(
+        f"Verifiable Credentials Published: {stats['credentials_published']} "
+        f"({regular_creds} regular + {enveloped_creds} enveloped)"
+    )
     logger.info(f"Throughput: {stats['dids_per_second']:.2f} DIDs/second")
     logger.info("=" * 70)
 
@@ -1062,16 +1413,16 @@ def main():
 Examples:
   # Create 10 DIDs (default)
   uv run python ../demo/load_test.py
-  
+
   # Create 50 DIDs with 3 updates each
   uv run python ../demo/load_test.py --count 50 --updates 3
-  
+
   # Use custom server and namespace
   uv run python ../demo/load_test.py -c 20 -s http://localhost:8000 -n mytest
-  
+
   # Create 100 DIDs with minimal updates
   uv run python ../demo/load_test.py -c 100 -u 1
-  
+
   # Use environment variables for configuration
   export WEBVH_SERVER_URL=http://example.com:8000
   export WEBVH_NAMESPACE=production

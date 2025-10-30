@@ -139,10 +139,12 @@ class TestTailsFileIntegration:
     @pytest.mark.asyncio
     async def test_upload_and_retrieve_multiple_files(self, valid_tails_file):
         """Test uploading and retrieving multiple tails files."""
-        # Generate multiple unique tails files
+        # Generate multiple unique tails files (use full UUID for better uniqueness)
         files = []
         for _ in range(3):
-            tails_file_hex = TAILS_FILE_HEX[:-6] + str(uuid.uuid4())[:6]
+            # Use 12 hex chars from UUID to ensure uniqueness across test runs
+            unique_suffix = str(uuid.uuid4()).replace("-", "")[:12]
+            tails_file_hex = TAILS_FILE_HEX[:-12] + unique_suffix
             tails_file_bytes = bytes.fromhex(tails_file_hex)
             tails_file = io.BytesIO(tails_file_bytes)
             tails_hash = create_tails_hash(tails_file)

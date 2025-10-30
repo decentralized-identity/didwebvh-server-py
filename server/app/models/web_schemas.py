@@ -7,7 +7,11 @@ from .did_document import SecuredDidDocument
 from .resource import AttestedResource
 from .did_log import LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
-from .presentation import VerifiablePresentation
+from .presentation import (
+    VerifiablePresentation,
+    VerifiableCredential,
+    EnvelopedVerifiableCredential,
+)
 from .base import CustomBaseModel
 
 
@@ -91,3 +95,16 @@ class WhoisUpdate(CustomBaseModel):
     """WhoisUpdate model."""
 
     verifiablePresentation: VerifiablePresentation = Field()
+
+
+class CredentialOptions(CustomBaseModel):
+    """CredentialOptions model."""
+
+    credentialId: str = Field(None)
+
+
+class CredentialUpload(CustomBaseModel):
+    """CredentialUpload model."""
+
+    verifiableCredential: Union[VerifiableCredential, EnvelopedVerifiableCredential] = Field()
+    options: CredentialOptions = Field(None)

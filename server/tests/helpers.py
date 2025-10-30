@@ -10,7 +10,7 @@ from typing import Dict, Any, Tuple, Optional
 from fastapi.testclient import TestClient
 from did_webvh.core.state import DocumentState
 from tests.mock_agents import ControllerAgent, WitnessAgent
-from tests.signer import sign
+from tests.mock_agents import sign
 from tests.fixtures import TEST_UPDATE_KEY, TEST_WITNESS_KEY
 
 

@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
-    API_KEY: str = os.environ.get("API_KEY", "webvh")
-    DOMAIN: str = os.environ.get("DOMAIN", "localhost")
+    API_KEY: str = os.environ.get("WEBVH_API_KEY", os.environ.get("API_KEY", "webvh"))
+    DOMAIN: str = os.environ.get("WEBVH_DOMAIN", "localhost")
 
     SCID_PLACEHOLDER: str = r"{SCID}"
     DID_WEB_PREFIX: str = "did:web:"
@@ -54,16 +54,13 @@ class Settings(BaseSettings):
     if POSTGRES_URL:
         logging.info(f"Using postgres storage: {POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}")
         DATABASE_URL: str = POSTGRES_URL
-        ASKAR_DB: str = "postgres://" + POSTGRES_URL.split("://")[-1]
 
     elif POSTGRES_USER and POSTGRES_PASSWORD and POSTGRES_SERVER_NAME and POSTGRES_SERVER_PORT:
         logging.info(f"Using postgres storage: {POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}")
         DATABASE_URL: str = f"postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER_NAME}:{POSTGRES_SERVER_PORT}/didwebvh-server"
-        ASKAR_DB: str = DATABASE_URL  # Postgres URL format is the same for both
     else:
         logging.info("Using SQLite database")
-        DATABASE_URL: str = "sqlite:///app.db"  # SQLAlchemy format (3 slashes)
-        ASKAR_DB: str = "sqlite://app.db"  # Askar format (2 slashes)
+        DATABASE_URL: str = "sqlite:///app.db"
 
     ENABLE_TAILS: bool = eval(os.environ.get("ENABLE_TAILS", "false").capitalize())
 

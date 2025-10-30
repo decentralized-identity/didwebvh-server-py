@@ -22,9 +22,7 @@ from tests.fixtures import (
     TEST_WITNESS_REGISTRY,
     TEST_UPDATE_KEY,
 )
-from tests.mock_agents import WitnessAgent, ControllerAgent
-from tests.signer import sign
-from tests.utils import digest_multibase
+from tests.mock_agents import WitnessAgent, ControllerAgent, sign, digest_multibase
 from did_webvh.core.state import DocumentState
 from config import settings
 

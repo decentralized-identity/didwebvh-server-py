@@ -17,7 +17,7 @@ from app.utilities import (
     find_verification_method,
     timestamp,
 )
-from app.routers.dependencies import get_did_controller_dependency
+from app.dependencies import get_did_controller_dependency
 from app.plugins.storage import StorageManager
 
 logger = logging.getLogger(__name__)
@@ -73,6 +73,11 @@ async def new_log_entry(
 
     log_entry = request_body.model_dump().get("logEntry")
     witness_signature = request_body.model_dump().get("witnessSignature")
+
+    # Debug logging
+    logger.info(f"=== New Log Entry Request: {namespace}/{identifier} ===")
+    logger.debug(f"Log Entry: {json.dumps(log_entry, indent=2)}")
+    logger.debug(f"Witness Signature: {witness_signature is not None}")
 
     # Get policy and registry from database
     policy = storage.get_policy("active")

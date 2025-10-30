@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from app.models.web_schemas import ResourceUpload
 from app.db.models import DidControllerRecord
 from app.utilities import first_proof
-from app.routers.dependencies import get_did_controller_dependency
+from app.dependencies import get_did_controller_dependency
 from app.plugins import AskarVerifier, DidWebVH
 from app.plugins.storage import StorageManager
 

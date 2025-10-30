@@ -1,5 +1,24 @@
 {% from 'macros/pagination.jinja' import render_pagination %}
-{% include('components/did_modal.jinja')%}
+
+<!-- Single DID Detail Modal (Dynamically Loaded) -->
+<div class="modal modal-blur fade" id="did-detail-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-at me-2"></i>DID Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="height: 600px; overflow-y: auto;">
+                <!-- DID Details Content (populated by JavaScript) -->
+                <div id="did-detail-content">
+                    <p class="text-center text-muted">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="card">
     <div class="card-table">
@@ -13,8 +32,16 @@
                             <div class="h2 mb-0">{{ pagination.limit }}</div>
                         </div>
                         <div class="dropdown">
-                            <a class="dropdown-toggle text-secondary" href="#" data-bs-toggle="dropdown" aria-expanded="false">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
+                            <a class="dropdown-toggle text-secondary" href="#" data-bs-toggle="dropdown"
+                                aria-expanded="false">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
+                                    viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+                                    <path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+                                    <path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+                                </svg>
                             </a>
                             <div class="dropdown-menu dropdown-menu-end">
                                 <a class="dropdown-item" href="?limit=25">25 per page</a>
@@ -67,8 +94,8 @@
                             <label class="form-label form-label-sm">
                                 Alias
                             </label>
-                            <input name="identifier" id="identifier" class="form-control form-control-sm"
-                                type="text" placeholder="Enter alias..." value="{{ request.query_params.get('identifier', '') }}">
+                            <input name="identifier" id="identifier" class="form-control form-control-sm" type="text"
+                                placeholder="Enter alias..." value="{{ request.query_params.get('identifier', '') }}">
                         </div>
                     </div>
                     <div class="col-2">
@@ -77,18 +104,21 @@
                                 Status Filter
                             </label>
                             <div class="form-check">
-                                <input type="radio" name="status" value="all" class="form-check-input" {% if request.query_params.get('status', 'all') == 'all' %}checked{% endif %}>
-                                <label class="form-check-label">All</label>
+                                <input type="radio" id="status-all" name="status" value="all" class="form-check-input" {% if
+                                    request.query_params.get('status', 'all' )=='all' %}checked{% endif %}>
+                                <label class="form-check-label" for="status-all">All</label>
                             </div>
                             <div class="form-check">
-                                <input type="radio" name="status" value="active" class="form-check-input" {% if request.query_params.get('status') == 'active' %}checked{% endif %}>
-                                <label class="form-check-label">
+                                <input type="radio" id="status-active" name="status" value="active" class="form-check-input" {% if
+                                    request.query_params.get('status')=='active' %}checked{% endif %}>
+                                <label class="form-check-label" for="status-active">
                                     Active
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input type="radio" name="status" value="deactivated" class="form-check-input" {% if request.query_params.get('status') == 'deactivated' %}checked{% endif %}>
-                                <label class="form-check-label">
+                                <input type="radio" id="status-deactivated" name="status" value="deactivated" class="form-check-input" {% if
+                                    request.query_params.get('status')=='deactivated' %}checked{% endif %}>
+                                <label class="form-check-label" for="status-deactivated">
                                     Deactivated
                                 </label>
                             </div>
@@ -100,16 +130,19 @@
                                 Has Resources
                             </label>
                             <div class="form-check">
-                                <input type="radio" name="has_resources" value="all" class="form-check-input" {% if request.query_params.get('has_resources', 'all') == 'all' %}checked{% endif %}>
-                                <label class="form-check-label">All</label>
+                                <input type="radio" id="has-resources-all" name="has_resources" value="all" class="form-check-input" {% if
+                                    request.query_params.get('has_resources', 'all' )=='all' %}checked{% endif %}>
+                                <label class="form-check-label" for="has-resources-all">All</label>
                             </div>
                             <div class="form-check">
-                                <input type="radio" name="has_resources" value="yes" class="form-check-input" {% if request.query_params.get('has_resources') == 'yes' %}checked{% endif %}>
-                                <label class="form-check-label">Yes</label>
+                                <input type="radio" id="has-resources-yes" name="has_resources" value="yes" class="form-check-input" {% if
+                                    request.query_params.get('has_resources')=='yes' %}checked{% endif %}>
+                                <label class="form-check-label" for="has-resources-yes">Yes</label>
                             </div>
                             <div class="form-check">
-                                <input type="radio" name="has_resources" value="no" class="form-check-input" {% if request.query_params.get('has_resources') == 'no' %}checked{% endif %}>
-                                <label class="form-check-label">No</label>
+                                <input type="radio" id="has-resources-no" name="has_resources" value="no" class="form-check-input" {% if
+                                    request.query_params.get('has_resources')=='no' %}checked{% endif %}>
+                                <label class="form-check-label" for="has-resources-no">No</label>
                             </div>
                         </div>
                     </div>
@@ -123,47 +156,59 @@
                         <button type="submit" class="btn btn-primary w-100 mb-2">
                             <i class="ti ti-search me-1"></i>Apply Filters
                         </button>
-                        <button onclick="window.location.reload()" class="btn btn-outline-secondary w-100" type="button">
+                        <button onclick="window.location.reload()" class="btn btn-outline-secondary w-100"
+                            type="button">
                             <i class="ti ti-refresh me-1"></i>Refresh Table
                         </button>
                     </div>
                 </div>
             </div>
         </form>
-        <div id="advanced-table">
+    </div>
+    <div id="advanced-table">
         <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
             <table class="table table-vcenter table-selectable">
-                <thead class="sticky-top" style="background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%); border-bottom: 2px solid #dee2e6;">
+                <thead class="sticky-top"
+                    style="background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%); border-bottom: 2px solid #dee2e6;">
                     <tr>
-                        <th class="text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
-                            <button class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
+                        <th class="text-muted text-uppercase"
+                            style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
+                            <button
+                                class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
                                 data-sort="sort-controller">
                                 <span>Controller</span>
                                 <i class="ti ti-chevron-down ms-1"></i>
                             </button>
                         </th>
-                        <th class="text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
-                            <button class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
+                        <th class="text-muted text-uppercase"
+                            style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
+                            <button
+                                class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
                                 data-sort="sort-status">
                                 <span>Status</span>
                                 <i class="ti ti-chevron-down ms-1"></i>
                             </button>
                         </th>
-                        <th class="text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
-                            <button class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
+                        <th class="text-muted text-uppercase"
+                            style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
+                            <button
+                                class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
                                 data-sort="sort-created">
                                 <span>Created</span>
                                 <i class="ti ti-chevron-down ms-1"></i>
                             </button>
                         </th>
-                        <th class="text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
-                            <button class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
+                        <th class="text-muted text-uppercase"
+                            style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">
+                            <button
+                                class="table-sort d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-muted"
                                 data-sort="sort-updated">
                                 <span>Updated</span>
                                 <i class="ti ti-chevron-down ms-1"></i>
                             </button>
                         </th>
-                        <th class="w-1 text-muted text-uppercase" style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">Actions</th>
+                        <th class="w-1 text-muted text-uppercase"
+                            style="font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="table-tbody">
@@ -172,7 +217,15 @@
                         <td colspan="5" class="text-center py-5">
                             <div class="empty">
                                 <div class="empty-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 10l.01 0" /><path d="M15 10l.01 0" /><path d="M9.5 15.25a3.5 3.5 0 0 1 5 0" /></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="24" height="24"
+                                        viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                        <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                                        <path d="M9 10l.01 0" />
+                                        <path d="M15 10l.01 0" />
+                                        <path d="M9.5 15.25a3.5 3.5 0 0 1 5 0" />
+                                    </svg>
                                 </div>
                                 <p class="empty-title">No DIDs found</p>
                                 <p class="empty-subtitle text-secondary">
@@ -186,12 +239,16 @@
                     <tr>
                         <td class="sort-controller">
                             <div class="d-flex align-items-center">
-                                <span class="avatar avatar-sm me-2" style="background-image: url({{ did.avatar }})"></span>
+                                <span class="avatar avatar-sm me-2"
+                                    style="background-image: url({{ did.avatar }})"></span>
                                 <div class="flex-fill">
-                                    <div class="fw-bold text-truncate" style="max-width: 200px; font-size: 0.875rem;" title="{{ did.domain }}:{{ did.namespace }}:{{ did.identifier }}">
-                                        {{ did.namespace | title }} / {{ did.identifier | replace('-', ' ') | title }}
+                                    <div class="fw-bold text-truncate" style="max-width: 200px; font-size: 0.875rem;"
+                                        title="{{ did.domain }}:{{ did.namespace }}:{{ did.identifier }}">
+                                        {{ did.namespace | title }} / {{ did.identifier | replace('-', ' ') | title
+                                        }}
                                     </div>
-                                    <div class="text-muted" style="font-size: 0.75rem; word-break: break-all;" title="{{ did.scid }}">
+                                    <div class="text-muted" style="font-size: 0.75rem; word-break: break-all;"
+                                        title="{{ did.scid }}">
                                         {{ did.scid }}
                                     </div>
                                 </div>
@@ -216,10 +273,15 @@
                         </td>
                         <td>
                             <div class="d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#modal-did-{{ loop.index }}" title="View Details">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill"
+                                    data-bs-toggle="modal" data-bs-target="#did-detail-modal"
+                                    data-did-index="{{ loop.index }}" data-did-scid="{{ did.scid }}"
+                                    data-namespace="{{ did.namespace }}" data-alias="{{ did.identifier }}"
+                                    onclick="prepareDidModal(this)" title="View Details">
                                     <i class="ti ti-eye me-1"></i>Details
                                 </button>
-                                <a target="_blank" href="{{ did.links.resolver }}" class="btn btn-sm btn-outline-secondary rounded-pill" title="Resolve DID">
+                                <a target="_blank" href="{{ did.links.resolver }}"
+                                    class="btn btn-sm btn-outline-secondary rounded-pill" title="Resolve DID">
                                     <i class="ti ti-external-link me-1"></i>Resolve
                                 </a>
                             </div>
@@ -259,23 +321,23 @@
             });
         }
     });
-    
+
     // Smooth pagination without full page reload
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         if (e.target.classList.contains('pagination-link')) {
             e.preventDefault();
             const page = e.target.getAttribute('data-page');
             const currentUrl = new URL(window.location);
             currentUrl.searchParams.set('page', page);
-            
+
             // Show loading state
             const tableContainer = document.getElementById('advanced-table');
             tableContainer.style.opacity = '0.5';
             tableContainer.style.pointerEvents = 'none';
-            
+
             // Update URL without reload
             window.history.pushState({}, '', currentUrl.toString());
-            
+
             // Fetch new content
             fetch(currentUrl.toString(), {
                 headers: {
@@ -283,42 +345,481 @@
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => response.text())
-            .then(html => {
-                // Parse the response and update only the table content
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                
-                // Update the table content
-                const newTable = doc.querySelector('#advanced-table');
-                if (newTable) {
-                    document.getElementById('advanced-table').innerHTML = newTable.innerHTML;
-                }
-                
-                // Update pagination
-                const newPagination = doc.querySelector('.card-footer');
-                if (newPagination) {
-                    const currentPagination = document.querySelector('.card-footer');
-                    if (currentPagination) {
-                        currentPagination.innerHTML = newPagination.innerHTML;
+                .then(response => response.text())
+                .then(html => {
+                    // Parse the response and update only the table content
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    // Update the table content
+                    const newTable = doc.querySelector('#advanced-table');
+                    if (newTable) {
+                        document.getElementById('advanced-table').innerHTML = newTable.innerHTML;
                     }
-                }
-                
-                // Reinitialize List.js for sorting on new content
-                if (window.tabler_list["advanced-table"]) {
-                    window.tabler_list["advanced-table"].reIndex();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Fallback to page reload
-                window.location.href = currentUrl.toString();
-            })
-            .finally(() => {
-                // Remove loading state
-                tableContainer.style.opacity = '1';
-                tableContainer.style.pointerEvents = 'auto';
-            });
+
+                    // Update pagination
+                    const newPagination = doc.querySelector('.card-footer');
+                    if (newPagination) {
+                        const currentPagination = document.querySelector('.card-footer');
+                        if (currentPagination) {
+                            currentPagination.innerHTML = newPagination.innerHTML;
+                        }
+                    }
+
+                    // Reinitialize List.js for sorting on new content
+                    if (window.tabler_list["advanced-table"]) {
+                        window.tabler_list["advanced-table"].reIndex();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Fallback to page reload
+                    window.location.href = currentUrl.toString();
+                })
+                .finally(() => {
+                    // Remove loading state
+                    tableContainer.style.opacity = '1';
+                    tableContainer.style.pointerEvents = 'auto';
+                });
         }
     });
+
+    // Pre-load DID data for modal display
+    window.didsData = {
+        {% for did in results %}
+        {{ loop.index }}: {{ did | tojson }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    // Prepare DID modal with data
+    window.prepareDidModal = function(button) {
+        const didIndex = button.getAttribute('data-did-index');
+        const did = window.didsData[didIndex];
+
+        if (!did) {
+            console.error('DID not found for index:', didIndex);
+            return;
+        }
+
+        // Build detailed content matching original did_modal.jinja structure
+        let content = `
+            <!-- DID Header Card -->
+            <div class="col-md-12 mb-4">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="avatar avatar-xl" style="background-image: url(${did.avatar})"></span>
+                            </div>
+                            <div class="col">
+                                <div class="d-flex align-items-center mb-2">
+                                    <h3 class="card-title mb-0 me-3">${did.scid}</h3>
+                                    ${did.deactivated === "True" ? 
+                                        '<span class="badge bg-red-lt"><i class="ti ti-circle-x me-1"></i>Deactivated</span>' :
+                                        '<span class="badge bg-green-lt"><i class="ti ti-circle-check me-1"></i>Active</span>'
+                                    }
+                                </div>
+                                <div class="text-muted">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-world me-1"></i>
+                                        <span class="fw-bold">${did.domain}</span>
+                                        <span class="text-muted mx-1">:</span>
+                                        <span class="fw-bold">${did.namespace}</span>
+                                        <span class="text-muted mx-1">:</span>
+                                        <span class="fw-bold">${did.identifier}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="btn-list">
+                                    <button type="button" class="btn btn-outline-success btn-sm"
+                                        onclick="copyToClipboard('${did.did}')" title="Copy DID">
+                                        <i class="ti ti-copy me-1"></i>Copy DID
+                                    </button>
+                                    <a target="_blank" href="${did.links.resolver}"
+                                        class="btn btn-outline-secondary btn-sm">
+                                        <i class="ti ti-external-link me-1"></i>Resolve
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs Card -->
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs nav-bordered card-header-tabs" data-bs-toggle="tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-whois-modal" class="nav-link active" data-bs-toggle="tab" aria-selected="true" role="tab">
+                                    <i class="ti ti-user-search me-1"></i>Whois
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-verification-methods-modal" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+                                    <i class="ti ti-key me-1"></i>Verification Methods
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-services-modal" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+                                    <i class="ti ti-plug me-1"></i>Services
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-trust-network-modal" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+                                    <i class="ti ti-network me-1"></i>Trust Network
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-history-modal" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+                                    <i class="ti ti-history me-1"></i>History
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-publications-modal" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+                                    <i class="ti ti-file-certificate me-1"></i>Publications
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-links-modal" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+                                    <i class="ti ti-link me-1"></i>Quick Links
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" style="min-height: 400px; max-height: 600px; overflow-y: auto;">
+                            <!-- Whois Tab -->
+                            <div class="tab-pane active show" id="tabs-whois-modal" role="tabpanel">
+                                <div class="row">
+                                    ${did.whois_presentation && did.whois_presentation.verifiableCredential ?
+                                        did.whois_presentation.verifiableCredential.map(credential => {
+                                            const issuer = credential.issuer;
+                                            const issuer_id = typeof issuer === 'object' ? issuer.id : issuer;
+                                            const issuer_name = typeof issuer === 'object' && issuer.name ? issuer.name : (issuer_id ? issuer_id.split(':').pop() : 'Unknown');
+                                            const types = Array.isArray(credential.type) ? credential.type : [credential.type];
+                                            const display_type = types.filter(t => t !== 'VerifiableCredential')[0] || types[0];
+                                            const formatted_type = display_type.replace(/([A-Z])/g, ' $1').trim();
+                                            
+                                            return `
+                                                <div class="col-md-12 mb-2">
+                                                    <div class="card card-sm">
+                                                        <div class="card-body py-2">
+                                                            <div class="d-flex align-items-start">
+                                                                <div class="avatar avatar-sm me-3 bg-blue-lt">
+                                                                    <i class="ti ti-shield-check"></i>
+                                                                </div>
+                                                                <div class="flex-fill">
+                                                                    <div class="d-flex align-items-center mb-1">
+                                                                        <h4 class="mb-0 me-2">${formatted_type}</h4>
+                                                                        <span class="badge bg-blue-lt badge-sm">
+                                                                            <i class="ti ti-shield-check"></i>
+                                                                        </span>
+                                                                    </div>
+                                                                    <div class="text-muted small mb-2">
+                                                                        by <a href="https://dev.uniresolver.io/#${issuer_id}" target="_blank" class="text-decoration-none fw-bold">
+                                                                            ${issuer_name}
+                                                                        </a>
+                                                                        ${credential.issuanceDate ? 
+                                                                            '<span class="text-muted mx-2">•</span><i class="ti ti-clock"></i> ' + credential.issuanceDate.substring(0, 10) : 
+                                                                            ''
+                                                                        }
+                                                                    </div>
+                                                                    ${credential.credentialSubject && (credential.credentialSubject.name || credential.credentialSubject.registeredId) ? 
+                                                                        '<div class="text-muted small">' +
+                                                                        (credential.credentialSubject.name ? 
+                                                                            '<i class="ti ti-user me-1"></i><strong>' + credential.credentialSubject.name + '</strong>' : '') +
+                                                                        (credential.credentialSubject.registeredId ? 
+                                                                            (credential.credentialSubject.name ? ' · ' : '') + 
+                                                                            '<i class="ti ti-id-badge"></i> ' + credential.credentialSubject.registeredId : '') +
+                                                                        '</div>' : ''
+                                                                    }
+                                                                    ${credential.credentialSubject ? 
+                                                                        '<div class="mt-2"><div class="d-flex flex-wrap gap-2">' +
+                                                                        Object.entries(credential.credentialSubject)
+                                                                            .filter(([key]) => !['id', 'type', 'idScheme', 'website', 'name', 'registeredId'].includes(key))
+                                                                            .map(([key, value]) => {
+                                                                                if (typeof value === 'object' && value.name) {
+                                                                                    return '<span class="badge bg-secondary-lt">' + value.name + '</span>';
+                                                                                } else if (typeof value === 'string' && value.startsWith('http')) {
+                                                                                    return '<a href="' + value + '" target="_blank" class="badge bg-secondary-lt text-dark text-decoration-none">' + 
+                                                                                           key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) + 
+                                                                                           ' <i class="ti ti-external-link"></i></a>';
+                                                                                } else if (typeof value !== 'object') {
+                                                                                    return '<span class="text-muted small">' + 
+                                                                                           key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) + 
+                                                                                           ': <strong>' + value + '</strong></span>';
+                                                                                }
+                                                                                return '';
+                                                                            })
+                                                                            .filter(x => x)
+                                                                            .join('') +
+                                                                        '</div></div>' : ''
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('') :
+                                        '<div class="col-md-12"><div class="empty"><div class="empty-icon"><i class="ti ti-user-search icon icon-lg"></i></div><p class="empty-title">No WHOIS presentation</p><p class="empty-subtitle text-secondary">This DID has not published a WHOIS verifiable presentation</p></div></div>'
+                                    }
+                                </div>
+                            </div>
+                            
+                            <!-- Verification Methods Tab -->
+                            <div class="tab-pane" id="tabs-verification-methods-modal" role="tabpanel">
+                                ${did.document?.verificationMethod ? 
+                                    '<div class="list-group list-group-flush">' +
+                                    did.document.verificationMethod.map((vm, idx) => {
+                                        const vmId = vm.id || '';
+                                        const fragment = vmId.includes('#') ? vmId.split('#').pop() : vmId;
+                                        return `
+                                            <div class="list-group-item">
+                                                <div class="row align-items-center">
+                                                    <div class="col-auto">
+                                                        <span class="avatar avatar-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                            <i class="ti ti-key text-white"></i>
+                                                        </span>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                                            <span class="fw-bold font-monospace">${fragment}</span>
+                                                            ${vm.type ? '<span class="badge bg-blue-lt" style="font-size: 0.7rem;">' + vm.type + '</span>' : ''}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('') + '</div>' :
+                                    '<div class="empty"><p class="empty-title">No verification methods</p></div>'
+                                }
+                            </div>
+                            
+                            <!-- Services Tab -->
+                            <div class="tab-pane" id="tabs-services-modal" role="tabpanel">
+                                ${did.document?.service ? 
+                                    '<div class="list-group list-group-flush">' +
+                                    did.document.service.map(svc => `
+                                        <div class="list-group-item">
+                                            <div class="fw-bold">${svc.id || '-'}</div>
+                                            <div class="text-muted small">${svc.type || '-'}</div>
+                                            <div class="text-muted small">${svc.serviceEndpoint || '-'}</div>
+                                        </div>
+                                    `).join('') + '</div>' :
+                                    '<div class="empty"><p class="empty-title">No services configured</p></div>'
+                                }
+                            </div>
+                            
+                            <!-- Trust Network Tab -->
+                            <div class="tab-pane" id="tabs-trust-network-modal" role="tabpanel">
+                                <!-- Witnesses Section -->
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="avatar avatar-sm me-2 bg-green-lt">
+                                            <i class="ti ti-shield-check"></i>
+                                        </div>
+                                        <h5 class="mb-0">Witnesses</h5>
+                                        <span class="badge bg-green-lt ms-2">${did.witnesses.length}</span>
+                                    </div>
+                                    ${did.witnesses.length > 0 ? 
+                                        '<div class="row g-2">' +
+                                        did.witnesses.map((w, idx) => {
+                                            const witnessId = typeof w === 'object' ? w.id : w;
+                                            const witnessName = witnessId.split(':').pop();
+                                            return `
+                                                <div class="col-md-6">
+                                                    <div class="card card-sm">
+                                                        <div class="card-body">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar avatar-sm me-2" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                                                                    <span class="text-white fw-bold">${idx + 1}</span>
+                                                                </div>
+                                                                <div class="flex-fill">
+                                                                    <div class="fw-bold small">${witnessName}</div>
+                                                                    <div class="text-muted" style="font-size: 0.7rem;">
+                                                                        <i class="ti ti-fingerprint me-1"></i>Witness
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <a href="https://dev.uniresolver.io/#${witnessId}" target="_blank" class="btn btn-sm btn-ghost-primary" title="Resolve">
+                                                                        <i class="ti ti-external-link"></i>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('') + '</div>' :
+                                        '<div class="empty"><div class="empty-icon"><i class="ti ti-shield-off icon"></i></div><p class="empty-title">No witnesses configured</p><p class="empty-subtitle text-secondary">This DID operates without witness attestation</p></div>'
+                                    }
+                                </div>
+                                
+                                <!-- Watchers Section -->
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="avatar avatar-sm me-2 bg-blue-lt">
+                                            <i class="ti ti-eye"></i>
+                                        </div>
+                                        <h5 class="mb-0">Watchers</h5>
+                                        <span class="badge bg-blue-lt ms-2">${did.watchers.length}</span>
+                                    </div>
+                                    ${did.watchers.length > 0 ? 
+                                        '<div class="row g-2">' +
+                                        did.watchers.map((w, idx) => {
+                                            const watcherUrl = w;
+                                            const watcherName = w.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                            return `
+                                                <div class="col-md-6">
+                                                    <div class="card card-sm">
+                                                        <div class="card-body">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar avatar-sm me-2" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                                                                    <span class="text-white fw-bold">${idx + 1}</span>
+                                                                </div>
+                                                                <div class="flex-fill">
+                                                                    <div class="fw-bold small text-truncate" style="max-width: 200px;">${watcherName}</div>
+                                                                    <div class="text-muted" style="font-size: 0.7rem;">
+                                                                        <i class="ti ti-world me-1"></i>Watcher Service
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <a href="${watcherUrl}" target="_blank" class="btn btn-sm btn-ghost-primary" title="Open">
+                                                                        <i class="ti ti-external-link"></i>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('') + '</div>' :
+                                        '<div class="empty"><div class="empty-icon"><i class="ti ti-eye-off icon"></i></div><p class="empty-title">No watchers configured</p><p class="empty-subtitle text-secondary">This DID is not being monitored by any watcher service</p></div>'
+                                    }
+                                </div>
+                            </div>
+                            
+                            <!-- History Tab -->
+                            <div class="tab-pane" id="tabs-history-modal" role="tabpanel">
+                                <div class="timeline">
+                                    ${did.logs.map((log, i) => `
+                                        <div class="timeline-event">
+                                            <div class="timeline-event-icon bg-blue-lt">
+                                                <i class="ti ti-git-commit"></i>
+                                            </div>
+                                            <div class="card timeline-event-card">
+                                                <div class="card-body">
+                                                    <div class="text-muted small">${log.versionTime || '-'}</div>
+                                                    <div class="fw-bold">Version ${log.versionId || i + 1}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <!-- Publications Tab (kept from before) -->
+                            <div class="tab-pane" id="tabs-publications-modal" role="tabpanel">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <h4 class="mb-0">Resources (${did.resources.length})</h4>
+                        </div>
+                        <div class="col-auto">
+                            <a href="/explorer/resources?scid=${did.scid}" class="btn btn-sm btn-outline-primary">
+                                <i class="ti ti-external-link me-1"></i>View All Resources
+                            </a>
+                        </div>
+                    </div>
+                    ${did.resources.length > 0 ? did.resources.map((r, i) => `
+                        <a href="/explorer/resources?resource_id=${r.digest}" class="card card-sm mb-2 card-link" style="text-decoration: none;">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-fill">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="badge bg-blue-lt me-2">${r.type}</span>
+                                            ${r.created ? '<span class="text-muted small"><i class="ti ti-calendar me-1"></i>' + r.created + '</span>' : ''}
+                                        </div>
+                                        <div class="text-muted small font-monospace">${r.digest}</div>
+                                    </div>
+                                    <div class="ms-2">
+                                        <i class="ti ti-chevron-right text-muted"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    `).join('') : '<p class="text-muted text-center py-3">No resources published</p>'}
+                    
+                    <div class="row mb-3 mt-4">
+                        <div class="col">
+                            <h4 class="mb-0">Credentials (${did.credentials.length})</h4>
+                        </div>
+                        <div class="col-auto">
+                            <a href="/explorer/credentials?namespace=${did.namespace}&alias=${did.identifier}" class="btn btn-sm btn-outline-primary">
+                                <i class="ti ti-external-link me-1"></i>View All Credentials
+                            </a>
+                        </div>
+                    </div>
+                    ${did.credentials.length > 0 ? did.credentials.map((c, i) => `
+                        <a href="/explorer/credentials?credential_id=${encodeURIComponent(c.id)}" class="card card-sm mb-2 card-link" style="text-decoration: none;">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-fill">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="badge bg-purple-lt me-2">${c.type}</span>
+                                            <span class="badge ${c.verified ? 'bg-green-lt' : 'bg-red-lt'} me-2">
+                                                <i class="ti ${c.verified ? 'ti-shield-check' : 'ti-shield-x'} me-1"></i>
+                                                ${c.verified ? 'Verified' : 'Unverified'}
+                                            </span>
+                                            ${c.revoked ? '<span class="badge bg-red">Revoked</span>' : ''}
+                                        </div>
+                                        <div class="text-muted small mb-1">
+                                            <i class="ti ti-user me-1"></i>${c.subject_id}
+                                        </div>
+                                        <div class="text-muted small">
+                                            <i class="ti ti-calendar me-1"></i>Issued: ${c.issued || '-'}
+                                            ${c.valid_until ? ' | Expires: ' + c.valid_until : ''}
+                                        </div>
+                                    </div>
+                                    <div class="ms-2">
+                                        <i class="ti ti-chevron-right text-muted"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    `).join('') : '<p class="text-muted text-center py-3">No credentials published</p>'}
+                            </div>
+                            
+                            <!-- Quick Links Tab -->
+                            <div class="tab-pane" id="tabs-links-modal" role="tabpanel">
+                                <div class="list-group list-group-flush">
+                                    <a href="${did.links.resolver}" target="_blank" class="list-group-item list-group-item-action">
+                                        <i class="ti ti-external-link me-2"></i>Resolve DID
+                                    </a>
+                                    <a href="${did.links.log_file}" target="_blank" class="list-group-item list-group-item-action">
+                                        <i class="ti ti-file-text me-2"></i>View Log File
+                                    </a>
+                                    <a href="${did.links.witness_file}" target="_blank" class="list-group-item list-group-item-action">
+                                        <i class="ti ti-shield-check me-2"></i>View Witness File
+                                    </a>
+                                    <a href="${did.links.whois_presentation}" target="_blank" class="list-group-item list-group-item-action">
+                                        <i class="ti ti-id-badge me-2"></i>View WHOIS Presentation
+                                    </a>
+                                    <a href="${did.links.resource_query}" class="list-group-item list-group-item-action">
+                                        <i class="ti ti-files me-2"></i>View All Resources
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Update modal content
+        document.getElementById('did-detail-content').innerHTML = content;
+    }
 </script>
