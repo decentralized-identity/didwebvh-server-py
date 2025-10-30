@@ -1,209 +1,219 @@
 # DID WebVH Server Demo
 
-## Pre-requisite
+## Prerequisites
 
-### Docker compose
+### Docker Compose
 
-Ensure you have docker compose installed. This can be verified with the following command.
-`docker compose --version`
-
-Instructions on how to install docker compose can be found here
-https://docs.docker.com/compose/install/
-
-### NGROK
-
-We strongly recommend setting up a free ngrok account prior to going through this demo.
-
-You can signup here:
-https://dashboard.ngrok.com/
-
-Once your account is created, you need to setup a free static endpoint and grab your API key.
-
-You can setup a free static domain in the domain section once logged in:
-https://dashboard.ngrok.com/domains
-
-To get an API key, go to the API key section:
-https://dashboard.ngrok.com/api-keys
-
-Once you have your static domain and your API, proceed with the demo.
-
-## Setting up your local deployment
-
-Start by cloning the repository:
+Ensure you have Docker Compose installed. Verify with:
 ```bash
-git clone https://github.com/identity-foundation/didwebvh-server-py.git
-cd didwebvh-server-py/demo/
+docker compose --version
 ```
 
-**Option 1: Quick Start (Recommended)**
-```bash
-./magic.sh
-```
+Installation instructions: https://docs.docker.com/compose/install/
 
-**Option 2: Manual Docker Compose**
+### ngrok (Optional, for Public Access)
 
-Create your `.env` file (optional, has sensible defaults):
-```bash
-cp .env.example .env
-# Edit .env if needed
-```
+For exposing your local server publicly (e.g., for testing with external services):
 
-Build and start the services:
-```bash
-docker compose up --build
-```
-
-This will run:
-- **DID WebVH Server** on port 8000
-- **ACA-Py Agent** with webvh plugin on ports 8020/8021
-
-You can visit the WebVH explorer at `http://localhost:8000/explorer`
+1. **Sign up** for a free ngrok account: https://dashboard.ngrok.com/
+2. **Get your auth token**: https://dashboard.ngrok.com/get-started/your-authtoken
+3. **Set up a static domain**: https://dashboard.ngrok.com/domains
 
 ## Quick Start with Magic Script 🪄
 
-The fastest way to start the server and run a load test:
+The fastest way to get started:
 
 ```bash
-cd demo
+git clone https://github.com/decentralized-identity/didwebvh-server-py.git
+cd didwebvh-server-py/demo
 ./magic.sh
 ```
 
 This will:
-1. Start the DID WebVH server in Docker
-2. Wait for it to be healthy
-3. Run a load test creating 10 DIDs with credentials
+1. Build and start the DID WebVH server
+2. Wait for the server to be healthy
+3. Run a load test creating 10 DIDs with credentials and resources
 4. Display results and explorer links
-5. **Keep the server running** for you to explore (default behavior)
+5. **Keep the server running** for you to explore
 
-**Common commands:**
+## Magic Script Options
+
+### Basic Usage
+
 ```bash
-# Quick test (10 DIDs, rebuilds with cache, server stays running)
+# Quick start (10 DIDs, default settings)
 ./magic.sh
 
-# Skip rebuild for faster startup (no code changes)
-./magic.sh --no-rebuild
-
-# Medium test (50 DIDs)
+# Create 50 DIDs
 ./magic.sh -c 50
 
 # Fast concurrent test (100 DIDs)
 ./magic.sh -c 100 --concurrent
 
+# Use agent provisioning instead of load test
+./magic.sh --agent
+```
+
+### Build Options
+
+```bash
+# Skip rebuild (fastest, use when no code changes)
+./magic.sh --no-rebuild
+
 # Full rebuild without cache (clean slate)
-./magic.sh --full-rebuild -c 20
+./magic.sh --full-rebuild
 
 # Clean volumes and rebuild
-./magic.sh --clean -c 20
+./magic.sh --clean
+```
 
-# Stop server after test (if needed)
-./magic.sh -c 10 --stop
+### ngrok Integration
 
-# See all options
+To expose your server publicly with ngrok:
+
+```bash
+# Create .env.ngrok file with your credentials
+cat > .env.ngrok << EOF
+NGROK_TOKEN=your_ngrok_token_here
+WEBVH_DOMAIN=your-static-domain.ngrok-free.app
+EOF
+
+# Start with ngrok
+./magic.sh --ngrok
+```
+
+The script will:
+- Start ngrok tunnel automatically
+- Configure the server to use your public domain
+- Display your public URL for external access
+
+### Advanced Options
+
+```bash
+# Stop server after test (default: keeps running)
+./magic.sh --stop
+
+# Custom number of updates per DID
+./magic.sh -c 20 -u 5
+
+# See all available options
 ./magic.sh --help
 ```
 
-**After running**, the server stays running by default so you can:
-- Browse DIDs: `http://localhost:8000/explorer/dids?namespace=loadtest`
-- Browse Credentials: `http://localhost:8000/explorer/credentials?namespace=loadtest`
-- Browse Resources: `http://localhost:8000/explorer/resources`
+### Full Options Reference
 
-**Rebuild behavior:**
-- **Default**: Rebuilds with cache (fast, picks up code changes)
-- **--no-rebuild**: Skips rebuild (fastest, use when no code changes)
-- **--full-rebuild**: Full rebuild without cache (slow, cleanest)
+```
+Usage: ./magic.sh [OPTIONS]
 
-### Services Deployed
+Build Options:
+  --no-rebuild      Skip Docker rebuild (fastest)
+  --full-rebuild    Full rebuild without cache (cleanest)
+  --clean           Remove volumes before rebuild
 
-The magic script deploys:
-1. **DID WebVH Server** (port 8000) - Main server with explorer UI
-2. **ACA-Py Agent** (port 8020/8021) - Controller agent with webvh plugin enabled
-   - Admin API: `http://localhost:8020`
-   - Inbound transport: `http://localhost:8021`
-   - Configured to use local WebVH server
-   - Auto-provisioned wallet with askar-anoncreds
+Load Test Options:
+  -c, --count N     Number of DIDs to create (default: 10)
+  -u, --updates N   Updates per DID (default: 2)
+  --concurrent      Run tests concurrently (faster)
+  --agent           Use agent provisioning instead of load test
 
-## Load Testing
+ngrok Options:
+  --ngrok           Enable ngrok tunnel for public access
+                    Requires NGROK_TOKEN and WEBVH_DOMAIN in .env.ngrok
 
-The `load_test.py` script allows you to create multiple DIDs with log entries, WHOIS files, resources, and verifiable credentials for performance testing.
+Server Options:
+  --stop            Stop server after test (default: keeps running)
 
-### Running the Load Test
-
-The script must be run from the server directory to access the required dependencies:
-
-```bash
-# From the repository root
-cd server
-
-# Set the API key for witness registration (optional, defaults to "webvh")
-export API_KEY="your-api-key-here"
-
-# Run the load test
-uv run python ../demo/load_test.py --help
+Examples:
+  ./magic.sh                          # Quick start with defaults
+  ./magic.sh -c 50 --concurrent       # 50 DIDs concurrently
+  ./magic.sh --ngrok                  # Start with ngrok
+  ./magic.sh --agent --ngrok          # Agent provisioning with ngrok
+  ./magic.sh --no-rebuild -c 20       # Skip rebuild, 20 DIDs
+  ./magic.sh --full-rebuild --clean   # Clean rebuild
 ```
 
-**Note:** The load test automatically registers witness keys using the admin API. Make sure your API key has the necessary permissions.
+## What Gets Created
 
-### Usage Examples
+After running the magic script, you'll have:
 
-```bash
-# Create 10 DIDs with default settings (2 updates + WHOIS + schema each)
-uv run python ../demo/load_test.py
+### Services Running
 
-# Create 50 DIDs with 3 updates each
-uv run python ../demo/load_test.py --count 50 --updates 3
+1. **DID WebVH Server** (port 8000)
+   - Main server with REST API
+   - Explorer UI for browsing DIDs, resources, and credentials
+   - Access: `http://localhost:8000`
 
-# Create 100 DIDs concurrently (much faster!)
-uv run python ../demo/load_test.py -c 100 --concurrent
+2. **PostgreSQL Database** (port 5432)
+   - Persistent storage for all data
+   - Auto-configured and initialized
 
-# Use custom server URL and namespace
-uv run python ../demo/load_test.py -c 20 -s http://localhost:8000 -n mytest
+3. **ACA-Py Agent** (ports 8020/8021) - *with `--agent` flag*
+   - Admin API on port 8020
+   - Inbound transport on port 8021
+   - WebVH plugin enabled
+   - Auto-provisioned with witness configuration
 
-# Create 100 DIDs with minimal updates (fastest)
-uv run python ../demo/load_test.py -c 100 -u 1 --concurrent
-```
+4. **Caddy Reverse Proxy** (ports 80/443)
+   - Routes requests to appropriate services
+   - Handles CORS and security headers
 
-### Parameters
+5. **ngrok Tunnel** - *with `--ngrok` flag*
+   - Public HTTPS URL for your local server
+   - Automatic configuration
 
-- `-c, --count`: Number of DIDs to create (default: 10)
-- `-s, --server`: DID WebVH server URL (default: http://localhost:8000)
-- `-n, --namespace`: Namespace for test DIDs (default: loadtest)
-- `-u, --updates`: Number of updates per DID (default: 2, minimum: 1)
-- `--concurrent`: Run tests concurrently using async HTTP (up to 10 DIDs at once for maximum performance)
+### Test Data Created
 
-### What the Load Test Does
+**With default load test** (`./magic.sh`):
+- 10 DIDs with full log history
+- 2 updates per DID (configurable)
+- Verification methods added to each DID
+- WHOIS verifiable presentations
+- 1 AnonCreds schema per DID
+- 2 verifiable credentials per DID:
+  - 1 regular VC with Data Integrity Proof
+  - 1 EnvelopedVerifiableCredential (VC-JOSE/JWT)
 
-For each DID created, the script will:
-1. **Register the witness key** in the known witness registry (via admin API)
-2. Create an initial DID with witness signature and **watcher configured** (`https://did.observer`)
-3. Perform the specified number of updates (each with witness signature)
-4. Add a verification method to the DID
-5. Create and upload a WHOIS verifiable presentation
-6. **Create and upload an AnonCreds schema** as an attested resource
-7. **Publish a regular VerifiableCredential** with Data Integrity Proof ✨
-8. **Publish an EnvelopedVerifiableCredential** in VC-JOSE format ✨
+**With agent provisioning** (`./magic.sh --agent`):
+- Agent wallet provisioned
+- Witness configuration set up
+- DIDs created through agent
+- Ready for advanced agent operations
 
-**DID Configuration:**
-- Witness: Registered dynamically for each DID
-- Watcher: `https://did.observer` (for monitoring and notification)
+## Exploring the Data
 
-**Total log entries per DID**: `updates + 2` (initial + updates + verification method addition)  
-**Resources per DID**: 1 AnonCreds schema  
-**Credentials per DID**: 2 (1 regular VC + 1 enveloped VC-JOSE) ✨
+Once the server is running, browse your data:
+
+### Explorer UI
+
+- **DIDs**: `http://localhost:8000/explorer/dids?namespace=loadtest`
+- **Credentials**: `http://localhost:8000/explorer/credentials?namespace=loadtest`
+- **Resources**: `http://localhost:8000/explorer/resources`
+- **Homepage**: `http://localhost:8000/explorer`
+
+### API Endpoints
+
+- **API Docs**: `http://localhost:8000/docs`
+- **DID Resolution**: `http://localhost:8000/{namespace}/{identifier}/did.jsonl`
+- **WHOIS**: `http://localhost:8000/{namespace}/{identifier}/whois.vp`
+- **Resources**: `http://localhost:8000/{namespace}/{identifier}/resources/{resource_id}`
+- **Credentials**: `http://localhost:8000/{namespace}/{identifier}/credentials/{credential_id}`
+
+## Load Test Details
 
 ### Performance Metrics
 
-The script reports:
-- Total DIDs created (successful and failed)
+The load test reports:
+- Total DIDs created (successful/failed)
 - Total execution time
 - Average time per DID
-- Total log entries created
-- Total AnonCreds schemas uploaded
-- **Total verifiable credentials published** (regular + enveloped) ✨
-- Throughput (DIDs per second)
+- Total log entries
+- Total resources uploaded
+- Total credentials published
+- Throughput (DIDs/second)
 
 ### Example Output
 
-**Sequential Mode:**
+**Sequential Mode (default):**
 ```
 ══════════════════════════════════════════════════════════════════════
 Starting Load Test
@@ -213,7 +223,6 @@ Namespace: loadtest
 Updates per DID: 2
 Total log entries per DID: 4
 Run ID: a1b2c3d4
-First identifier: a1b2c3d4-0000
 ══════════════════════════════════════════════════════════════════════
 
 [1/10] Processing DID a1b2c3d4-0000
@@ -222,105 +231,68 @@ First identifier: a1b2c3d4-0000
   ✓ Update 2 complete
   ✓ Verification method added
   ✓ WHOIS uploaded
-  ✓ Schema uploaded: zQmfKEootUM8GUmgC...
-
-...
+  ✓ Schema uploaded
+  ✓ Regular VC published
+  ✓ Enveloped VC published
 
 Total DIDs: 10
 ✓ Successful: 10
 Total Time: 48.75s
 Avg Time per DID: 4.88s
-Total Log Entries Created: 40
-AnonCreds Schemas Created: 10
 Throughput: 0.21 DIDs/second
 ══════════════════════════════════════════════════════════════════════
 ```
 
-**Concurrent Mode (--concurrent):**
+**Concurrent Mode (`--concurrent`):**
 ```
-Running tests concurrently...
-Max concurrent DIDs: 10
+Running tests concurrently (max 10 at once)...
 
-Batch 1: Processing DIDs 0 to 9
-✓ [a1b2c3d4-0000] Created DID
-✓ [a1b2c3d4-0001] Created DID
-✓ [a1b2c3d4-0002] Created DID
-  [a1b2c3d4-0000] Update 1/2
-  [a1b2c3d4-0001] Update 1/2
-  [a1b2c3d4-0003] Created DID
-...
 Progress: 10/10 completed (10 successful)
 
 Total DIDs: 10
 ✓ Successful: 10
-Total Time: 12.34s  ← Much faster!
+Total Time: 12.34s  ← 4x faster!
 Avg Time per DID: 1.23s
-Total Log Entries Created: 40
-AnonCreds Schemas Created: 10
-Throughput: 0.81 DIDs/second  ← 4x improvement!
+Throughput: 0.81 DIDs/second
 ══════════════════════════════════════════════════════════════════════
 ```
-## Reverse Proxy with Caddy
 
-The demo includes a Caddy reverse proxy service for production deployments.
+## Configuration
 
-### Local Development (Default)
+### Environment Variables
 
-By default, Caddy runs in HTTP mode for local development:
-
-```bash
-docker compose up -d
-```
-
-Access the server through Caddy:
-- WebVH Server: `http://localhost/`
-- ACA-Py Admin: `http://acapy.localhost/`
-
-### Production Deployment (HTTPS)
-
-For production with automatic HTTPS:
-
-1. **Set your domain** in `.env`:
-   ```bash
-   WEBVH_DOMAIN=your-domain.com
-   ```
-
-2. **Edit the Caddy config** in `docker-compose.yml`:
-   - Remove the line `auto_https off` from the caddy-config section
-   - This enables automatic HTTPS with Let's Encrypt
-
-3. **Ensure ports are accessible**:
-   - Port 80 (HTTP) for Let's Encrypt validation
-   - Port 443 (HTTPS) for secure connections
-
-4. **Start the services**:
-   ```bash
-   docker compose up -d
-   ```
-
-Caddy will automatically:
-- Request and install SSL certificates from Let's Encrypt
-- Redirect HTTP to HTTPS
-- Renew certificates before they expire
-
-### Caddy Features
-
-- ✅ **Automatic HTTPS**: Let's Encrypt integration
-- ✅ **Security Headers**: HSTS, X-Frame-Options, etc.
-- ✅ **Compression**: gzip and zstd
-- ✅ **Access Logs**: JSON formatted
-- ✅ **Health Checks**: Available on port 2019
-- ✅ **Persistent Config**: Stored in Docker volumes
-
-### Caddy Admin API
-
-Access the Caddy admin API at `http://localhost:2019`:
+Create a `.env` file in the `demo` directory for custom configuration:
 
 ```bash
-# Check Caddy health
-curl http://localhost:2019/health
+# Server Configuration
+DOMAIN=localhost
+WEBVH_API_KEY=webvh
 
-# View current config
-curl http://localhost:2019/config/
+# Witness Configuration
+KNOWN_WITNESS_KEY=your_witness_key
+KNOWN_WITNESS_REGISTRY=https://witness-registry-url
+
+# WebVH Settings
+WEBVH_VERSION=1.0
+WEBVH_WITNESS=true
+WEBVH_WATCHER=https://did.observer
+WEBVH_PREROTATION=true
+WEBVH_PORTABILITY=true
+WEBVH_ENDORSEMENT=false
+
+# Database
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=mysecretpassword
+POSTGRES_DB=didwebvh-server
 ```
 
+### ngrok Configuration
+
+Create a `.env.ngrok` file for ngrok settings:
+
+```bash
+NGROK_TOKEN=your_ngrok_token_here
+WEBVH_DOMAIN=your-static-domain.ngrok-free.app
+```
+
+The magic script will automatically load these when using `--ngrok`.

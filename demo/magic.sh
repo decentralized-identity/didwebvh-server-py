@@ -290,7 +290,7 @@ cd "$SCRIPT_DIR"
 
 # Export environment variables
 export WEBVH_NAMESPACE="$NAMESPACE"
-export API_KEY="webvh"  # Default API key for witness registration
+export WEBVH_API_KEY="webvh"  # Default API key for witness registration
 
 # Determine which URL to use
 # If ngrok is enabled, use internal URL to avoid tunnel overhead
@@ -342,7 +342,7 @@ if [ "$USE_AGENT" = true ]; then
     echo "  (DIDs will use this domain)"
     echo ""
     
-    uv run python provision.py
+    uv run python load_test_agent.py
     LOAD_TEST_EXIT_CODE=$?
 else
     # Run the load test from demo directory with its own dependencies

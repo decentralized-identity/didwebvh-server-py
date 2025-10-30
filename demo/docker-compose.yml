@@ -7,13 +7,13 @@ services:
     ports:
       - "${WEBVH_PORT:-8000}:8000"
     environment:
-      DOMAIN: ${WEBVH_DOMAIN:-webvh-server}
+      WEBVH_DOMAIN: ${WEBVH_DOMAIN:-webvh-server}
+      WEBVH_API_KEY: ${WEBVH_API_KEY:-webvh}
       WEBVH_WITNESS: ${WEBVH_WITNESS:-false}
       WEBVH_PREROTATION: ${WEBVH_PREROTATION:-false}
       WEBVH_PORTABILITY: ${WEBVH_PORTABILITY:-false}
       WEBVH_ENDORSEMENT: ${WEBVH_ENDORSEMENT:-false}
       APP_PORT: 8000
-      API_KEY: ${API_KEY:-webvh}
     healthcheck:
       test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/server/status\")' || exit 1"]
       interval: 5s
@@ -80,22 +80,6 @@ services:
         condition: service_healthy
     profiles:
       - ngrok
-  
-  # Optional: Demo provisioning script
-  # demo_script:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.script
-  #   environment:
-  #     WATCHER_URL: ${WATCHER_URL}
-  #     WATCHER_API_KEY: ${WATCHER_API_KEY}
-  #     WEBVH_SERVER_URL: http://webvh-server:8000
-  #     AGENT_ADMIN_API_URL: http://witness-agent:8020
-  #   networks:
-  #     - webvh-network
-  #   depends_on:
-  #     webvh-server:
-  #       condition: service_healthy
 
 networks:
   webvh-network:
@@ -126,8 +110,8 @@ configs:
 
       # Wallet
       wallet-type: askar-anoncreds
-      wallet-name: controller-wallet
-      wallet-key: insecure
+      wallet-name: ${ACAPY_WALLET_KEY-acapy-agent-wallet}
+      wallet-key: ${ACAPY_WALLET_KEY-acapy-agent-wallet-key}
 
       # Tails server for revocation
       tails-server-base-url: https://${WEBVH_DOMAIN}/tails

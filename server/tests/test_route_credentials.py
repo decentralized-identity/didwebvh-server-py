@@ -1,5 +1,6 @@
 """Unit tests for the credentials endpoints."""
 
+import time
 import json
 import base64
 import pytest
@@ -58,8 +59,6 @@ def create_jwt_credential(
     Returns:
         Tuple of (enveloped_credential, decoded_credential)
     """
-    import time
-
     # Create the actual credential payload (must be a complete VC)
     payload = {
         "@context": [
@@ -116,8 +115,6 @@ def create_regular_credential(
     Returns:
         Regular verifiable credential
     """
-    import time
-
     # Make credential ID unique by using timestamp
     id_suffix = unique_id or str(int(time.time() * 1000000))
 
@@ -495,8 +492,6 @@ class TestCredentialValidation:
     @pytest.mark.asyncio
     async def test_publish_credential_missing_type(self):
         """Test that credential without type is rejected."""
-        import time
-
         test_namespace, test_identifier = create_test_namespace_and_identifier("cred-no-type-01")
 
         with TestClient(app) as test_client:

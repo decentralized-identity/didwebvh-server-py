@@ -65,7 +65,7 @@ class DidWebVHClient:
         """
         self.server_url = server_url.rstrip("/")
         self.session = requests.Session()
-        self.api_key = os.getenv("API_KEY", "webvh")
+        self.api_key = os.getenv("WEBVH_API_KEY", os.getenv("API_KEY", "webvh"))
 
     def register_witness(self, witness_key: Key, label: str = "Load Test Witness") -> Dict:
         """Register a witness in the known witness registry."""
@@ -590,7 +590,7 @@ class DidWebVHAsyncClient:
         """
         self.server_url = server_url.rstrip("/")
         self.session = session
-        self.api_key = os.getenv("API_KEY", "webvh")
+        self.api_key = os.getenv("WEBVH_API_KEY", os.getenv("API_KEY", "webvh"))
 
     # Copy all the signing methods from sync client (they don't use HTTP)
     def key_to_multikey(self, key: Key) -> str:

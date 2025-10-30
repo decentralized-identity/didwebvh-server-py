@@ -10,8 +10,19 @@ TEST_SIGNING_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
 TEST_UPDATE_SEED = "ixUwS8A2SYzmPiGor7t08wgg1ifNABrB"
 TEST_UPDATE_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
 
+# Known witness (registered in TEST_WITNESS_REGISTRY)
 TEST_WITNESS_SEED = "ixUwS8A2SYzmPiGor7t08wgg1ifNABrB"
 TEST_WITNESS_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
+
+# Known witness (same as above, for clarity)
+TEST_KNOWN_WITNESS_SEED = TEST_WITNESS_SEED
+TEST_KNOWN_WITNESS_KEY = TEST_WITNESS_KEY
+
+# Unknown witness (NOT registered in TEST_WITNESS_REGISTRY)
+TEST_UNKNOWN_WITNESS_SEED = "UnknownWitnessSeed456NotInRegistry"
+TEST_UNKNOWN_WITNESS_KEY = (
+    "z6MkgCqLkVrGZfctHXYXNyXvqPXJdPJeP39Mk67N9AEL2vP8"  # Generated from seed above
+)
 
 TEST_NEXT_SEED = "ixUwS8A2SYzmPiGor7t08wgg1ifNABrB"
 TEST_NEXT_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
@@ -66,7 +77,6 @@ TEST_POLICY = ActivePolicy(
 ).model_dump()
 
 TEST_WITNESS_REGISTRY = {f"did:key:{TEST_WITNESS_KEY}": {"name": "Test Witness"}}
-
 TEST_ANONCREDS_SCHEMA = {"name": "test", "version": "1.0", "attributes": ["test_attribute"]}
 
 TEST_PARAMETERS = {}

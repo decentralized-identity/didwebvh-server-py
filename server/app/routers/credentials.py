@@ -1,6 +1,8 @@
 """Credential management endpoints."""
 
 import copy
+import json
+import base64
 import logging
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -67,9 +69,6 @@ def _verify_enveloped_credential(credential: dict, did_controller, verifier) -> 
     Raises:
         HTTPException: If verification fails
     """
-    import json
-    import base64
-
     credential_id = credential.get("id", "")
     jwt_token = credential_id.split(",", 1)[1]
 

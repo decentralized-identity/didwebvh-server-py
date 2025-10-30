@@ -16,7 +16,7 @@ from tests.fixtures import (
     TEST_VERIFICATION_METHOD,
 )
 from tests.mock_agents import WitnessAgent, ControllerAgent
-from tests.signer import sign
+from tests.mock_agents import sign
 from tests.helpers import (
     create_unique_did,
     setup_controller_with_verification_method,

@@ -6,6 +6,7 @@ from sqlalchemy.sql import func
 
 from .base import Base
 from app.plugins import DidWebVH
+from app.avatar_generator import generate_avatar
 
 
 # Type aliases for cleaner code (defined after classes below)
@@ -98,8 +99,6 @@ class DidControllerRecord(Base):
         alias = did_parts[5] if len(did_parts) > 5 else ""
 
         # Generate avatar for visual identification
-        from app.avatar_generator import generate_avatar
-
         avatar_svg = generate_avatar(state.scid)
 
         # Build the init data, only setting values not already in kwargs

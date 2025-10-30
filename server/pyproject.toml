@@ -57,7 +57,7 @@ dev = [
 line-length = 100
 
 [tool.ruff.lint]
-select = ["B006", "C", "D", "E", "F"]
+select = ["B006", "C", "D", "E", "F", "PLC0415"]
 
 # https://www.pydocstyle.org/en/2.1.1/error_codes.html
 # https://docs.astral.sh/ruff/rules/#pydocstyle-d

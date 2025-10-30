@@ -1,11 +1,11 @@
 """Utility functions for the DID Web server."""
 
-from config import settings
+import base64
 import jcs
 import json
-from multiformats import multibase, multihash
+from config import settings
 from datetime import datetime, timezone, timedelta
-
+from multiformats import multibase, multihash
 from operator import itemgetter
 
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
@@ -185,8 +185,6 @@ def decode_enveloped_credential(verifiable_credential: dict) -> tuple[list, dict
         - credential_types: List of credential type strings
         - credential_subject: The credentialSubject dict
     """
-    import base64
-
     # Get credential types
     cred_types = verifiable_credential.get("type", [])
     if isinstance(cred_types, str):

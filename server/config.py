@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
-    API_KEY: str = os.environ.get("API_KEY", "webvh")
-    DOMAIN: str = os.environ.get("DOMAIN", "localhost")
+    API_KEY: str = os.environ.get("WEBVH_API_KEY", os.environ.get("API_KEY", "webvh"))
+    DOMAIN: str = os.environ.get("WEBVH_DOMAIN", "localhost")
 
     SCID_PLACEHOLDER: str = r"{SCID}"
     DID_WEB_PREFIX: str = "did:web:"
