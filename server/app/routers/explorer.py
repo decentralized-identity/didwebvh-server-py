@@ -69,11 +69,9 @@ async def explorer_did_table(  # noqa: C901
 
     if request.headers.get("Accept") == "application/json":
         return JSONResponse(status_code=200, content=CONTEXT)
-    
+
     CONTEXT["branding"] = settings.BRANDING
-    return templates.TemplateResponse(
-        request=request, name="pages/did_list.jinja", context=CONTEXT
-    )
+    return templates.TemplateResponse(request=request, name="pages/did_list.jinja", context=CONTEXT)
 
 
 @router.get("/resources")

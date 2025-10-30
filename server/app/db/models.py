@@ -99,6 +99,7 @@ class DidControllerRecord(Base):
 
         # Generate avatar for visual identification
         from app.avatar_generator import generate_avatar
+
         avatar_svg = generate_avatar(state.scid)
 
         # Build the init data, only setting values not already in kwargs

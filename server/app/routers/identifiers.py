@@ -58,11 +58,11 @@ async def request_did(
         },
         "proof": webvh.proof_options(),
     }
-    
+
     # Debug logging
     logger.info(f"=== DID Template Request: {namespace}/{identifier} ===")
     logger.debug(f"Response: {json.dumps(response_content, indent=2)}")
-    
+
     return JSONResponse(
         status_code=200,
         content=response_content,
@@ -79,7 +79,7 @@ async def new_log_entry(
 
     log_entry = request_body.model_dump().get("logEntry")
     witness_signature = request_body.model_dump().get("witnessSignature")
-    
+
     # Debug logging
     logger.info(f"=== New Log Entry Request: {namespace}/{identifier} ===")
     logger.debug(f"Log Entry: {json.dumps(log_entry, indent=2)}")

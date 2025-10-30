@@ -69,21 +69,21 @@ def create_did(namespace):
         "namespace": namespace,
         "identifier": str(uuid.uuid4())[:6],
     }
-    
+
     # Only add watchers if WATCHER_URL is configured
     if WATCHER_URL:
         options["watchers"] = [WATCHER_URL]
-    
+
     r = requests.post(
         f"{AGENT_ADMIN_API_URL}/did/webvh/create",
         headers=AGENT_ADMIN_API_HEADERS,
         json={"options": options},
     )
     result = try_return(r)
-    
+
     # Log the full response for debugging
     logger.debug(f"DID creation response: {result}")
-    
+
     return result
 
 
@@ -245,27 +245,27 @@ for namespace in ["ns-01", "ns-02"]:
     # Create 2 DIDs in each namespace
     for idx in range(2):
         log_entry = create_did(namespace)
-        
+
         # Validate response structure
         if not log_entry:
             logger.error("Failed to create DID - no response from agent")
             continue
-        
+
         scid = log_entry.get("parameters", {}).get("scid")
         did = log_entry.get("state", {}).get("id")
-        
+
         if not scid or not did:
             logger.error(f"Invalid DID creation response: {log_entry}")
             continue
-        
+
         # Extract signing key
         state = log_entry.get("state", {})
         verification_methods = state.get("verificationMethod")
-        
+
         if not verification_methods or len(verification_methods) == 0:
             logger.error(f"No verification methods in DID. State: {state}")
             continue
-        
+
         signing_key = verification_methods[0].get("publicKeyMultibase")
         logger.info(f"New signing key: {signing_key}")
 

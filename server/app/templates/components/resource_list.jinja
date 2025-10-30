@@ -2,41 +2,18 @@
 
 <!-- Single Resource Detail Modal (Dynamically Loaded) -->
 <div class="modal modal-blur fade" id="resource-detail-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="ti ti-file-certificate me-2"></i><span id="resource-modal-title">Resource Details</span>
+                    <i class="ti ti-file-certificate me-2"></i>Resource Details
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card card-sm mb-3">
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <span class="avatar avatar-lg" id="resource-avatar"></span>
-                                    </div>
-                                    <div class="col">
-                                        <h3 class="mb-1" id="resource-type">-</h3>
-                                        <div class="text-muted small">
-                                            <span class="font-monospace" style="font-size: 0.8rem;" id="resource-id">-</span>
-                                        </div>
-                                        <div class="mt-2">
-                                            <span class="badge bg-blue-lt" id="resource-media-type">-</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Resource Details Content -->
-                        <div id="resource-detail-content">
-                            <p class="text-center text-muted">Loading...</p>
-                        </div>
-                    </div>
+                <!-- Resource Details Content (populated by JavaScript) -->
+                <div id="resource-detail-content">
+                    <p class="text-center text-muted">Loading...</p>
                 </div>
             </div>
         </div>
@@ -235,8 +212,13 @@
                         </td>
                         <td>
                             <div class="d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal"
-                                    data-bs-target="#modal-resource-{{ loop.index }}" title="View Details">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" 
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#resource-detail-modal"
+                                        data-resource-index="{{ loop.index }}"
+                                        data-resource-id="{{ resource.resource_id }}"
+                                        onclick="prepareResourceModal(this)"
+                                        title="View Details">
                                     <i class="ti ti-eye me-1"></i>Details
                                 </button>
                                 <a target="_blank" href="{{ resource.url }}" class="btn btn-sm btn-outline-secondary rounded-pill" title="Fetch Resource">
@@ -342,7 +324,7 @@
     });
     
     // Copy to clipboard function
-    function copyToClipboard(text) {
+    window.copyToClipboard = function(text) {
         navigator.clipboard.writeText(text).then(function() {
             // Show success feedback
             const toast = document.createElement('div');
@@ -370,6 +352,212 @@
             console.error('Failed to copy: ', err);
         });
     }
+    
+    // Pre-load resource data for modal display
+    window.resourcesData = {
+        {% for resource in results %}
+        {{ loop.index }}: {{ resource | tojson }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+    
+    // Prepare resource modal with data
+    window.prepareResourceModal = function(button) {
+        const resourceIndex = button.getAttribute('data-resource-index');
+        const resource = window.resourcesData[resourceIndex];
+        
+        console.log('prepareResourceModal called with index:', resourceIndex);
+        console.log('Resource data:', resource);
+        
+        if (!resource) {
+            console.error('Resource not found for index:', resourceIndex);
+            return;
+        }
+        
+        // Helper function to get resource type badge with icon
+        const getResourceTypeBadge = (type) => {
+            if (type.includes('Schema')) {
+                return '<span class="badge bg-blue-lt me-2"><i class="ti ti-database me-1"></i>' + type + '</span>';
+            } else if (type.includes('CredDef')) {
+                return '<span class="badge bg-indigo-lt me-2"><i class="ti ti-id-badge me-1"></i>' + type + '</span>';
+            } else if (type.includes('RevReg')) {
+                return '<span class="badge bg-pink-lt me-2"><i class="ti ti-refresh me-1"></i>' + type + '</span>';
+            } else {
+                return '<span class="badge bg-secondary-lt me-2"><i class="ti ti-file me-1"></i>' + type + '</span>';
+            }
+        };
+        
+        // Build detailed content matching original modal structure
+        let content = `
+            <!-- Controller Information Card -->
+            <div class="col-md-12 mb-3">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">
+                            <i class="ti ti-user me-2"></i>Controller
+                        </h5>
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="avatar avatar-lg" style="background-image: url(${resource.author.avatar})"></span>
+                            </div>
+                            <div class="col">
+                                <h4 class="mb-1">${resource.author.scid}</h4>
+                                <div class="text-muted">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-world me-1"></i>
+                                        <span class="fw-bold">${resource.author.domain}</span>
+                                        <span class="text-muted mx-1">:</span>
+                                        <span class="fw-bold">${resource.author.namespace}</span>
+                                        <span class="text-muted mx-1">:</span>
+                                        <span class="fw-bold">${resource.author.alias}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <a href="dids?scid=${resource.author.scid}" class="btn btn-primary btn-sm">
+                                    <i class="ti ti-search me-1"></i>View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resource Information Card (Header) -->
+            <div class="col-md-12 mb-4">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">
+                            <i class="ti ti-file me-2"></i>Resource
+                        </h5>
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="d-flex align-items-center mb-2">
+                                    ${getResourceTypeBadge(resource.resource_type)}
+                                    ${resource.resource_name && resource.resource_name !== resource.resource_id ? 
+                                        '<span class="text-muted">' + resource.resource_name + '</span>' : ''}
+                                </div>
+                                <div class="text-muted">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-hash me-1"></i>
+                                        <small class="text-truncate" style="max-width: 600px;">${resource.resource_id}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="btn-list">
+                                    <button type="button" class="btn btn-outline-success btn-sm" 
+                                            onclick="copyToClipboard('${resource.resource_id}')" 
+                                            title="Copy resource digest">
+                                        <i class="ti ti-hash me-1"></i>Copy Digest
+                                    </button>
+                                    <a target="_blank" href="${resource.url}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="ti ti-download me-1"></i>Fetch
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs Card -->
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs nav-bordered card-header-tabs" data-bs-toggle="tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-content-modal" class="nav-link active" data-bs-toggle="tab" aria-selected="true" role="tab">
+                                    Content
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-metadata-modal" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+                                    Metadata
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-links-modal" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+                                    Links
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tabs-quicklinks-modal" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+                                    <i class="ti ti-link me-1"></i>Quick Links
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" style="min-height: 400px; max-height: 600px; overflow-y: auto;">
+                            <!-- Content Tab -->
+                            <div class="tab-pane active show" id="tabs-content-modal" role="tabpanel">
+                                <pre>${JSON.stringify(resource.attested_resource?.content || resource.attested_resource, null, 2)}</pre>
+                            </div>
+                            
+                            <!-- Metadata Tab -->
+                            <div class="tab-pane" id="tabs-metadata-modal" role="tabpanel">
+                                ${resource.attested_resource?.metadata ? 
+                                    '<div class="list-group list-group-flush">' +
+                                    Object.entries(resource.attested_resource.metadata).map(([key, value]) => `
+                                        <div class="list-group-item">
+                                            <div class="row align-items-center">
+                                                <div class="col-auto">
+                                                    <span class="avatar avatar-sm bg-primary-lt">
+                                                        <i class="ti ti-tag"></i>
+                                                    </span>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="fw-bold text-capitalize">${key}</div>
+                                                </div>
+                                                <div class="col">
+                                                    <div class="text-secondary" style="word-break: break-word;">
+                                                        ${value}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('') + '</div>'
+                                    : '<div class="empty"><p class="empty-title">No metadata available</p></div>'
+                                }
+                            </div>
+                            
+                            <!-- Links Tab -->
+                            <div class="tab-pane" id="tabs-links-modal" role="tabpanel">
+                                ${resource.attested_resource?.links && resource.attested_resource.links.length > 0 ?
+                                    resource.attested_resource.links.map(link => `
+                                        <div class="card mb-2">
+                                            <div class="card-body">
+                                                <div class="font-weight-medium">${link.type || '-'}</div>
+                                                <div class="text-secondary">${link.id || '-'}</div>
+                                                <div class="text-secondary">${link.timestamp || '-'}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')
+                                    : '<div class="empty"><p class="empty-title">No links available</p></div>'
+                                }
+                            </div>
+                            
+                            <!-- Quick Links Tab -->
+                            <div class="tab-pane" id="tabs-quicklinks-modal" role="tabpanel">
+                                <div class="list-group list-group-flush">
+                                    <a href="${resource.url}" target="_blank" class="list-group-item list-group-item-action">
+                                        <i class="ti ti-download me-2"></i>Fetch Resource
+                                    </a>
+                                    <a href="dids?scid=${resource.author.scid}" class="list-group-item list-group-item-action">
+                                        <i class="ti ti-user-circle me-2"></i>View Controller DID
+                                    </a>
+                                    <a href="resources?scid=${resource.author.scid}" class="list-group-item list-group-item-action">
+                                        <i class="ti ti-files me-2"></i>View All Resources from Controller
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Update modal content
+        document.getElementById('resource-detail-content').innerHTML = content;
+    }
 </script>
-
-{% include('components/resource_modal.jinja')%}

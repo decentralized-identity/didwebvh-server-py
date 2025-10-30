@@ -3,7 +3,12 @@
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from pydantic import Field
 from app.models.base import CustomBaseModel
-from app.utilities import beautify_date, resource_details, decode_enveloped_credential
+from app.utilities import (
+    beautify_date,
+    resource_details,
+    decode_enveloped_credential,
+    resource_id_to_url,
+)
 from app.avatar_generator import generate_avatar
 from app.plugins.storage import StorageManager
 from config import settings
@@ -99,7 +104,7 @@ class ExplorerDidRecord(CustomBaseModel):
         """
         # Use stored avatar from database (generated once at creation time)
         did_avatar = controller.avatar or generate_avatar(controller.scid)
-        
+
         # Transform resources to summaries (limit to first 5 for display)
         # controller.resources is batch-loaded via selectin relationship
         formatted_resources = [
@@ -233,10 +238,12 @@ class ExplorerResourceRecord(CustomBaseModel):
         # Generate avatar for author
         avatar = generate_avatar(resource.scid)
 
-        # Generate resource URL from the attested resource ID (full URL)
-        resource_url = (
-            res_id_full if res_id_full else f"{did_from_id}/resources/{resource.resource_id}"
-        )
+        # Generate HTTPS resource URL from the DID-format ID
+        if res_id_full:
+            resource_url = resource_id_to_url(res_id_full)
+        else:
+            # Fallback: construct from parts
+            resource_url = f"https://{domain}/{namespace}/{alias}/resources/{resource.resource_id}"
 
         # Create author object
         author = ResourceAuthor(
