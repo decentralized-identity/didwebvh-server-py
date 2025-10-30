@@ -2,8 +2,10 @@
 
 import hashlib
 import base64
+from functools import lru_cache
 
 
+@lru_cache(maxsize=1000)
 def generate_avatar_svg(seed: str) -> str:
     """Generate a deterministic SVG identicon based on a seed.
 
@@ -77,6 +79,7 @@ def generate_avatar_svg(seed: str) -> str:
     return f"data:image/svg+xml;base64,{svg_base64}"
 
 
+@lru_cache(maxsize=1000)
 def generate_geometric_avatar(seed: str) -> str:
     """Generate a geometric pattern avatar (alternative style).
 

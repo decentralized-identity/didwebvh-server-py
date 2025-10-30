@@ -48,18 +48,24 @@ async def request_did(
     if namespace in settings.RESERVED_NAMESPACES:
         raise HTTPException(status_code=400, detail=f"Unavailable namespace: {namespace}.")
 
+    response_content = {
+        "versionId": webvh.scid_placeholder,
+        "versionTime": timestamp(),
+        "parameters": webvh.parameters(),
+        "state": {
+            "@context": ["https://www.w3.org/ns/did/v1"],
+            "id": webvh.placeholder_id(namespace, identifier),
+        },
+        "proof": webvh.proof_options(),
+    }
+    
+    # Debug logging
+    logger.info(f"=== DID Template Request: {namespace}/{identifier} ===")
+    logger.debug(f"Response: {json.dumps(response_content, indent=2)}")
+    
     return JSONResponse(
         status_code=200,
-        content={
-            "versionId": webvh.scid_placeholder,
-            "versionTime": timestamp(),
-            "parameters": webvh.parameters(),
-            "state": {
-                "@context": ["https://www.w3.org/ns/did/v1"],
-                "id": webvh.placeholder_id(namespace, identifier),
-            },
-            "proof": webvh.proof_options(),
-        },
+        content=response_content,
     )
 
 
@@ -73,6 +79,11 @@ async def new_log_entry(
 
     log_entry = request_body.model_dump().get("logEntry")
     witness_signature = request_body.model_dump().get("witnessSignature")
+    
+    # Debug logging
+    logger.info(f"=== New Log Entry Request: {namespace}/{identifier} ===")
+    logger.debug(f"Log Entry: {json.dumps(log_entry, indent=2)}")
+    logger.debug(f"Witness Signature: {witness_signature is not None}")
 
     # Get policy and registry from database
     policy = storage.get_policy("active")

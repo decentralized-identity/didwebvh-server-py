@@ -60,21 +60,7 @@ async def explorer_did_table(  # noqa: C901
     did_controllers = storage.get_did_controllers(filters, limit=limit, offset=offset)
 
     # Format results for explorer UI using factory method
-    results = []
-    for controller in did_controllers:
-        # Get resources and credentials for this DID
-        did_resources = storage.get_resources(filters={"scid": controller.scid})
-        did_credentials = storage.get_credentials(filters={"scid": controller.scid})
-
-        # Factory method handles all transformations
-        did_record = ExplorerDidRecord.from_controller(controller, did_resources, did_credentials)
-        results.append(did_record)
-
-    # Apply has_resources filter (post-fetch since it's not a tag)
-    if has_resources == "yes":
-        results = [r for r in results if r.resources and len(r.resources) > 0]
-    elif has_resources == "no":
-        results = [r for r in results if not r.resources or len(r.resources) == 0]
+    results = [ExplorerDidRecord.from_controller(controller) for controller in did_controllers]
 
     CONTEXT = {
         "results": [r.model_dump() for r in results],
@@ -83,8 +69,11 @@ async def explorer_did_table(  # noqa: C901
 
     if request.headers.get("Accept") == "application/json":
         return JSONResponse(status_code=200, content=CONTEXT)
+    
     CONTEXT["branding"] = settings.BRANDING
-    return templates.TemplateResponse(request=request, name="pages/did_list.jinja", context=CONTEXT)
+    return templates.TemplateResponse(
+        request=request, name="pages/did_list.jinja", context=CONTEXT
+    )
 
 
 @router.get("/resources")

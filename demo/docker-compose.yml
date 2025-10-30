@@ -7,7 +7,7 @@ services:
     ports:
       - "${WEBVH_PORT:-8000}:8000"
     environment:
-      DOMAIN: ${WEBVH_DOMAIN:-did.observer}
+      DOMAIN: ${WEBVH_DOMAIN:-webvh-server}
       WEBVH_WITNESS: ${WEBVH_WITNESS:-false}
       WEBVH_PREROTATION: ${WEBVH_PREROTATION:-false}
       WEBVH_PORTABILITY: ${WEBVH_PORTABILITY:-false}
@@ -23,55 +23,63 @@ services:
     networks:
       - webvh-network
 
-  # acapy-agent:
-  #   image: ghcr.io/openwallet-foundation/acapy-plugins/webvh-plugin:latest
-  #   ports:
-  #     - "${ACAPY_ADMIN_PORT:-8020}:8020"
-  #     - "${ACAPY_INBOUND_PORT:-8021}:8021"
-  #   command: >
-  #     start
-  #       --label "WebVH Controller Agent"
-  #       --inbound-transport http 0.0.0.0 8021
-  #       --outbound-transport http
-  #       --endpoint http://acapy-agent:8021
-  #       --admin 0.0.0.0 8020
-  #       --admin-insecure-mode
-  #       --no-ledger
-  #       --wallet-type askar-anoncreds
-  #       --wallet-name webvh-controller
-  #       --wallet-key ${ACAPY_WALLET_KEY:-insecure-dev-key}
-  #       --auto-provision
-  #       --log-level ${ACAPY_LOG_LEVEL:-info}
-  #       --plugin webvh
-  #       --plugin-config-value webvh.witness=false
-  #       --plugin-config-value webvh.server_url=http://webvh-server:8000
-  #       --auto-accept-invites
-  #       --auto-respond-messages
-  #   environment:
-  #     ACAPY_WALLET_SEED: ${ACAPY_WALLET_SEED:-00000000000000000000000000000001}
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "wget --spider -q http://localhost:8020/status || exit 1"]
-  #     interval: 5s
-  #     timeout: 3s
-  #     retries: 10
-  #     start_period: 15s
-  #   networks:
-  #     - webvh-network
-  #   depends_on:
-  #     webvh-server:
-  #       condition: service_healthy
+  acapy-agent:
+    profiles:
+      - agent
+    build:
+      dockerfile: Dockerfile.agent
+    container_name: witness-agent
+    ports:
+      - "8020:8020"  # Admin API
+      - "8021:8021"  # Inbound WebSocket transport
+    command: >
+      start 
+        --arg-file "/tmp/configs.yml"
+        --tails-server-base-url https://${WEBVH_DOMAIN}/tails
+    configs:
+      - source: agent-config
+        target: /tmp/configs.yml
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8020/status || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - webvh-network
+    depends_on:
+      webvh-server:
+        condition: service_healthy
+    restart: unless-stopped
   
+  # Caddy reverse proxy with automatic HTTPS
+  caddy:
+    image: caddy:2-alpine
+    # ports:
+    #   - "${CADDY_HTTPS_PORT:-2019}:2019"
+    configs:
+      - source: caddy-config
+        target: /etc/caddy/Caddyfile
+    networks:
+      - webvh-network
+    depends_on:
+      webvh-server:
+        condition: service_healthy
+    restart: unless-stopped
+
   # Optional: Production deployment with ngrok (comment out for local dev)
-  # ngrok:
-  #   image: ngrok/ngrok:latest
-  #   command: ["http", "webvh-server:8000", "--domain=${WEBVH_DOMAIN}"]
-  #   environment:
-  #     NGROK_AUTHTOKEN: ${NGROK_TOKEN}
-  #   networks:
-  #     - webvh-network
-  #   depends_on:
-  #     webvh-server:
-  #       condition: service_healthy
+  ngrok:
+    image: ngrok/ngrok:latest
+    command: ["http", "webvh-server:8000", "--domain=${WEBVH_DOMAIN}"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_TOKEN}
+    networks:
+      - webvh-network
+    depends_on:
+      webvh-server:
+        condition: service_healthy
+    profiles:
+      - ngrok
   
   # Optional: Demo provisioning script
   # demo_script:
@@ -92,3 +100,60 @@ services:
 networks:
   webvh-network:
     driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+configs:
+  agent-config:
+    content: |
+      ---
+      no-ledger: true
+
+      auto-provision: true
+
+      admin: [0.0.0.0, 8020]
+      admin-insecure-mode: true
+
+      inbound-transport:
+        - [ws, 0.0.0.0, 8021]
+        - [http, 0.0.0.0, 8022]
+
+      outbound-transport: [ws, http]
+      endpoint:
+        - http://caddy:2019
+
+      # Wallet
+      wallet-type: askar-anoncreds
+      wallet-name: controller-wallet
+      wallet-key: insecure
+
+      # Tails server for revocation
+      tails-server-base-url: https://${WEBVH_DOMAIN}/tails
+
+      log-level: info
+
+      auto-accept-invites: true
+      auto-respond-messages: true
+
+      plugin:
+        - webvh
+
+      plugin-config-value:
+        - webvh.server_url=https://${WEBVH_DOMAIN}
+
+  caddy-config:
+    content: |
+      :2019 {
+        @ws {
+          header Connection *Upgrade*
+          header Upgrade websocket
+        }
+        handle @ws {
+          reverse_proxy acapy-agent:8021
+        }
+        handle {
+          reverse_proxy acapy-agent:8022
+        }
+      }

@@ -162,10 +162,13 @@
                                                                 <i class="ti ti-user me-1"></i><strong>{{
                                                                     credential.credentialSubject.name }}</strong>
                                                                 {% if credential.credentialSubject.id %}
-                                                                {% if credential.credentialSubject.id == did.whois_presentation.holder %}
-                                                                <i class="ti ti-circle-check text-success ms-1" title="Credential subject matches presentation holder"></i>
+                                                                {% if credential.credentialSubject.id ==
+                                                                did.whois_presentation.holder %}
+                                                                <i class="ti ti-circle-check text-success ms-1"
+                                                                    title="Credential subject matches presentation holder"></i>
                                                                 {% else %}
-                                                                <i class="ti ti-alert-triangle text-warning ms-1" title="Credential subject does not match presentation holder"></i>
+                                                                <i class="ti ti-alert-triangle text-warning ms-1"
+                                                                    title="Credential subject does not match presentation holder"></i>
                                                                 {% endif %}
                                                                 {% endif %}
                                                                 {% if credential.credentialSubject.registeredId %}
@@ -756,7 +759,8 @@
                                                         <div class="flex-fill">
                                                             <div class="fw-bold">Browse Credentials</div>
                                                             {% if did.credentials %}
-                                                            <div class="text-muted small">{{ did.credentials|length }} credential(s)</div>
+                                                            <div class="text-muted small">{{ did.credentials|length }}
+                                                                credential(s)</div>
                                                             {% endif %}
                                                         </div>
                                                         <span class="badge badge-sm">Internal</span>
@@ -771,7 +775,8 @@
                                                         <div class="flex-fill">
                                                             <div class="fw-bold">Browse Resources</div>
                                                             {% if did.resources %}
-                                                            <div class="text-muted small">{{ did.resources|length }} resource(s)</div>
+                                                            <div class="text-muted small">{{ did.resources|length }}
+                                                                resource(s)</div>
                                                             {% endif %}
                                                         </div>
                                                         <span class="badge badge-sm">Internal</span>

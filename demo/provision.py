@@ -63,20 +63,28 @@ def notify_watcher(did):
 def create_did(namespace):
     """Create a new DID in the specified namespace."""
     logger.info(f"Creating DID in {namespace}")
+    options = {
+        "apply_policy": 1,
+        "witnessThreshold": 1,
+        "namespace": namespace,
+        "identifier": str(uuid.uuid4())[:6],
+    }
+    
+    # Only add watchers if WATCHER_URL is configured
+    if WATCHER_URL:
+        options["watchers"] = [WATCHER_URL]
+    
     r = requests.post(
         f"{AGENT_ADMIN_API_URL}/did/webvh/create",
         headers=AGENT_ADMIN_API_HEADERS,
-        json={
-            "options": {
-                "apply_policy": 1,
-                "witnessThreshold": 1,
-                "watchers": [WATCHER_URL],
-                "namespace": namespace,
-                "identifier": str(uuid.uuid4())[:6],
-            }
-        },
+        json={"options": options},
     )
-    return try_return(r)
+    result = try_return(r)
+    
+    # Log the full response for debugging
+    logger.debug(f"DID creation response: {result}")
+    
+    return result
 
 
 def update_did(scid):
@@ -217,7 +225,18 @@ def create_cred_def(schema_id, tag="default", revocation_size=0):
 
 logger.info("Configuring Agent")
 webvh_config = configure_plugin(WEBVH_SERVER_URL)
-witness_id = webvh_config.get("witnesses")[0]
+
+if not webvh_config:
+    logger.error("Failed to configure WebVH plugin - no response from agent")
+    exit(1)
+
+witnesses = webvh_config.get("witnesses")
+if not witnesses or len(witnesses) == 0:
+    logger.error(f"No witnesses configured. Response: {webvh_config}")
+    logger.error("Make sure the agent is running and the WebVH plugin is loaded")
+    exit(1)
+
+witness_id = witnesses[0]
 logger.info(f"Witness Configured: {witness_id}")
 logger.info("Provisioning Server")
 
@@ -226,11 +245,28 @@ for namespace in ["ns-01", "ns-02"]:
     # Create 2 DIDs in each namespace
     for idx in range(2):
         log_entry = create_did(namespace)
+        
+        # Validate response structure
+        if not log_entry:
+            logger.error("Failed to create DID - no response from agent")
+            continue
+        
         scid = log_entry.get("parameters", {}).get("scid")
         did = log_entry.get("state", {}).get("id")
-        signing_key = (
-            log_entry.get("state", {}).get("verificationMethod")[0].get("publicKeyMultibase")
-        )
+        
+        if not scid or not did:
+            logger.error(f"Invalid DID creation response: {log_entry}")
+            continue
+        
+        # Extract signing key
+        state = log_entry.get("state", {})
+        verification_methods = state.get("verificationMethod")
+        
+        if not verification_methods or len(verification_methods) == 0:
+            logger.error(f"No verification methods in DID. State: {state}")
+            continue
+        
+        signing_key = verification_methods[0].get("publicKeyMultibase")
         logger.info(f"New signing key: {signing_key}")
 
         # Register with watcher if configured
@@ -241,7 +277,7 @@ for namespace in ["ns-01", "ns-02"]:
         # Update the DID twice to generate some log entries
         update_did(scid)
         update_did(scid)
-        notify_watcher(did)
+        # notify_watcher(did)
 
         # Create a sample whois VP
         vc = sign_credential(witness_id, did).get("securedDocument")

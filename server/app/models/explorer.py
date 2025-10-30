@@ -86,42 +86,49 @@ class ExplorerDidRecord(CustomBaseModel):
     def from_controller(
         cls,
         controller: "DidControllerRecord",
-        resources: List["AttestedResourceRecord"],
-        credentials: List["VerifiableCredentialRecord"],
     ) -> "ExplorerDidRecord":
         """Create an ExplorerDidRecord from a DidControllerRecord.
 
+        Uses SQLAlchemy relationships for resources and credentials (batch-loaded).
+
         Args:
-            controller: DID controller from database
-            resources: List of resource records from database
-            credentials: List of credential records from database
+            controller: DID controller from database (with resources/credentials pre-loaded)
 
         Returns:
             ExplorerDidRecord instance
         """
-        # Transform resources to summaries
+        # Use stored avatar from database (generated once at creation time)
+        did_avatar = controller.avatar or generate_avatar(controller.scid)
+        
+        # Transform resources to summaries (limit to first 5 for display)
+        # controller.resources is batch-loaded via selectin relationship
         formatted_resources = [
             DidResourceSummary(
                 type=r.resource_type,
                 digest=r.resource_id,
-                details={},  # Can be enhanced with resource_details() later
+                created=beautify_date(r.created),
+                updated=beautify_date(r.updated),
+                details={},
             )
-            for r in resources
+            for r in (controller.resources[:5] if controller.resources else [])
         ]
 
-        # Transform credentials to summaries
+        # Transform credentials to summaries (limit to first 5 for display)
+        # controller.credentials is batch-loaded via selectin relationship
         formatted_credentials = [
             DidCredentialSummary(
                 id=c.credential_id,
                 type=c.credential_type,
                 subject_id=c.subject_id,
+                created=beautify_date(c.created),
+                updated=beautify_date(c.updated),
                 issued=beautify_date(c.created) if c.created else "",
                 valid_from=beautify_date(c.valid_from) if c.valid_from else "",
                 valid_until=beautify_date(c.valid_until) if c.valid_until else "",
                 revoked=c.revoked,
                 verified=c.verified,
             )
-            for c in credentials
+            for c in (controller.credentials[:5] if controller.credentials else [])
         ]
 
         # Generate links
@@ -147,7 +154,7 @@ class ExplorerDidRecord(CustomBaseModel):
             deactivated=str(controller.deactivated),
             # Computed fields
             active=not controller.deactivated,
-            avatar=generate_avatar(controller.scid),
+            avatar=did_avatar,  # Reuse the avatar generated at the start
             witnesses=controller.parameters.get("witness", {}).get("witnesses", [])
             if controller.parameters
             else [],

@@ -1,5 +1,48 @@
 {% from 'macros/pagination.jinja' import render_pagination %}
 
+<!-- Single Resource Detail Modal (Dynamically Loaded) -->
+<div class="modal modal-blur fade" id="resource-detail-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-file-certificate me-2"></i><span id="resource-modal-title">Resource Details</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-sm mb-3">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <span class="avatar avatar-lg" id="resource-avatar"></span>
+                                    </div>
+                                    <div class="col">
+                                        <h3 class="mb-1" id="resource-type">-</h3>
+                                        <div class="text-muted small">
+                                            <span class="font-monospace" style="font-size: 0.8rem;" id="resource-id">-</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="badge bg-blue-lt" id="resource-media-type">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Resource Details Content -->
+                        <div id="resource-detail-content">
+                            <p class="text-center text-muted">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-table">
         <form action="resources" method="get">

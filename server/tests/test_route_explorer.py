@@ -435,12 +435,9 @@ class TestExplorerIntegration:
 
         did_result = results[0]
         assert "resources" in did_result
-        assert len(did_result["resources"]) >= 1
-
-        # Check resource details
-        resource = did_result["resources"][0]
-        assert resource["type"] == "AnonCredsSchema"
-        assert "digest" in resource
+        # Resources are not included in list view (loaded on-demand in detail modal)
+        # This is a performance optimization to avoid N+1 queries
+        assert isinstance(did_result["resources"], list)
 
     @pytest.mark.asyncio
     async def test_explorer_resource_links_to_did(self):

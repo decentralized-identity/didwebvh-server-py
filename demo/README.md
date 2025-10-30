@@ -260,3 +260,67 @@ AnonCreds Schemas Created: 10
 Throughput: 0.81 DIDs/second  ← 4x improvement!
 ══════════════════════════════════════════════════════════════════════
 ```
+## Reverse Proxy with Caddy
+
+The demo includes a Caddy reverse proxy service for production deployments.
+
+### Local Development (Default)
+
+By default, Caddy runs in HTTP mode for local development:
+
+```bash
+docker compose up -d
+```
+
+Access the server through Caddy:
+- WebVH Server: `http://localhost/`
+- ACA-Py Admin: `http://acapy.localhost/`
+
+### Production Deployment (HTTPS)
+
+For production with automatic HTTPS:
+
+1. **Set your domain** in `.env`:
+   ```bash
+   WEBVH_DOMAIN=your-domain.com
+   ```
+
+2. **Edit the Caddy config** in `docker-compose.yml`:
+   - Remove the line `auto_https off` from the caddy-config section
+   - This enables automatic HTTPS with Let's Encrypt
+
+3. **Ensure ports are accessible**:
+   - Port 80 (HTTP) for Let's Encrypt validation
+   - Port 443 (HTTPS) for secure connections
+
+4. **Start the services**:
+   ```bash
+   docker compose up -d
+   ```
+
+Caddy will automatically:
+- Request and install SSL certificates from Let's Encrypt
+- Redirect HTTP to HTTPS
+- Renew certificates before they expire
+
+### Caddy Features
+
+- ✅ **Automatic HTTPS**: Let's Encrypt integration
+- ✅ **Security Headers**: HSTS, X-Frame-Options, etc.
+- ✅ **Compression**: gzip and zstd
+- ✅ **Access Logs**: JSON formatted
+- ✅ **Health Checks**: Available on port 2019
+- ✅ **Persistent Config**: Stored in Docker volumes
+
+### Caddy Admin API
+
+Access the Caddy admin API at `http://localhost:2019`:
+
+```bash
+# Check Caddy health
+curl http://localhost:2019/health
+
+# View current config
+curl http://localhost:2019/config/
+```
+

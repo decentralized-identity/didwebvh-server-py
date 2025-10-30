@@ -1,6 +1,7 @@
 """SQLAlchemy database models."""
 
 from sqlalchemy import Column, String, Text, Boolean, Integer, DateTime, JSON, Index, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from .base import Base
@@ -41,10 +42,27 @@ class DidControllerRecord(Base):
     parameters = Column(JSON, nullable=False)
     document = Column(JSON, nullable=False)
 
+    # UI/Display fields
+    avatar = Column(Text, nullable=True)  # SVG data URI for visual identification
+
     # Metadata
     created = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    # Relationships
+    resources = relationship(
+        "AttestedResourceRecord",
+        foreign_keys="AttestedResourceRecord.scid",
+        lazy="selectin",  # Eager load with separate query (efficient for collections)
+        order_by="AttestedResourceRecord.created.desc()",
+    )
+    credentials = relationship(
+        "VerifiableCredentialRecord",
+        foreign_keys="VerifiableCredentialRecord.scid",
+        lazy="selectin",  # Eager load with separate query
+        order_by="VerifiableCredentialRecord.created.desc()",
     )
 
     # Composite indexes for common query patterns
@@ -79,6 +97,10 @@ class DidControllerRecord(Base):
         namespace = did_parts[4] if len(did_parts) > 4 else ""
         alias = did_parts[5] if len(did_parts) > 5 else ""
 
+        # Generate avatar for visual identification
+        from app.avatar_generator import generate_avatar
+        avatar_svg = generate_avatar(state.scid)
+
         # Build the init data, only setting values not already in kwargs
         init_data = {
             "scid": state.scid,
@@ -92,6 +114,7 @@ class DidControllerRecord(Base):
             "whois_presentation": whois_presentation or {},
             "parameters": state.params,  # Use computed params from state
             "document": state.document,  # Store the DID document
+            "avatar": avatar_svg,  # Pre-generated avatar
         }
 
         # Merge with kwargs, giving precedence to kwargs
@@ -125,6 +148,12 @@ class AttestedResourceRecord(Base):
 
     # MediaType
     media_type = Column(String(255), nullable=False, default="application/jsonld")
+
+    # Timestamps
+    created = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
 
     # Composite indexes for common queries
     __table_args__ = (
