@@ -4,28 +4,52 @@ services:
     build:
       context: ../server
       dockerfile: Dockerfile
+    ports:
+      - "${WEBVH_PORT:-8000}:8000"
     environment:
-      DOMAIN: ${WEBVH_DOMAIN}
-      WEBVH_WITNESS: false
-      WEBVH_PREROTATION: false
-      WEBVH_PORTABILITY: false
-      WEBVH_ENDORSEMENT: false
+      DOMAIN: ${WEBVH_DOMAIN:-did.observer}
+      WEBVH_WITNESS: ${WEBVH_WITNESS:-false}
+      WEBVH_PREROTATION: ${WEBVH_PREROTATION:-false}
+      WEBVH_PORTABILITY: ${WEBVH_PORTABILITY:-false}
+      WEBVH_ENDORSEMENT: ${WEBVH_ENDORSEMENT:-false}
+      APP_PORT: 8000
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/server/status\")' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - webvh-network
   
-  demo_script:
-    build:
-      context: .
-      dockerfile: Dockerfile.script
-    environment:
-      WATCHER_URL: ${WATCHER_URL}
-      WATCHER_API_KEY: ${WATCHER_API_KEY}
-      WEBVH_SERVER_URL: https://${WEBVH_DOMAIN}
-      AGENT_ADMIN_API_URL: http://witness-agent:8020
-    depends_on:
-      witness-agent:
-        condition: service_healthy
+  # Optional: Production deployment with ngrok (comment out for local dev)
+  # ngrok:
+  #   image: ngrok/ngrok:latest
+  #   command: ["http", "webvh-server:8000", "--domain=${WEBVH_DOMAIN}"]
+  #   environment:
+  #     NGROK_AUTHTOKEN: ${NGROK_TOKEN}
+  #   networks:
+  #     - webvh-network
+  #   depends_on:
+  #     webvh-server:
+  #       condition: service_healthy
+  
+  # Optional: Demo provisioning script
+  # demo_script:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.script
+  #   environment:
+  #     WATCHER_URL: ${WATCHER_URL}
+  #     WATCHER_API_KEY: ${WATCHER_API_KEY}
+  #     WEBVH_SERVER_URL: http://webvh-server:8000
+  #     AGENT_ADMIN_API_URL: http://witness-agent:8020
+  #   networks:
+  #     - webvh-network
+  #   depends_on:
+  #     webvh-server:
+  #       condition: service_healthy
 
-  ngrok:
-    image: ngrok/ngrok:latest
-    command: ["http", "webvh-server:8000", "--domain=${WEBVH_DOMAIN}"]
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_TOKEN}
+networks:
+  webvh-network:
+    driver: bridge

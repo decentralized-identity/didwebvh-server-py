@@ -30,10 +30,25 @@ def did_to_https(did):
 
 
 def beautify_date(value):
-    """Returns a human readable date from a ISO datetime string."""
-    date_str = value.split("T")[0]
-    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-    return date_obj.strftime("%B %d, %Y")
+    """Returns a human readable date from a ISO datetime string or datetime object."""
+    if not value:
+        return ""
+    
+    # If it's already a datetime object, format it directly
+    if isinstance(value, datetime):
+        return value.strftime("%B %d, %Y")
+    
+    # If it's a string, parse it first
+    if isinstance(value, str):
+        date_str = value.split("T")[0]
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        return date_obj.strftime("%B %d, %Y")
+    
+    # Fallback: try to convert to string
+    try:
+        return str(value)
+    except Exception:
+        return ""
 
 
 def resource_id_to_url(resource_id):

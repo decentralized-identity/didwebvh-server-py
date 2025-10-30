@@ -747,6 +747,21 @@
                                                 <i class="ti ti-link me-2"></i>Quick Links
                                             </h4>
                                             <div class="list-group list-group-flush">
+                                                <a href="credentials?scid={{ did.scid }}"
+                                                    class="list-group-item list-group-item-action">
+                                                    <div class="d-flex align-items-center">
+                                                        <span class="avatar avatar-sm me-3 bg-purple-lt">
+                                                            <i class="ti ti-certificate"></i>
+                                                        </span>
+                                                        <div class="flex-fill">
+                                                            <div class="fw-bold">Browse Credentials</div>
+                                                            {% if did.credentials %}
+                                                            <div class="text-muted small">{{ did.credentials|length }} credential(s)</div>
+                                                            {% endif %}
+                                                        </div>
+                                                        <span class="badge badge-sm">Internal</span>
+                                                    </div>
+                                                </a>
                                                 <a href="resources?scid={{ did.scid }}"
                                                     class="list-group-item list-group-item-action">
                                                     <div class="d-flex align-items-center">
@@ -755,6 +770,9 @@
                                                         </span>
                                                         <div class="flex-fill">
                                                             <div class="fw-bold">Browse Resources</div>
+                                                            {% if did.resources %}
+                                                            <div class="text-muted small">{{ did.resources|length }} resource(s)</div>
+                                                            {% endif %}
                                                         </div>
                                                         <span class="badge badge-sm">Internal</span>
                                                     </div>

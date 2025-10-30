@@ -167,6 +167,51 @@ class AttestedResourceRecord(Base):
         )
 
 
+class VerifiableCredentialRecord(Base):
+    """Verifiable credentials table."""
+
+    __tablename__ = "verifiable_credentials"
+
+    # Primary key (credential ID)
+    credential_id = Column(String(500), primary_key=True, index=True)
+    
+    # Relationships - FK to DID controller (issuer)
+    scid = Column(String(255), ForeignKey('did_controllers.scid'), nullable=False, index=True)
+    
+    # DID reference (denormalized for queries)
+    issuer_did = Column(String(500), nullable=False, index=True)
+    
+    # Credential information
+    credential_type = Column(JSON, nullable=False)  # List of types
+    subject_id = Column(String(500), nullable=True, index=True)  # credentialSubject.id if present
+    
+    # Credential data (full VC)
+    verifiable_credential = Column(JSON, nullable=False)
+    
+    # Validity
+    valid_from = Column(DateTime(timezone=True), nullable=True)
+    valid_until = Column(DateTime(timezone=True), nullable=True)
+    
+    # Status
+    revoked = Column(Boolean, default=False, index=True, nullable=False)
+    
+    # Verification (stored at creation time)
+    verified = Column(Boolean, default=False, nullable=False)
+    verification_method = Column(String(500), nullable=True)  # VM used for verification
+    verification_error = Column(Text, nullable=True)  # Error message if verification failed
+    
+    # Metadata
+    created = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    
+    # Composite indexes for common queries
+    __table_args__ = (
+        Index('idx_credential_scid_revoked', 'scid', 'revoked'),
+        Index('idx_credential_issuer_revoked', 'issuer_did', 'revoked'),
+        Index('idx_credential_subject_revoked', 'subject_id', 'revoked'),
+    )
+
+
 class AdminBackgroundTask(Base):
     """Background tasks table."""
 

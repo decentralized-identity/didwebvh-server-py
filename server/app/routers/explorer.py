@@ -1,9 +1,11 @@
 """Explorer routes for DIDs and resources UI."""
 
+import json
+import base64
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from app.db.models import AttestedResourceRecord
+from app.db.models import AttestedResourceRecord, VerifiableCredentialRecord
 from app.utilities import beautify_date, resource_details, resource_id_to_url
 from app.plugins import DidWebVH
 from app.plugins.storage import StorageManager
@@ -75,6 +77,22 @@ async def explorer_did_table(  # noqa: C901
             }
             for r in did_resources
         ]
+        
+        # Get credentials for this DID
+        did_credentials = storage.get_credentials(filters={"scid": controller.scid})
+        formatted_credentials = [
+            {
+                "id": c.credential_id,
+                "type": c.credential_type,
+                "subject_id": c.subject_id,
+                "issued": beautify_date(c.created) if c.created else "",
+                "valid_from": beautify_date(c.valid_from) if c.valid_from else "",
+                "valid_until": beautify_date(c.valid_until) if c.valid_until else "",
+                "revoked": c.revoked,
+                "verified": c.verified,
+            }
+            for c in did_credentials
+        ]
 
         # Generate links
         links = {
@@ -110,6 +128,7 @@ async def explorer_did_table(  # noqa: C901
                 if controller.parameters
                 else [],
                 "resources": formatted_resources,
+                "credentials": formatted_credentials,
                 "links": links,
                 "parameters": controller.parameters,
                 "version_id": controller.logs[-1].get("versionId") if controller.logs else "",
@@ -264,4 +283,221 @@ async def explorer_resource_table(
     CONTEXT["branding"] = settings.BRANDING
     return templates.TemplateResponse(
         request=request, name="pages/resource_list.jinja", context=CONTEXT
+    )
+
+
+@router.get("/credentials")
+async def explorer_credential_table(
+    request: Request,
+    credential_id: str = None,
+    scid: str = None,
+    issuer_did: str = None,
+    subject_id: str = None,
+    credential_type: str = None,
+    namespace: str = None,
+    alias: str = None,
+    revoked: str = None,
+    page: int = 1,
+    limit: int = 50,
+):
+    """Credential table with pagination."""
+    # Build filters for StorageManager query
+    filters = {}
+    if credential_id:
+        filters["credential_id"] = credential_id
+    
+    # Handle namespace/alias -> scid lookup
+    if namespace and alias:
+        # Look up the DID controller by namespace and alias to get SCID
+        did_controller = storage.get_did_controller_by_alias(namespace, alias)
+        if did_controller:
+            filters["scid"] = did_controller.scid
+        else:
+            # If no matching controller found, use impossible SCID to return no results
+            filters["scid"] = "NOTFOUND"
+    elif scid:
+        filters["scid"] = scid
+    
+    if issuer_did:
+        filters["issuer_did"] = issuer_did
+    if subject_id:
+        filters["subject_id"] = subject_id
+    if revoked and revoked.lower() in ['true', 'false']:
+        filters["revoked"] = revoked.lower() == 'true'
+    
+    # Calculate offset
+    offset = (page - 1) * limit
+    
+    # Get total count for pagination
+    total = storage.count_credentials(filters)
+    total_pages = (total + limit - 1) // limit  # Ceiling division
+    
+    # Get paginated results from VerifiableCredentialRecord
+    credential_records = storage.get_credentials(filters, limit=limit, offset=offset)
+    
+    # Format results for explorer UI (compute on-the-fly)
+    formatted_results = []
+    for c in credential_records:
+        vc = c.verifiable_credential
+        
+        # Check if this is an EnvelopedVerifiableCredential
+        cred_types = vc.get("type", [])
+        if isinstance(cred_types, str):
+            cred_types = [cred_types]
+        
+        # If it's an envelope, decode the JWT to get the actual credential type
+        if "EnvelopedVerifiableCredential" in cred_types:
+            try:
+                # Extract JWT from data URL
+                # Note: We only support VC-JOSE format (application/vc+jwt)
+                # Validation is performed at storage time
+                data_url = vc.get("id", "")
+                if data_url.startswith("data:"):
+                    jwt_token = data_url.split(",", 1)[1]
+                    parts = jwt_token.split(".")
+                    
+                    if len(parts) == 3:
+                        # Decode JWT payload (the actual credential)
+                        # Add proper padding for base64
+                        payload = parts[1]
+                        payload += '=' * (4 - len(payload) % 4)
+                        decoded_vc = json.loads(base64.urlsafe_b64decode(payload))
+                        
+                        # Extract types from decoded credential
+                        decoded_types = decoded_vc.get("type", [])
+                        if isinstance(decoded_types, str):
+                            decoded_types = [decoded_types]
+                        cred_types = decoded_types
+                        
+                        # Also extract subject from decoded credential for display
+                        subject = decoded_vc.get("credentialSubject", {})
+                        if isinstance(subject, list):
+                            subject = subject[0] if subject else {}
+                    else:
+                        # Fallback if decoding fails
+                        subject = vc.get("credentialSubject", {})
+                        if isinstance(subject, list):
+                            subject = subject[0] if subject else {}
+                else:
+                    # Fallback if no data URL
+                    subject = vc.get("credentialSubject", {})
+                    if isinstance(subject, list):
+                        subject = subject[0] if subject else {}
+            except Exception as e:
+                # Fallback if decoding fails
+                subject = vc.get("credentialSubject", {})
+                if isinstance(subject, list):
+                    subject = subject[0] if subject else {}
+        else:
+            # Regular credential, extract subject normally
+            subject = vc.get("credentialSubject", {})
+            if isinstance(subject, list):
+                subject = subject[0] if subject else {}
+        
+        # Filter out "VerifiableCredential" to show only specific types
+        specific_types = [t for t in cred_types if t != "VerifiableCredential"]
+        
+        # Format credential type for display (add spaces before capital letters)
+        raw_type = specific_types[0] if specific_types else "VerifiableCredential"
+        # Add space before capital letters and trim
+        formatted_type = ''.join([' ' + c if c.isupper() else c for c in raw_type]).strip()
+        
+        # Get DID controller to extract namespace and alias
+        did_controller = storage.get_did_controller_by_scid(c.scid)
+        namespace_val = did_controller.namespace if did_controller else ""
+        alias_val = did_controller.alias if did_controller else ""
+        
+        # Extract DID method from issuer_did (did:web:, did:key:, etc.)
+        did_method = "unknown"
+        if c.issuer_did and c.issuer_did.startswith("did:"):
+            parts = c.issuer_did.split(":")
+            if len(parts) >= 2:
+                did_method = parts[1]
+        
+        # Extract subject name and type for display
+        subject_name = subject.get("name") if isinstance(subject, dict) else None
+        subject_type = None
+        if isinstance(subject, dict):
+            subject_types = subject.get("type", [])
+            if isinstance(subject_types, list):
+                # Get first non-generic type
+                subject_type = next((t for t in subject_types if t != "VerifiableCredential"), subject_types[0] if subject_types else None)
+            else:
+                subject_type = subject_types
+        
+        formatted_results.append({
+            # Basic info
+            "credential_id": c.credential_id,
+            "issuer_did": c.issuer_did,
+            "subject_id": c.subject_id or "N/A",
+            "subject_name": subject_name,
+            "subject_type": subject_type,
+            "scid": c.scid,
+            "namespace": namespace_val,
+            "alias": alias_val,
+            "avatar": generate_avatar(c.scid),
+            "did_method": did_method,
+            
+            # Credential details
+            "credential_type": formatted_type,
+            "all_types": cred_types,
+            "revoked": c.revoked,
+            "status": "Revoked" if c.revoked else "Active",
+            
+            # Validity
+            "valid_from": beautify_date(c.valid_from) if c.valid_from else "N/A",
+            "valid_until": beautify_date(c.valid_until) if c.valid_until else "N/A",
+            
+            # Verification
+            "verified": c.verified,
+            "verification_method": c.verification_method,
+            "verification_error": c.verification_error,
+            
+            # Full credential
+            "verifiable_credential": vc,
+            
+            # Timestamps
+            "created": beautify_date(c.created),
+            "updated": beautify_date(c.updated),
+        })
+    
+    # Apply credential_type filter (post-query since it's stored as JSON)
+    if credential_type:
+        formatted_results = [
+            r for r in formatted_results 
+            if credential_type.lower() in [t.lower() for t in r["all_types"]]
+        ]
+        # Recalculate total and pages after filtering
+        total = len(formatted_results)
+        total_pages = (total + limit - 1) // limit if limit else 1
+    
+    CONTEXT = {
+        "results": formatted_results,
+        "query_params": {
+            "scid": scid,
+            "issuer_did": issuer_did,
+            "subject_id": subject_id,
+            "credential_type": credential_type,
+            "namespace": namespace,
+            "alias": alias,
+            "revoked": revoked,
+        },
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "total_pages": total_pages,
+            "has_prev": page > 1,
+            "has_next": page < total_pages,
+            "prev_page": page - 1 if page > 1 else None,
+            "next_page": page + 1 if page < total_pages else None,
+        }
+    }
+
+    if request.headers.get("Accept") == "application/json":
+        return JSONResponse(status_code=200, content=CONTEXT)
+
+    CONTEXT["branding"] = settings.BRANDING
+    return templates.TemplateResponse(
+        request=request, name="pages/credential_list.jinja", context=CONTEXT
     )

@@ -45,9 +45,43 @@ This will run the server along with an acapy agent and run a script to provision
 
 You can visit the webvh explorer at your ngrok domain.
 
+## Quick Start with Magic Script 🪄
+
+The fastest way to start the server and run a load test:
+
+```bash
+cd demo
+./magic.sh
+```
+
+This will:
+1. Start the DID WebVH server in Docker
+2. Wait for it to be healthy
+3. Run a load test creating 10 DIDs with credentials
+4. Display results and explorer links
+5. Clean up automatically
+
+**Common commands:**
+```bash
+# Quick test (10 DIDs)
+./magic.sh
+
+# Medium test with server kept running for exploration
+./magic.sh -c 50 --keep
+
+# Fast concurrent test (100 DIDs)
+./magic.sh -c 100 --concurrent
+
+# Clean rebuild and test
+./magic.sh --clean --rebuild -c 20
+
+# See all options
+./magic.sh --help
+```
+
 ## Load Testing
 
-The `load_test.py` script allows you to create multiple DIDs with log entries and WHOIS files for performance testing.
+The `load_test.py` script allows you to create multiple DIDs with log entries, WHOIS files, resources, and verifiable credentials for performance testing.
 
 ### Running the Load Test
 
@@ -102,13 +136,16 @@ For each DID created, the script will:
 4. Add a verification method to the DID
 5. Create and upload a WHOIS verifiable presentation
 6. **Create and upload an AnonCreds schema** as an attested resource
+7. **Publish a regular VerifiableCredential** with Data Integrity Proof ✨
+8. **Publish an EnvelopedVerifiableCredential** in VC-JOSE format ✨
 
 **DID Configuration:**
 - Witness: Registered dynamically for each DID
 - Watcher: `https://did.observer` (for monitoring and notification)
 
 **Total log entries per DID**: `updates + 2` (initial + updates + verification method addition)  
-**Resources per DID**: 1 AnonCreds schema
+**Resources per DID**: 1 AnonCreds schema  
+**Credentials per DID**: 2 (1 regular VC + 1 enveloped VC-JOSE) ✨
 
 ### Performance Metrics
 
@@ -118,6 +155,7 @@ The script reports:
 - Average time per DID
 - Total log entries created
 - Total AnonCreds schemas uploaded
+- **Total verifiable credentials published** (regular + enveloped) ✨
 - Throughput (DIDs per second)
 
 ### Example Output
