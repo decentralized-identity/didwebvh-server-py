@@ -1,112 +1,18 @@
-"""Askar plugin for storing and verifying data."""
+"""Askar plugin for verifying cryptographic proofs."""
 
 import json
 import logging
 from datetime import datetime, timezone
 from hashlib import sha256
 
+import base64
 import canonicaljson
-from aries_askar import Key, Store
+from aries_askar import Key
 from aries_askar.bindings import LocalKeyHandle
 from fastapi import HTTPException
 from multiformats import multibase
 
-from config import settings
-
 logger = logging.getLogger(__name__)
-
-
-class AskarStorageException(Exception):
-    """Custom Askar exception."""
-
-    def __init__(self, message):
-        """Init."""
-        self.message = message
-        super().__init__(self.message)
-
-    def __str__(self):
-        """Str."""
-        return self.message
-
-
-class AskarStorage:
-    """Askar storage plugin."""
-
-    def __init__(self):
-        """Initialize the Askar storage plugin."""
-        self.db = settings.ASKAR_DB
-
-    async def provision(self, recreate=False):
-        """Provision the Askar storage."""
-        logger.warning("DB provisioning started.")
-        try:
-            await Store.provision(self.db, "none", recreate=recreate)
-            logger.warning("DB provisioning finished.")
-        except Exception as e:
-            logger.error(f"DB provisioning failed: {str(e)}")
-            raise AskarStorageException(f"DB provisioning failed: {str(e)}")
-
-    async def open(self):
-        """Open the Askar storage."""
-        return await Store.open(self.db, "none")
-
-    async def fetch(self, category, data_key):
-        """Fetch data from the store."""
-        store = await self.open()
-        try:
-            async with store.session() as session:
-                data = await session.fetch(category, data_key)
-            return json.loads(data.value)
-        except Exception:
-            logger.debug(f"Askar error fetching data {category}: {data_key}", exc_info=True)
-            return None
-
-    async def store(self, category, data_key, data, tags=None):
-        """Store data in the store."""
-        store = await self.open()
-        try:
-            async with store.session() as session:
-                await session.insert(category, data_key, json.dumps(data), tags=tags)
-        except Exception:
-            logger.debug(f"Askar error storing data {category}: {data_key}", exc_info=True)
-            raise AskarStorageException(f"Askar error storing data {category}: {data_key}")
-
-    async def update(self, category, data_key, data, tags=None):
-        """Update data in the store."""
-        store = await self.open()
-        try:
-            async with store.session() as session:
-                await session.replace(category, data_key, json.dumps(data), tags=tags)
-        except Exception:
-            logger.debug(f"Askar error updating data {category}: {data_key}", exc_info=True)
-            raise AskarStorageException(f"Askar error updating data {category}: {data_key}")
-
-    async def append(self, category, data_key, data, tags=None):
-        """Append data in the store."""
-        store = await self.open()
-        try:
-            async with store.session() as session:
-                data_array = await session.fetch(category, data_key)
-                data_array = json.loads(data_array.value)
-                data_array = data_array.append(data)
-                await session.replace(category, data_key, json.dumps(data), tags=tags)
-        except Exception:
-            logger.debug(f"Askar error fetching data {category}: {data_key}", exc_info=True)
-            raise AskarStorageException(f"Askar error appending data {category}: {data_key}")
-
-    async def store_or_update(self, category, data_key, data, tags=None):
-        """Store or update data in the store."""
-        (
-            await self.update(category, data_key, data, tags)
-            if await self.fetch(category, data_key)
-            else await self.store(category, data_key, data, tags)
-        )
-
-    async def get_category_entries(self, category, tag_filter=None):
-        """Return list of items from category."""
-        store = await self.open()
-        scan = store.scan(category=category, tag_filter=tag_filter)
-        return await scan.fetch_all()
 
 
 class AskarVerifier:
@@ -200,8 +106,6 @@ class AskarVerifier:
         Raises:
             HTTPException: If verification fails
         """
-        import json
-        import base64
 
         try:
             parts = jwt_token.split(".")

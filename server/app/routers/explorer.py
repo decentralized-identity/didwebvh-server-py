@@ -71,7 +71,7 @@ async def explorer_did_table(  # noqa: C901
         return JSONResponse(status_code=200, content=CONTEXT)
 
     CONTEXT["branding"] = settings.BRANDING
-    return templates.TemplateResponse(request=request, name="pages/did_list.jinja", context=CONTEXT)
+    return templates.TemplateResponse(request=request, name="pages/dids.jinja", context=CONTEXT)
 
 
 @router.get("/resources")
@@ -119,7 +119,7 @@ async def explorer_resource_table(
 
     CONTEXT["branding"] = settings.BRANDING
     return templates.TemplateResponse(
-        request=request, name="pages/resource_list.jinja", context=CONTEXT
+        request=request, name="pages/resources.jinja", context=CONTEXT
     )
 
 
@@ -199,5 +199,5 @@ async def explorer_credential_table(
 
     CONTEXT["branding"] = settings.BRANDING
     return templates.TemplateResponse(
-        request=request, name="pages/credential_list.jinja", context=CONTEXT
+        request=request, name="pages/credentials.jinja", context=CONTEXT
     )

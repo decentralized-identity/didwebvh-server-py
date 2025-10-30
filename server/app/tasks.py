@@ -8,13 +8,12 @@ from enum import Enum
 from config import settings
 
 from app.models.task import TaskInstance
-from app.plugins import AskarStorage, DidWebVH
+from app.plugins import DidWebVH
 from app.plugins.storage import StorageManager
 from app.utilities import timestamp
 
 logger = logging.getLogger(__name__)
 
-askar = AskarStorage()
 storage = StorageManager()
 webvh = DidWebVH()
 

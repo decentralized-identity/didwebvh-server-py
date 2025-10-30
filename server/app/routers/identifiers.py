@@ -48,24 +48,18 @@ async def request_did(
     if namespace in settings.RESERVED_NAMESPACES:
         raise HTTPException(status_code=400, detail=f"Unavailable namespace: {namespace}.")
 
-    response_content = {
-        "versionId": webvh.scid_placeholder,
-        "versionTime": timestamp(),
-        "parameters": webvh.parameters(),
-        "state": {
-            "@context": ["https://www.w3.org/ns/did/v1"],
-            "id": webvh.placeholder_id(namespace, identifier),
-        },
-        "proof": webvh.proof_options(),
-    }
-
-    # Debug logging
-    logger.info(f"=== DID Template Request: {namespace}/{identifier} ===")
-    logger.debug(f"Response: {json.dumps(response_content, indent=2)}")
-
     return JSONResponse(
         status_code=200,
-        content=response_content,
+        content={
+            "versionId": webvh.scid_placeholder,
+            "versionTime": timestamp(),
+            "parameters": webvh.parameters(),
+            "state": {
+                "@context": ["https://www.w3.org/ns/did/v1"],
+                "id": webvh.placeholder_id(namespace, identifier),
+            },
+            "proof": webvh.proof_options(),
+        },
     )
 
 

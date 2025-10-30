@@ -6,7 +6,8 @@ import requests
 from multiformats import multibase, multihash
 
 from app.utilities import digest_multibase
-from app.plugins import AskarStorage
+
+# AskarStorage removed - using SQLAlchemy for all storage
 import canonicaljson
 from did_webvh.core.state import DocumentState, verify_state_proofs
 from did_webvh.core.witness import verify_witness_proofs
@@ -23,7 +24,6 @@ class DidWebVH:
 
     def __init__(self, active_policy=None, active_registry=None):
         """Initialize the DID WebVH plugin."""
-        self.askar = AskarStorage()
         self.prefix = "did:webvh:"
         self.scid_placeholder = settings.SCID_PLACEHOLDER
         self.method_version = f"{self.prefix}{settings.WEBVH_VERSION}"
