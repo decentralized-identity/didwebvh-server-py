@@ -17,15 +17,16 @@
 #   -u, --updates <N>    Number of updates per DID (default: 2)
 #   --concurrent         Run load test concurrently (faster)
 #   --stop               Stop server after load test (default: keep running)
-#   --rebuild            Rebuild Docker images before starting
+#   --no-rebuild         Skip rebuild (default: rebuild with cache)
+#   --full-rebuild       Full rebuild without cache (slower)
 #   --clean              Clean up existing containers and volumes first
 #   -h, --help           Show this help message
 #
 # Examples:
-#   ./magic.sh                           # Create 10 DIDs, keep server running
+#   ./magic.sh                           # Create 10 DIDs, rebuild with cache
 #   ./magic.sh -c 50 --concurrent        # Create 50 DIDs concurrently
 #   ./magic.sh -c 100 -u 3 --stop        # Create 100 DIDs, stop server after
-#   ./magic.sh --clean --rebuild -c 20   # Clean rebuild and create 20 DIDs
+#   ./magic.sh --clean --full-rebuild    # Clean full rebuild (no cache)
 #
 
 set -e  # Exit on error
@@ -43,7 +44,7 @@ DID_COUNT=10
 UPDATES_PER_DID=2
 CONCURRENT_FLAG=""
 KEEP_SERVER=true
-REBUILD_FLAG=""
+REBUILD_FLAG="--build"  # Default: rebuild with cache
 CLEAN_FIRST=false
 SERVER_URL="http://localhost:8000"
 NAMESPACE="loadtest"
@@ -72,7 +73,16 @@ while [[ $# -gt 0 ]]; do
             KEEP_SERVER=true
             shift
             ;;
+        --no-rebuild)
+            REBUILD_FLAG=""
+            shift
+            ;;
+        --full-rebuild)
+            REBUILD_FLAG="--build --no-cache"
+            shift
+            ;;
         --rebuild)
+            # Legacy flag - kept for backwards compatibility (same as default now)
             REBUILD_FLAG="--build"
             shift
             ;;
@@ -112,6 +122,7 @@ echo "  DIDs to create:  $DID_COUNT"
 echo "  Updates per DID: $UPDATES_PER_DID"
 echo "  Namespace:       $NAMESPACE"
 echo "  Concurrent:      $([ -n "$CONCURRENT_FLAG" ] && echo "Yes" || echo "No")"
+echo "  Rebuild:         $([ -z "$REBUILD_FLAG" ] && echo "Skip" || ( [ "$REBUILD_FLAG" = "--build" ] && echo "With cache" || echo "Full (no cache)" ))"
 echo "  Keep running:    $KEEP_SERVER"
 echo ""
 

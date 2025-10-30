@@ -185,3 +185,100 @@ class AskarVerifier:
             return True
         except Exception:
             raise HTTPException(status_code=400, detail="Error verifying proof.")
+
+    def verify_jwt_signature(self, jwt_token: str, did_document: dict, expected_issuer: str):
+        """Verify JWT signature for EnvelopedVerifiableCredential.
+
+        Args:
+            jwt_token: The JWT token (without data: prefix)
+            did_document: The issuer's DID document
+            expected_issuer: Expected issuer DID (for validation)
+
+        Returns:
+            dict: The decoded JWT payload
+
+        Raises:
+            HTTPException: If verification fails
+        """
+        import json
+        import base64
+
+        try:
+            parts = jwt_token.split(".")
+
+            if len(parts) != 3:
+                raise HTTPException(
+                    status_code=400, detail="Invalid JWT format - must have 3 parts"
+                )
+
+            header_b64, payload_b64, signature_b64 = parts
+
+            # Add padding for base64 decoding
+            header_b64_padded = header_b64 + "=" * (4 - len(header_b64) % 4)
+            payload_b64_padded = payload_b64 + "=" * (4 - len(payload_b64) % 4)
+            signature_b64_padded = signature_b64 + "=" * (4 - len(signature_b64) % 4)
+
+            header = json.loads(base64.urlsafe_b64decode(header_b64_padded))
+            payload = json.loads(base64.urlsafe_b64decode(payload_b64_padded))
+            signature_bytes = base64.urlsafe_b64decode(signature_b64_padded)
+
+            # Get verification method from JWT header (kid)
+            verification_method_id = header.get("kid")
+            if not verification_method_id:
+                raise HTTPException(status_code=400, detail="JWT header missing 'kid' field")
+
+            # Extract issuer DID from payload
+            issuer = payload.get("issuer", {})
+            issuer_did = issuer.get("id") if isinstance(issuer, dict) else issuer
+
+            if not issuer_did:
+                raise HTTPException(status_code=400, detail="Credential payload missing issuer")
+
+            # Verify the issuer DID matches expected
+            if not issuer_did.startswith("did:webvh:") or issuer_did != expected_issuer:
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        f"Credential issuer ({issuer_did}) must match expected ({expected_issuer})"
+                    ),
+                )
+
+            # Get the public key from the DID document
+            verification_method = next(
+                (
+                    vm
+                    for vm in did_document.get("verificationMethod", [])
+                    if vm["id"] == verification_method_id
+                ),
+                None,
+            )
+
+            if not verification_method:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Verification method '{verification_method_id}' not found",
+                )
+
+            # Extract public key (multikey format)
+            multikey = verification_method.get("publicKeyMultibase")
+            if not multikey:
+                raise HTTPException(
+                    status_code=400, detail="Verification method missing publicKeyMultibase"
+                )
+
+            # Create Askar key from public key
+            public_key_bytes = bytes(bytearray(multibase.decode(multikey))[2:])
+            key = Key(LocalKeyHandle()).from_public_bytes(alg="ed25519", public=public_key_bytes)
+
+            # Verify JWT signature (EdDSA signs the header.payload)
+            message = f"{header_b64}.{payload_b64}".encode()
+
+            if not key.verify_signature(message=message, signature=signature_bytes):
+                raise HTTPException(status_code=400, detail="JWT signature verification failed")
+
+            return payload
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"JWT verification failed: {str(e)}")

@@ -27,23 +27,37 @@ https://dashboard.ngrok.com/api-keys
 
 Once you have your static domain and your API, proceed with the demo.
 
-## Setting up you local deployments
+## Setting up your local deployment
 
-Start by cloning the repository
+Start by cloning the repository:
 ```bash
 git clone https://github.com/identity-foundation/didwebvh-server-py.git
 cd didwebvh-server-py/demo/
 ```
 
-Create your `.env` file and fill in the value using your ngrok account
-`cp .env.demo .env`
+**Option 1: Quick Start (Recommended)**
+```bash
+./magic.sh
+```
 
-Build and start the service
-`docker compose up --build`
+**Option 2: Manual Docker Compose**
 
-This will run the server along with an acapy agent and run a script to provision some dids/resources.
+Create your `.env` file (optional, has sensible defaults):
+```bash
+cp .env.example .env
+# Edit .env if needed
+```
 
-You can visit the webvh explorer at your ngrok domain.
+Build and start the services:
+```bash
+docker compose up --build
+```
+
+This will run:
+- **DID WebVH Server** on port 8000
+- **ACA-Py Agent** with webvh plugin on ports 8020/8021
+
+You can visit the WebVH explorer at `http://localhost:8000/explorer`
 
 ## Quick Start with Magic Script 🪄
 
@@ -59,25 +73,54 @@ This will:
 2. Wait for it to be healthy
 3. Run a load test creating 10 DIDs with credentials
 4. Display results and explorer links
-5. Clean up automatically
+5. **Keep the server running** for you to explore (default behavior)
 
 **Common commands:**
 ```bash
-# Quick test (10 DIDs)
+# Quick test (10 DIDs, rebuilds with cache, server stays running)
 ./magic.sh
 
-# Medium test with server kept running for exploration
-./magic.sh -c 50 --keep
+# Skip rebuild for faster startup (no code changes)
+./magic.sh --no-rebuild
+
+# Medium test (50 DIDs)
+./magic.sh -c 50
 
 # Fast concurrent test (100 DIDs)
 ./magic.sh -c 100 --concurrent
 
-# Clean rebuild and test
-./magic.sh --clean --rebuild -c 20
+# Full rebuild without cache (clean slate)
+./magic.sh --full-rebuild -c 20
+
+# Clean volumes and rebuild
+./magic.sh --clean -c 20
+
+# Stop server after test (if needed)
+./magic.sh -c 10 --stop
 
 # See all options
 ./magic.sh --help
 ```
+
+**After running**, the server stays running by default so you can:
+- Browse DIDs: `http://localhost:8000/explorer/dids?namespace=loadtest`
+- Browse Credentials: `http://localhost:8000/explorer/credentials?namespace=loadtest`
+- Browse Resources: `http://localhost:8000/explorer/resources`
+
+**Rebuild behavior:**
+- **Default**: Rebuilds with cache (fast, picks up code changes)
+- **--no-rebuild**: Skips rebuild (fastest, use when no code changes)
+- **--full-rebuild**: Full rebuild without cache (slow, cleanest)
+
+### Services Deployed
+
+The magic script deploys:
+1. **DID WebVH Server** (port 8000) - Main server with explorer UI
+2. **ACA-Py Agent** (port 8020/8021) - Controller agent with webvh plugin enabled
+   - Admin API: `http://localhost:8020`
+   - Inbound transport: `http://localhost:8021`
+   - Configured to use local WebVH server
+   - Auto-provisioned wallet with askar-anoncreds
 
 ## Load Testing
 

@@ -17,7 +17,7 @@ from app.utilities import (
     find_verification_method,
     timestamp,
 )
-from app.routers.dependencies import get_did_controller_dependency
+from app.dependencies import get_did_controller_dependency
 from app.plugins.storage import StorageManager
 
 logger = logging.getLogger(__name__)

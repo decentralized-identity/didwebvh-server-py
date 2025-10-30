@@ -33,17 +33,17 @@ def beautify_date(value):
     """Returns a human readable date from a ISO datetime string or datetime object."""
     if not value:
         return ""
-    
+
     # If it's already a datetime object, format it directly
     if isinstance(value, datetime):
         return value.strftime("%B %d, %Y")
-    
+
     # If it's a string, parse it first
     if isinstance(value, str):
         date_str = value.split("T")[0]
         date_obj = datetime.strptime(date_str, "%Y-%m-%d")
         return date_obj.strftime("%B %d, %Y")
-    
+
     # Fallback: try to convert to string
     try:
         return str(value)
@@ -169,3 +169,87 @@ def timestamp(minutes_delta=None):
 def webvh_to_web_doc(did_document, scid):
     """Trasform did webvh doc to did web."""
     return json.loads(json.dumps(did_document).replace(f"did:webvh:{scid}:", "did:web:"))
+
+
+def decode_enveloped_credential(verifiable_credential: dict) -> tuple[list, dict]:
+    """Decode an EnvelopedVerifiableCredential to extract types and subject.
+
+    For EnvelopedVerifiableCredentials, decodes the JWT payload to get the actual
+    credential information. For regular credentials, returns data directly.
+
+    Args:
+        verifiable_credential: The credential dict (either enveloped or regular)
+
+    Returns:
+        Tuple of (credential_types, credential_subject)
+        - credential_types: List of credential type strings
+        - credential_subject: The credentialSubject dict
+    """
+    import base64
+
+    # Get credential types
+    cred_types = verifiable_credential.get("type", [])
+    if isinstance(cred_types, str):
+        cred_types = [cred_types]
+
+    # Check if this is an EnvelopedVerifiableCredential
+    if "EnvelopedVerifiableCredential" in cred_types:
+        try:
+            # Extract JWT from data URL
+            data_url = verifiable_credential.get("id", "")
+            if data_url.startswith("data:") and "," in data_url:
+                jwt_token = data_url.split(",", 1)[1]
+                parts = jwt_token.split(".")
+
+                if len(parts) == 3:
+                    # Decode JWT payload (the actual credential)
+                    payload = parts[1]
+                    payload += "=" * (4 - len(payload) % 4)  # Add padding
+                    decoded_vc = json.loads(base64.urlsafe_b64decode(payload))
+
+                    # Extract types from decoded credential
+                    decoded_types = decoded_vc.get("type", [])
+                    if isinstance(decoded_types, str):
+                        decoded_types = [decoded_types]
+                    cred_types = decoded_types
+
+                    # Extract subject from decoded credential
+                    subject = decoded_vc.get("credentialSubject", {})
+                    if isinstance(subject, list):
+                        subject = subject[0] if subject else {}
+
+                    return cred_types, subject
+        except Exception:
+            # If decoding fails, fall through to default handling
+            pass
+
+    # Regular credential or fallback - extract subject directly
+    subject = verifiable_credential.get("credentialSubject", {})
+    if isinstance(subject, list):
+        subject = subject[0] if subject else {}
+
+    return cred_types, subject
+
+
+def create_pagination(page: int, limit: int, total: int, total_pages: int) -> dict:
+    """Create pagination metadata dict for explorer UI.
+
+    Args:
+        page: Current page number (1-indexed)
+        limit: Items per page
+        total: Total number of items
+        total_pages: Total number of pages
+
+    Returns:
+        Dictionary with pagination metadata including navigation flags
+    """
+    return {
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "total_pages": total_pages,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+        "prev_page": page - 1 if page > 1 else None,
+        "next_page": page + 1 if page < total_pages else None,
+    }

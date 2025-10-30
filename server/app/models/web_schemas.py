@@ -7,7 +7,11 @@ from .did_document import SecuredDidDocument
 from .resource import AttestedResource
 from .did_log import LogEntry, WitnessSignature
 from .di_proof import DataIntegrityProof
-from .presentation import VerifiablePresentation, VerifiableCredential, EnvelopedVerifiableCredential
+from .presentation import (
+    VerifiablePresentation,
+    VerifiableCredential,
+    EnvelopedVerifiableCredential,
+)
 from .base import CustomBaseModel
 
 
