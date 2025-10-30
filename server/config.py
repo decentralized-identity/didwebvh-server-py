@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     WEBVH_WATCHER: Union[str, None] = os.environ.get("WEBVH_WATCHER", None)
     WEBVH_PREROTATION: bool = eval(os.environ.get("WEBVH_PREROTATION", "true").capitalize())
     WEBVH_PORTABILITY: bool = eval(os.environ.get("WEBVH_PORTABILITY", "true").capitalize())
-    WEBVH_ENDORSEMENT: bool = eval(os.environ.get("WEBVH_ENDORSEMENT", "true").capitalize())
+    WEBVH_ENDORSEMENT: bool = eval(os.environ.get("WEBVH_ENDORSEMENT", "false").capitalize())
 
     WEBVH_ICON: str = "https://didwebvh.info/latest/assets/favicon.ico"
     WEBVH_LOGO: str = "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/didwebvh.jpg"
