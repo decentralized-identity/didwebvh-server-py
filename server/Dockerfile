@@ -1,6 +1,12 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 WORKDIR /didwebvh-server-py
+
+# Install system dependencies required for psycopg2-binary
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/

@@ -68,5 +68,6 @@ def invalid_size_tails_file():
 def test_client():
     """Create a test client."""
     os.environ["ENABLE_TAILS"] = "true"
+    os.environ["WEBVH_ENDORSEMENT"] = "false"
     with TestClient(app) as test_client:
         yield test_client

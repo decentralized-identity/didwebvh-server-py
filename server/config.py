@@ -62,7 +62,7 @@ class Settings(BaseSettings):
         logging.info("Using SQLite database")
         DATABASE_URL: str = "sqlite:///app.db"
 
-    ENABLE_TAILS: bool = eval(os.environ.get("ENABLE_TAILS", "false").capitalize())
+    ENABLE_TAILS: bool = eval(os.environ.get("ENABLE_TAILS", "true").capitalize())
 
     # Recommended for production deployments
 
