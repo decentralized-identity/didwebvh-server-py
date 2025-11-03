@@ -10,16 +10,13 @@ RUN apt-get update && \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create user, directories, and set permissions in a single layer
+# Create user and groups
 RUN adduser --system --group --home ${home} ${user} && \
-    usermod -a -G 0 ${user} && \
-    mkdir -p ${home} ${uv_cache_dir}/uv && \
-    chown -R ${user}:root ${home} ${uv_cache_dir} && \
-    chmod -R ug+rw ${home} ${uv_cache_dir}
+    usermod -a -G 0 ${user}
 
 # Set environment variables for uv cache (required for OpenShift)
-ENV HOME=${home}
-ENV UV_CACHE_DIR=${uv_cache_dir}
+ENV HOME=${home} \
+    UV_CACHE_DIR=${uv_cache_dir}
 
 WORKDIR ${home}
 
@@ -29,13 +26,20 @@ COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /uvx /bin/
 # Copy dependency files first for better layer caching
 COPY --chown=${user}:root README.md pyproject.toml uv.lock ./
 
-# Install dependencies before copying code (better cache utilization)
+# Install dependencies before copying code
 USER ${user}
 RUN uv sync --frozen --no-dev
+
+# Fix permissions for files created by uv sync (OpenShift compatibility)
+USER root
+RUN chown -R ${user}:root ${home} ${uv_cache_dir} && \
+    chmod -R ug+rw ${home} ${uv_cache_dir}
 
 # Copy application code (this layer changes most frequently)
 COPY --chown=${user}:root app ./app
 COPY --chown=${user}:root config.py main.py ./
+
+USER ${user}
 
 # Run the application using the synced environment
 CMD ["uv", "run", "--no-dev", "python", "main.py"]
