@@ -2,7 +2,7 @@ FROM python:3.13-slim
 
 ARG user=webvh
 ARG home=/home/${user}
-ARG uv_cache_dir=${home}/.cache
+ARG uv_cache_dir=${home}/.cache/uv
 
 # Install system dependencies required for psycopg2-binary
 RUN apt-get update && \
@@ -10,11 +10,15 @@ RUN apt-get update && \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create user and directory
-RUN adduser --system --group --home ${home} ${user}
-RUN usermod -a -G 0 ${user} && \
-    mkdir -p ${home} && \
-    chown -R ${user}:${user} ${home}
+# Create user, directories, and set permissions in a single layer
+RUN adduser --system --group --home ${home} ${user} && \
+    usermod -a -G 0 ${user} && \
+    chown -R ${user}:root ${home} ${uv_cache_dir} && \
+    chmod -R ug+rw ${home} ${uv_cache_dir}
+
+# Set environment variables for uv cache (required for OpenShift)
+ENV HOME=${home}
+ENV UV_CACHE_DIR=${uv_cache_dir}
 
 WORKDIR ${home}
 
@@ -22,24 +26,15 @@ WORKDIR ${home}
 COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /uvx /bin/
 
 # Copy dependency files first for better layer caching
-COPY --chown=${user}:${user} README.md pyproject.toml uv.lock ./
+COPY --chown=${user}:root README.md pyproject.toml uv.lock ./
 
 # Install dependencies before copying code (better cache utilization)
 USER ${user}
 RUN uv sync --frozen --no-dev
 
-# Copy application code
-COPY --chown=${user}:${user} app ./app
-COPY --chown=${user}:${user} config.py main.py ./
-
-USER root
-
-# Set permissions for OpenShift compatibility
-RUN mkdir -p ${uv_cache_dir} && \
-    chown -R $user:root ${uv_cache_dir} && \
-    chmod -R ug+rw ${uv_cache_dir}
-
-USER ${user}
+# Copy application code (this layer changes most frequently)
+COPY --chown=${user}:root app ./app
+COPY --chown=${user}:root config.py main.py ./
 
 # Run the application using the synced environment
 CMD ["uv", "run", "--no-dev", "python", "main.py"]
