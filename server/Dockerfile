@@ -28,7 +28,7 @@ COPY --chown=${user}:root README.md pyproject.toml uv.lock ./
 
 # Install dependencies before copying code
 USER ${user}
-RUN uv sync --frozen --no-dev
+RUN uv sync --no-dev
 
 # Fix permissions for files created by uv sync (OpenShift compatibility)
 USER root
