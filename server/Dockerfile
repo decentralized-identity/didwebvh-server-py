@@ -13,6 +13,7 @@ RUN apt-get update && \
 # Create user, directories, and set permissions in a single layer
 RUN adduser --system --group --home ${home} ${user} && \
     usermod -a -G 0 ${user} && \
+    mkdir -p ${home} ${uv_cache_dir}/uv && \
     chown -R ${user}:root ${home} ${uv_cache_dir} && \
     chmod -R ug+rw ${home} ${uv_cache_dir}
 
