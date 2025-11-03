@@ -28,7 +28,8 @@ COPY --chown=${user}:root README.md pyproject.toml uv.lock ./
 
 # Install dependencies before copying code
 USER ${user}
-RUN uv sync --no-dev
+RUN uv sync --no-dev && \
+    (uv pip list 2>/dev/null | grep -q psycopg2-binary || uv pip install "psycopg2-binary>=2.9.11")
 
 # Fix permissions for files created by uv sync (OpenShift compatibility)
 USER root
