@@ -1,9 +1,8 @@
 FROM python:3.13-slim
 
-ARG uid=1001
 ARG user=webvh
-ARG group=webvh
-ARG uv_cache_dir=/.cache
+ARG home=/home/${user}
+ARG uv_cache_dir=${home}/.cache
 
 # Install system dependencies required for psycopg2-binary
 RUN apt-get update && \
@@ -12,10 +11,12 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Create user and directory
-RUN adduser --system --group --home /home/${user} ${user}
-RUN usermod -a -G 0 ${user}
+RUN adduser --system --group --home ${home} ${user}
+RUN usermod -a -G 0 ${user} && \
+    mkdir -p ${home} && \
+    chown -R ${user}:${user} ${home}
 
-WORKDIR /home/${user}
+WORKDIR ${home}
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /uvx /bin/
