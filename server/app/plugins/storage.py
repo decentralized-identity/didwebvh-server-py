@@ -75,7 +75,7 @@ class StorageManager:
         # Create session factory
         self._SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self._engine)
 
-        logger.info(f"StorageManager initialized with {self.db_type} database at {self.db_url}")
+        logger.info(f"StorageManager initialized with {self.db_type} database")
 
     @property
     def engine(self):
@@ -95,12 +95,12 @@ class StorageManager:
         Args:
             recreate: If True, drop all tables before creating them (useful for tests)
         """
-        logger.info(f"DB provisioning started for {self.db_url} .")
+        logger.info("DB provisioning started.")
         try:
             if recreate:
-                logger.info(f"Dropping all existing tables for {self.db_url}...")
+                logger.info("Dropping all existing tables...")
                 Base.metadata.drop_all(bind=self._engine)
-                logger.info(f"All tables dropped for {self.db_url}.")
+                logger.info("All tables dropped.")
 
             logger.info("Creating database tables...")
             Base.metadata.create_all(bind=self._engine)
