@@ -83,8 +83,6 @@ def build_witness_services(registry):
             "type": "WitnessService",
             "serviceEndpoint": endpoint,
         }
-        if entry.get("name"):
-            service_entry["name"] = entry["name"]
         if entry.get("location"):
             service_entry["location"] = entry["location"]
         services.append(service_entry)
