@@ -84,6 +84,8 @@ class TestWitnessRegistryEndpoints:
             registry_data = response.json()
             assert "registry" in registry_data
             assert "meta" in registry_data
+            for witness in registry_data["registry"].values():
+                assert "serviceEndpoint" in witness
 
     @pytest.mark.asyncio
     async def test_get_known_witnesses_unauthorized(self):
@@ -97,13 +99,17 @@ class TestWitnessRegistryEndpoints:
     async def test_add_known_witness_success(self):
         """Test adding a new witness to the registry."""
         with TestClient(app) as test_client:
-            # Generate a valid ed25519 multikey
             new_witness_key = "z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
+            service_endpoint = "https://witness.example.com/invite"
 
             response = test_client.post(
                 "/admin/policy/known-witnesses",
                 headers={"x-api-key": TEST_API_KEY},
-                json={"multikey": new_witness_key, "label": "New Test Witness"},
+                json={
+                    "id": f"did:key:{new_witness_key}",
+                    "label": "New Test Witness",
+                    "invitationUrl": service_endpoint,
+                },
             )
 
             assert response.status_code == 200
@@ -112,6 +118,7 @@ class TestWitnessRegistryEndpoints:
             witness_did = f"did:key:{new_witness_key}"
             assert witness_did in registry_data["registry"]
             assert registry_data["registry"][witness_did]["name"] == "New Test Witness"
+            assert registry_data["registry"][witness_did]["serviceEndpoint"] == service_endpoint
 
     @pytest.mark.asyncio
     async def test_add_known_witness_duplicate(self):
@@ -121,7 +128,7 @@ class TestWitnessRegistryEndpoints:
             response = test_client.post(
                 "/admin/policy/known-witnesses",
                 headers={"x-api-key": TEST_API_KEY},
-                json={"multikey": TEST_WITNESS_KEY, "label": "Duplicate Witness"},
+                json={"id": f"did:key:{TEST_WITNESS_KEY}", "label": "Duplicate Witness"},
             )
 
             assert_error_response(response, 409, "Witness already exists")
@@ -133,10 +140,10 @@ class TestWitnessRegistryEndpoints:
             response = test_client.post(
                 "/admin/policy/known-witnesses",
                 headers={"x-api-key": TEST_API_KEY},
-                json={"multikey": "invalid-key-12345", "label": "Invalid Witness"},
+                json={"id": "invalid-key-12345", "label": "Invalid Witness", "invitationUrl": "https://test"},
             )
 
-            assert_error_response(response, 400, "Invalid multikey")
+            assert_error_response(response, 400, "Witness id must be a did:key identifier.")
 
     @pytest.mark.asyncio
     async def test_add_known_witness_unauthorized(self):
@@ -145,8 +152,9 @@ class TestWitnessRegistryEndpoints:
             response = test_client.post(
                 "/admin/policy/known-witnesses",
                 json={
-                    "multikey": "z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
+                    "id": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
                     "label": "Unauthorized Witness",
+                    "invitationUrl": "https://test",
                 },
             )
 
@@ -162,7 +170,7 @@ class TestWitnessRegistryEndpoints:
             test_client.post(
                 "/admin/policy/known-witnesses",
                 headers={"x-api-key": TEST_API_KEY},
-                json={"multikey": new_witness_key, "label": "Witness to Remove"},
+                json={"id": f"did:key:{new_witness_key}", "label": "Witness to Remove", "invitationUrl": "https://example.com/invite"},
             )
 
             # Now remove it

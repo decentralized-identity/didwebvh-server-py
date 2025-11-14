@@ -33,6 +33,7 @@ class KnownWitnessRegistry(CustomBaseModel):
         url: str = Field(None)
         name: str = Field(None)
         location: str = Field(None)
+        serviceEndpoint: str = Field(None)
 
     meta: RegistryMetadata = Field()
     registry: Dict[str, RegistryEntry] = Field()

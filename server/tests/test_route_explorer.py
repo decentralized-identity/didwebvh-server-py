@@ -5,9 +5,12 @@ from fastapi.testclient import TestClient
 
 from app import app
 from app.plugins.storage import StorageManager
+from app.db.models import KnownWitnessRegistry
 from tests.fixtures import (
     TEST_POLICY,
     TEST_WITNESS_REGISTRY,
+    TEST_WITNESS_SERVICE_ENDPOINT,
+    TEST_WITNESS_KEY,
 )
 from tests.helpers import (
     create_unique_did,
@@ -16,6 +19,7 @@ from tests.helpers import (
     create_test_namespace_and_identifier,
 )
 from tests.mock_agents import ControllerAgent
+from config import settings
 
 
 @pytest.fixture(autouse=True)
@@ -473,3 +477,82 @@ class TestExplorerIntegration:
         assert resource_result["author"]["scid"] == scid
         assert resource_result["author"]["namespace"] == namespace
         assert resource_result["author"]["alias"] == identifier
+
+
+class TestExplorerWitnessRegistry:
+    """Test cases for the witness registry explorer endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_witnesses_page_html(self):
+        """Witness page should render with registry content."""
+        with TestClient(app) as test_client:
+            response = test_client.get("/explorer/witnesses")
+
+        assert response.status_code == 200
+        assert "Known Witness Registry" in response.text
+        assert TEST_WITNESS_SERVICE_ENDPOINT in response.text
+
+    @pytest.mark.asyncio
+    async def test_witnesses_json_response(self):
+        """Witness endpoint should return structured JSON when requested."""
+        with TestClient(app) as test_client:
+            response = test_client.get(
+                "/explorer/witnesses", headers={"Accept": "application/json"}
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == len(TEST_WITNESS_REGISTRY)
+        assert "meta" in data
+        assert data["meta"]["created"]
+
+        witness_entry = data["results"][0]
+        assert witness_entry["service_endpoint"] == TEST_WITNESS_SERVICE_ENDPOINT
+        assert witness_entry["resolver_url"].startswith("https://")
+        assert witness_entry["id"].startswith("did:key:")
+
+
+class TestWellKnownWitnessRegistry:
+    """Test cases for the well-known witness registry endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_well_known_witness_registry_success(self):
+        with TestClient(app) as test_client:
+            response = test_client.get("/.well-known/witness.json")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "registry" in data
+        assert f"did:key:{TEST_WITNESS_KEY}" in data["registry"]
+
+    @pytest.mark.asyncio
+    async def test_well_known_witness_registry_not_found(self):
+        storage = StorageManager()
+        with storage.get_session() as session:
+            registry = session.query(KnownWitnessRegistry).filter(
+                KnownWitnessRegistry.registry_id == "knownWitnesses"
+            ).first()
+            if registry:
+                session.delete(registry)
+                session.commit()
+
+        with TestClient(app) as test_client:
+            response = test_client.get("/.well-known/witness.json")
+
+        assert response.status_code == 404
+        assert "Witness registry not found." in response.json().get("detail", "")
+
+
+class TestWellKnownDidDocument:
+    """Test cases for the well-known DID document endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_well_known_did_success(self):
+        with TestClient(app) as test_client:
+            response = test_client.get("/.well-known/did.json")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data.get("@context") == "https://www.w3.org/ns/did/v1"
+        assert data.get("id") == f"did:web:{settings.DOMAIN}"
+        assert len(data.get("service", [])) > 0

@@ -147,12 +147,16 @@ class DidWebVH:
     def cache_known_witness_registry(self):
         """Cache known witness registry."""
         if self.active_policy.get("witness_registry_url"):
-            r = requests.get(self.active_policy.get("witness_registry_url"))
-            self.known_witness_registry |= r.json().get("registry")
+            response = requests.get(self.active_policy.get("witness_registry_url"))
+            remote_registry = response.json().get("registry", {}) if response.ok else {}
+            if remote_registry:
+                self.known_witness_registry |= remote_registry
 
-        for witness in self.known_witness_registry:
-            if not witness.startswith("did:key:"):
-                self.known_witness_registry.pop(witness)
+        invalid_entries = [
+            witness_id for witness_id in list(self.known_witness_registry.keys()) if not witness_id.startswith("did:key:")
+        ]
+        for witness_id in invalid_entries:
+            self.known_witness_registry.pop(witness_id, None)
 
         return self.known_witness_registry
 
@@ -267,9 +271,16 @@ class DidWebVH:
             server_parameter["nextKeyHashes"] = []
 
         if self.active_policy.get("witness"):
+            witnesses = []
+            for witness_id, entry in (self.known_witness_registry or {}).items():
+                witness_info = {"id": witness_id}
+                if isinstance(entry, dict) and entry.get("serviceEndpoint"):
+                    witness_info["serviceEndpoint"] = entry.get("serviceEndpoint")
+                witnesses.append(witness_info)
+
             server_parameter["witness"] = {
                 "threshold": 1,
-                "witnesses": [{"id": witness} for witness in self.known_witness_registry],
+                "witnesses": witnesses,
             }
 
         if self.active_policy.get("watcher"):

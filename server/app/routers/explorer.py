@@ -9,6 +9,8 @@ from app.models.explorer import (
     ExplorerDidRecord,
     ExplorerResourceRecord,
     ExplorerCredentialRecord,
+    ExplorerWitnessRecord,
+    ExplorerWitnessRegistryMeta,
 )
 
 from config import templates, settings
@@ -200,4 +202,40 @@ async def explorer_credential_table(
     CONTEXT["branding"] = settings.BRANDING
     return templates.TemplateResponse(
         request=request, name="pages/credentials.jinja", context=CONTEXT
+    )
+
+
+@router.get("/witnesses")
+@router.get("/witnesses/")
+async def explorer_witness_registry(request: Request):
+    """View the known witness registry."""
+    registry = storage.get_registry("knownWitnesses")
+    witness_records: list[ExplorerWitnessRecord] = []
+
+    if registry and registry.registry_data:
+        for witness_id, entry in registry.registry_data.items():
+            entry_data = entry or {}
+            witness_records.append(
+                ExplorerWitnessRecord.from_registry_entry(witness_id, entry_data)
+            )
+
+    # Sort alphabetically by name then short id for consistent display
+    witness_records.sort(key=lambda w: (w.name or w.short_id).lower())
+
+    meta = ExplorerWitnessRegistryMeta.from_meta(registry.meta if registry else None)
+
+    context = {
+        "results": [record.model_dump() for record in witness_records],
+        "total": len(witness_records),
+        "meta": meta.model_dump(),
+    }
+
+    if request.headers.get("Accept") == "application/json":
+        return JSONResponse(status_code=200, content=context)
+
+    context["branding"] = settings.BRANDING
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/witnesses.jinja",
+        context=context,
     )

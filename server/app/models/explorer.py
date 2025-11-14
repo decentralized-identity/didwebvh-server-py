@@ -412,3 +412,60 @@ class ExplorerCredentialRecord(CustomBaseModel):
             created=beautify_date(credential.created),
             updated=beautify_date(credential.updated),
         )
+
+
+class ExplorerWitnessRegistryMeta(CustomBaseModel):
+    """Metadata for the known witness registry."""
+
+    created: str = Field("", description="Registry creation timestamp")
+    updated: str = Field("", description="Registry last update timestamp")
+
+    @classmethod
+    def from_meta(cls, meta: Optional[Dict[str, Any]]) -> "ExplorerWitnessRegistryMeta":
+        """Create metadata model from registry meta dict."""
+        if not meta:
+            return cls(created="", updated="")
+
+        return cls(
+            created=beautify_date(meta.get("created")),
+            updated=beautify_date(meta.get("updated")),
+        )
+
+
+class ExplorerWitnessRecord(CustomBaseModel):
+    """Witness record for explorer UI."""
+
+    id: str = Field(..., description="Witness DID")
+    name: str = Field("", description="Witness display name")
+    location: Optional[str] = Field(None, description="Witness location or region")
+    url: Optional[str] = Field(None, description="Witness information URL")
+    service_endpoint: Optional[str] = Field(
+        None, description="Service endpoint exposed by the witness"
+    )
+    avatar: str = Field("", description="Avatar generated from witness DID")
+    short_id: str = Field("", description="Abbreviated witness identifier")
+    resolver_url: str = Field("", description="Universal resolver link for the witness DID")
+
+    @classmethod
+    def from_registry_entry(
+        cls,
+        witness_id: str,
+        entry: Dict[str, Any],
+    ) -> "ExplorerWitnessRecord":
+        """Create a witness record from registry entry data."""
+        name = entry.get("name") or witness_id.split(":")[-1]
+        location = entry.get("location")
+        url = entry.get("url")
+        service_endpoint = entry.get("serviceEndpoint") or entry.get("service_endpoint")
+        short_id = witness_id.split(":")[-1]
+
+        return cls(
+            id=witness_id,
+            name=name,
+            location=location,
+            url=url,
+            service_endpoint=service_endpoint,
+            avatar=generate_avatar(witness_id),
+            short_id=short_id,
+            resolver_url=f"{settings.UNIRESOLVER_URL}/#{witness_id}",
+        )

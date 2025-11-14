@@ -1,0 +1,130 @@
+{% set has_results = results|length > 0 %}
+<div class="card">
+    <div class="card-header border-bottom-0">
+        <div class="row align-items-center w-100">
+            <div class="col">
+                <h3 class="card-title mb-1">
+                    <i class="ti ti-shield-check me-2"></i>Known Witness Registry
+                </h3>
+                <div class="text-secondary small">
+                    {% if meta.created %}
+                        <span class="me-2"><i class="ti ti-calendar-plus me-1"></i>Created {{ meta.created }}</span>
+                    {% endif %}
+                    {% if meta.updated %}
+                        <span><i class="ti ti-refresh me-1"></i>Last updated {{ meta.updated }}</span>
+                    {% endif %}
+                    {% if not meta.created and not meta.updated %}
+                        Registry metadata unavailable
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-auto text-end">
+                <div class="badge bg-green-lt text-uppercase">
+                    <i class="ti ti-users-group me-1"></i>{{ total }} witness{% if total != 1 %}es{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <label class="form-label form-label-sm mb-1">Search witnesses</label>
+                <div class="input-icon">
+                    <span class="input-icon-addon">
+                        <i class="ti ti-search"></i>
+                    </span>
+                    <input id="witness-search" type="text" class="form-control" placeholder="Filter by name, DID, location or endpoint...">
+                </div>
+            </div>
+            <div class="col-md-auto ms-auto">
+                <a href="/admin/policy/known-witnesses" target="_blank" class="btn btn-outline-primary d-none d-md-inline-flex">
+                    <i class="ti ti-external-link me-1"></i>Manage Registry
+                </a>
+                <button type="button" class="btn btn-secondary ms-md-2" onclick="window.location.reload()">
+                    <i class="ti ti-refresh me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        {% if not has_results %}
+            <div class="empty my-5">
+                <div class="empty-icon"><i class="ti ti-shield-off icon"></i></div>
+                <p class="empty-title">No witnesses found</p>
+                <p class="empty-subtitle text-secondary">The registry is currently empty.</p>
+            </div>
+        {% else %}
+            <div id="witness-grid" class="row gy-2">
+                {% for witness in results %}
+                    {% set display_name = witness.name or witness.id.split(':')[-1] %}
+                    {% set search_terms = (
+                        display_name + " " +
+                        (witness.id or "") + " " +
+                        (witness.location or "") + " " +
+                        (witness.service_endpoint or "")
+                    ).lower() %}
+                    <div class="col-12 witness-card" data-search="{{ search_terms }}">
+                        <div class="d-flex flex-column flex-md-row align-items-md-center py-3">
+                            <div class="flex-fill">
+                                <div class="d-flex align-items-start mb-2">
+                                    <span class="avatar avatar-lg me-3" style="background-image: url({{ witness.avatar }})"></span>
+                                    <div class="flex-fill">
+                                        <div class="fw-bold">{{ display_name }}</div>
+                                        <div class="text-secondary small user-select-all" title="{{ witness.id }}">{{ witness.id }}</div>
+                                        {% if witness.service_endpoint %}
+                                            <div class="text-dark small user-select-all mt-1">{{ witness.service_endpoint }}</div>
+                                        {% else %}
+                                            <div class="text-secondary small mt-1">Service endpoint not provided</div>
+                                        {% endif %}
+                                        {% if witness.location %}
+                                            <span class="badge bg-blue-lt mt-2">{{ witness.location }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-md-end mt-2 mt-md-0">
+                                <a href="{{ witness.resolver_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="ti ti-world me-1"></i>Resolve DID
+                                </a>
+                            </div>
+                        </div>
+                        <hr class="my-0">
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('witness-search');
+        const cards = Array.from(document.querySelectorAll('#witness-grid .witness-card'));
+
+        const applyFilter = () => {
+            if (!cards.length) {
+                return;
+            }
+            const term = (searchInput?.value || '').trim().toLowerCase();
+            let visibleCount = 0;
+            cards.forEach((card) => {
+                const haystack = card.getAttribute('data-search') || '';
+                const isVisible = !term || haystack.includes(term);
+                card.style.display = isVisible ? '' : 'none';
+                if (isVisible) {
+                    visibleCount += 1;
+                }
+            });
+            const emptyState = document.querySelector('.empty');
+            if (emptyState) {
+                emptyState.classList.toggle('d-none', visibleCount > 0);
+            }
+        };
+
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilter);
+        }
+        applyFilter();
+    });
+</script>

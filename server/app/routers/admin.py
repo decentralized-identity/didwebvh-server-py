@@ -71,12 +71,16 @@ async def get_known_witnesses(api_key: str = Security(get_api_key)):
 async def add_known_witness(request_body: AddWitness, api_key: str = Security(get_api_key)):
     """Add known witness."""
     request_body = request_body.model_dump()
-    multikey = request_body["multikey"]
+    witness_did = request_body["id"]
 
+    if not witness_did.startswith("did:key:"):
+        raise HTTPException(status_code=400, detail="Witness id must be a did:key identifier.")
+
+    multikey = witness_did.split("did:key:")[-1]
     if not is_valid_multikey(multikey, alg="ed25519"):
-        raise HTTPException(status_code=400, detail="Invalid multikey, must be ed25519 type.")
+        raise HTTPException(status_code=400, detail="Invalid witness id, must be ed25519 multikey.")
 
-    witness_did = f"did:key:{multikey}"
+    service_endpoint = request_body.get("invitationUrl")
 
     # Get existing registry or create new one
     registry = storage.get_registry("knownWitnesses")
@@ -87,11 +91,17 @@ async def add_known_witness(request_body: AddWitness, api_key: str = Security(ge
             raise HTTPException(status_code=409, detail="Witness already exists.")
 
         # Add new witness
-        registry_data[witness_did] = {"name": request_body["label"]}
+        entry = {"name": request_body["label"]}
+        if service_endpoint:
+            entry["serviceEndpoint"] = service_endpoint
+        registry_data[witness_did] = entry
         meta = {"updated": timestamp()}
     else:
         # Create new registry with this witness
-        registry_data = {witness_did: {"name": request_body["label"]}}
+        entry = {"name": request_body["label"]}
+        if service_endpoint:
+            entry["serviceEndpoint"] = service_endpoint
+        registry_data = {witness_did: entry}
         meta = {"created": timestamp(), "updated": timestamp()}
 
     # Update registry in database

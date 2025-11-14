@@ -419,6 +419,32 @@ class StorageManager:
 
             return query.all()
 
+    def get_resources_witnessed_by(self, witness_did: str) -> List[AttestedResourceRecord]:
+        """Return resources that contain proofs signed by the specified witness DID."""
+        with self.get_session() as session:
+            resources = session.query(AttestedResourceRecord).all()
+
+        witnessed_resources: List[AttestedResourceRecord] = []
+        for resource in resources:
+            proofs = resource.attested_resource.get("proof")
+            if not proofs:
+                continue
+
+            if isinstance(proofs, dict):
+                iterable = [proofs]
+            elif isinstance(proofs, list):
+                iterable = proofs
+            else:
+                continue
+
+            for proof in iterable:
+                verification_method = proof.get("verificationMethod", "")
+                if verification_method and verification_method.split("#")[0] == witness_did:
+                    witnessed_resources.append(resource)
+                    break
+
+        return witnessed_resources
+
     def count_resources(self, filters: Optional[Dict[str, Any]] = None) -> int:
         """Count resources with optional filters."""
         with self.get_session() as session:

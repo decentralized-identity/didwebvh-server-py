@@ -13,6 +13,7 @@ TEST_UPDATE_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
 # Known witness (registered in TEST_WITNESS_REGISTRY)
 TEST_WITNESS_SEED = "ixUwS8A2SYzmPiGor7t08wgg1ifNABrB"
 TEST_WITNESS_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
+TEST_WITNESS_SERVICE_ENDPOINT = "https://witness.example.com/oob-invite"
 
 # Known witness (same as above, for clarity)
 TEST_KNOWN_WITNESS_SEED = TEST_WITNESS_SEED
@@ -76,7 +77,7 @@ TEST_POLICY = ActivePolicy(
     witness_registry_url=None,
 ).model_dump()
 
-TEST_WITNESS_REGISTRY = {f"did:key:{TEST_WITNESS_KEY}": {"name": "Test Witness"}}
+TEST_WITNESS_REGISTRY = {f"did:key:{TEST_WITNESS_KEY}": {"name": "Test Witness", "serviceEndpoint": TEST_WITNESS_SERVICE_ENDPOINT}}
 TEST_ANONCREDS_SCHEMA = {"name": "test", "version": "1.0", "attributes": ["test_attribute"]}
 
 TEST_PARAMETERS = {}

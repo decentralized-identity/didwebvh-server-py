@@ -236,25 +236,6 @@ async def publish_credential(
     return JSONResponse(status_code=201, content=verifiable_credential)
 
 
-@router.get("/{namespace}/{identifier}/credentials/{credential_id}")
-async def get_credential(
-    credential_id: str, did_controller: DidControllerRecord = Depends(get_did_controller_dependency)
-):
-    """Fetch an existing credential."""
-    logger.info(f"=== Fetching credential {credential_id} ===")
-
-    # Get credential from SQL database
-    credential_record = sql_storage.get_credential(credential_id)
-    if not credential_record:
-        raise HTTPException(status_code=404, detail="Credential not found")
-
-    # Verify the credential belongs to this DID controller
-    if credential_record.scid != did_controller.scid:
-        raise HTTPException(status_code=403, detail="Credential does not belong to this DID")
-
-    return JSONResponse(status_code=200, content=credential_record.verifiable_credential)
-
-
 @router.put("/{namespace}/{identifier}/credentials/{credential_id}")
 async def update_credential(
     credential_id: str,
@@ -316,3 +297,22 @@ async def update_credential(
     except Exception as e:
         logger.error(f"Failed to update credential: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update credential: {str(e)}")
+
+
+@router.get("/{namespace}/{identifier}/credentials/{credential_id}")
+async def get_credential(
+    credential_id: str, did_controller: DidControllerRecord = Depends(get_did_controller_dependency)
+):
+    """Fetch an existing credential."""
+    logger.info(f"=== Fetching credential {credential_id} ===")
+
+    # Get credential from SQL database
+    credential_record = sql_storage.get_credential(credential_id)
+    if not credential_record:
+        raise HTTPException(status_code=404, detail="Credential not found")
+
+    # Verify the credential belongs to this DID controller
+    if credential_record.scid != did_controller.scid:
+        raise HTTPException(status_code=403, detail="Credential does not belong to this DID")
+
+    return JSONResponse(status_code=200, content=credential_record.verifiable_credential)

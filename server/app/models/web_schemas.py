@@ -18,8 +18,9 @@ from .base import CustomBaseModel
 class AddWitness(CustomBaseModel):
     """AddWitness model."""
 
+    id: str = Field()
     label: str = Field()
-    multikey: str = Field()
+    invitationUrl: str = Field(None)
 
 
 class RegisterDID(CustomBaseModel):
