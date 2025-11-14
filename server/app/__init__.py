@@ -80,7 +80,7 @@ def build_witness_services(registry):
 
         service_entry = {
             "id": witness_id,
-            "type": "WitnessService",
+            "type": "WitnessInvitation",
             "serviceEndpoint": endpoint,
         }
         if entry.get("location"):

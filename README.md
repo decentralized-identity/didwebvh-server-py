@@ -53,6 +53,17 @@ When a rule is enforced, the server will reject any request that doesn't match s
 - WEBVH_KNOWN_WITNESS_REGISTRY: A list of known witnesses is used for validating witness policies. This will be cached every time a witness can't be found.
     - ex: `WEBVH_KNOWN_WITNESS_REGISTRY="https://known-witnesses.example.com"`
 
+#### Connecting to a Witness Service
+
+Witnesses advertise their onboarding invitations through the server’s DID document. To connect to a witness:
+
+1. **Collect inputs** – you need the WebVH server base URL (e.g. `https://did.example.org`) and the witness DID (`did:key:z6Mk...`).
+2. **Resolve the server DID** – fetch `https://did.example.org/.well-known/did.json`. The document contains a `service` array generated from the known witness registry.
+3. **Locate the witness entry** – find the service object whose `id` matches the witness DID and whose `type` is `WitnessInvitation`.
+4. **Use the invitation URL** – the service’s `serviceEndpoint` field is the witness’ invitation URL. Present it to your agent/connector to initiate the DIDComm relationship with that witness.
+
+Because the DID document is derived from the registry, updating the witness entry (via the admin API) automatically refreshes the invitation any controllers discover.
+
 #### Attested Resource Endorsement
 
 - WEBVH_ENDORSEMENT: This will require a known witness proof on any attested resource uploaded or updated. It's up to the witness service to determine which resources to endorse from the controller.
