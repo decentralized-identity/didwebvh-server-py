@@ -78,12 +78,13 @@ def build_witness_services(registry):
         if not endpoint:
             continue
 
-        service_fragment = witness_id.split("did:key:")[-1]
         service_entry = {
-            "id": f"did:web:{settings.DOMAIN}#{service_fragment}",
+            "id": witness_id,
             "type": "WitnessService",
             "serviceEndpoint": endpoint,
         }
+        if entry.get("name"):
+            service_entry["name"] = entry["name"]
         if entry.get("location"):
             service_entry["location"] = entry["location"]
         services.append(service_entry)
