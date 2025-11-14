@@ -490,7 +490,7 @@ class TestExplorerWitnessRegistry:
 
         assert response.status_code == 200
         assert "Known Witness Registry" in response.text
-        assert TEST_WITNESS_SERVICE_ENDPOINT in response.text
+        assert f"did:key:{TEST_WITNESS_KEY}" in response.text
 
     @pytest.mark.asyncio
     async def test_witnesses_json_response(self):
