@@ -19,7 +19,7 @@ from tests.helpers import (
     create_unique_did,
     setup_controller_with_verification_method,
     create_test_resource,
-    create_test_namespace_and_identifier,
+    create_test_namespace_and_alias,
     assert_error_response,
 )
 from did_webvh.core.state import DocumentState
@@ -64,15 +64,15 @@ class TestUploadResource:
     @pytest.mark.asyncio
     async def test_upload_resource_success(self):
         """Test successful resource upload."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("res-upload-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("res-upload-01")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Create test resource
@@ -80,7 +80,7 @@ class TestUploadResource:
 
             # Upload resource
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/resources",
+                f"/{test_namespace}/{test_alias}/resources",
                 json={"attestedResource": attested_resource},
             )
             assert response.status_code == 201
@@ -91,7 +91,7 @@ class TestUploadResource:
 
             # Verify resource was stored
             response = test_client.get(
-                f"/{test_namespace}/{test_identifier}/resources/{actual_resource_id}"
+                f"/{test_namespace}/{test_alias}/resources/{actual_resource_id}"
             )
             assert response.status_code == 200
             stored_resource = response.json()
@@ -100,15 +100,15 @@ class TestUploadResource:
     @pytest.mark.asyncio
     async def test_upload_resource_invalid_proof(self):
         """Test resource upload with invalid proof."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("res-invalid-proof")
+        test_namespace, test_alias = create_test_namespace_and_alias("res-invalid-proof")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Create resource with valid signature first
@@ -118,7 +118,7 @@ class TestUploadResource:
             attested_resource["proof"]["proofValue"] = "z" + "1" * 87
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/resources",
+                f"/{test_namespace}/{test_alias}/resources",
                 json={"attestedResource": attested_resource},
             )
 
@@ -128,18 +128,18 @@ class TestUploadResource:
     @pytest.mark.asyncio
     async def test_upload_resource_invalid_author(self):
         """Test resource upload with wrong author ID."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("resource03")
+        test_namespace, test_alias = create_test_namespace_and_alias("resource03")
 
         with TestClient(app) as test_client:
             # Create DID
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Create resource with wrong issuer ID
             wrong_issuer_id = "did:webvh:wrongscid:example.com:wrong:namespace"
             attested_resource, resource_id = self.create_test_resource(wrong_issuer_id)
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/resources",
+                f"/{test_namespace}/{test_alias}/resources",
                 json={"attestedResource": attested_resource},
             )
 
@@ -183,11 +183,11 @@ class TestUploadResource:
     async def test_upload_resource_missing_fields(self):
         """Test resource upload with missing required fields."""
         test_namespace = TEST_DID_NAMESPACE
-        test_identifier = "resource04"
+        test_alias = "resource04"
 
         with TestClient(app) as test_client:
             # Create a DID
-            response = test_client.get(f"?namespace={test_namespace}&identifier={test_identifier}")
+            response = test_client.get(f"?namespace={test_namespace}&alias={test_alias}")
             document = response.json().get("state")
             parameters = response.json().get("parameters")
             parameters["updateKeys"] = [TEST_UPDATE_KEY]
@@ -205,7 +205,7 @@ class TestUploadResource:
             witness_signature = witness.create_log_entry_proof(initial_log_entry)
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}",
+                f"/{test_namespace}/{test_alias}",
                 json={
                     "logEntry": initial_log_entry,
                     "witnessSignature": witness_signature,
@@ -215,7 +215,7 @@ class TestUploadResource:
 
             # Try to upload with missing attestedResource
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/resources",
+                f"/{test_namespace}/{test_alias}/resources",
                 json={"options": {}},
             )
 
@@ -229,22 +229,22 @@ class TestGetResource:
     @pytest.mark.asyncio
     async def test_get_resource_success(self):
         """Test successful resource retrieval."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("res-get-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("res-get-01")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Upload a resource
             attested_resource, resource_id = create_test_resource(controller, "testResource")
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/resources",
+                f"/{test_namespace}/{test_alias}/resources",
                 json={"attestedResource": attested_resource},
             )
             assert response.status_code == 201
@@ -253,7 +253,7 @@ class TestGetResource:
 
             # Fetch the resource
             response = test_client.get(
-                f"/{test_namespace}/{test_identifier}/resources/{actual_resource_id}"
+                f"/{test_namespace}/{test_alias}/resources/{actual_resource_id}"
             )
 
             assert response.status_code == 200
@@ -264,16 +264,14 @@ class TestGetResource:
     @pytest.mark.asyncio
     async def test_get_resource_not_found(self):
         """Test fetching non-existent resource."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("resource06")
+        test_namespace, test_alias = create_test_namespace_and_alias("resource06")
 
         with TestClient(app) as test_client:
             # Create DID
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Try to fetch non-existent resource
-            response = test_client.get(
-                f"/{test_namespace}/{test_identifier}/resources/nonexistent123"
-            )
+            response = test_client.get(f"/{test_namespace}/{test_alias}/resources/nonexistent123")
 
             assert_error_response(response, 404, "Couldn't find resource")
 
@@ -293,15 +291,15 @@ class TestUpdateResource:
     @pytest.mark.asyncio
     async def test_update_resource_success(self):
         """Test successful resource update."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("res-update-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("res-update-01")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Upload initial resource
@@ -311,7 +309,7 @@ class TestUpdateResource:
             )
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/resources",
+                f"/{test_namespace}/{test_alias}/resources",
                 json={"attestedResource": attested_resource},
             )
             assert response.status_code == 201
@@ -320,7 +318,7 @@ class TestUpdateResource:
 
             # Fetch the original resource
             response = test_client.get(
-                f"/{test_namespace}/{test_identifier}/resources/{actual_resource_id}"
+                f"/{test_namespace}/{test_alias}/resources/{actual_resource_id}"
             )
             fetched_resource = response.json()
 
@@ -338,7 +336,7 @@ class TestUpdateResource:
             updated_resource = controller.sign(fetched_resource)
 
             response = test_client.put(
-                f"/{test_namespace}/{test_identifier}/resources/{actual_resource_id}",
+                f"/{test_namespace}/{test_alias}/resources/{actual_resource_id}",
                 json={"attestedResource": updated_resource},
             )
 
@@ -350,24 +348,22 @@ class TestUpdateResource:
     @pytest.mark.asyncio
     async def test_update_resource_not_found(self):
         """Test updating non-existent resource."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier(
-            "res-update-notfound"
-        )
+        test_namespace, test_alias = create_test_namespace_and_alias("res-update-notfound")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Try to update non-existent resource
             fake_resource, _ = create_test_resource(controller, "testResource")
 
             response = test_client.put(
-                f"/{test_namespace}/{test_identifier}/resources/nonexistent123",
+                f"/{test_namespace}/{test_alias}/resources/nonexistent123",
                 json={"attestedResource": fake_resource},
             )
 
@@ -376,22 +372,22 @@ class TestUpdateResource:
     @pytest.mark.asyncio
     async def test_update_resource_invalid_proof(self):
         """Test updating resource with invalid proof."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("res-update-invalid")
+        test_namespace, test_alias = create_test_namespace_and_alias("res-update-invalid")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Upload initial resource
             attested_resource, resource_id = create_test_resource(controller, "testResource")
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/resources",
+                f"/{test_namespace}/{test_alias}/resources",
                 json={"attestedResource": attested_resource},
             )
             assert response.status_code == 201
@@ -403,7 +399,7 @@ class TestUpdateResource:
             tampered_resource["proof"]["proofValue"] = "z" + "1" * 87  # Valid multibase format
 
             response = test_client.put(
-                f"/{test_namespace}/{test_identifier}/resources/{actual_resource_id}",
+                f"/{test_namespace}/{test_alias}/resources/{actual_resource_id}",
                 json={"attestedResource": tampered_resource},
             )
             assert_error_response(response, 400, "Invalid resource proof.")

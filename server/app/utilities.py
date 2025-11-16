@@ -251,3 +251,31 @@ def create_pagination(page: int, limit: int, total: int, total_pages: int) -> di
         "prev_page": page - 1 if page > 1 else None,
         "next_page": page + 1 if page < total_pages else None,
     }
+
+
+def build_witness_services(registry):
+    """Build witness services list from registry for DID document.
+
+    Args:
+        registry: KnownWitnessRegistry object with registry_data
+
+    Returns:
+        List of service entries for the DID document
+    """
+    services = []
+    for witness_id, entry in (registry.registry_data or {}).items():
+        endpoint = (entry or {}).get("serviceEndpoint")
+        if not endpoint:
+            continue
+
+        service_entry = {
+            "id": witness_id,
+            "type": "WitnessInvitation",
+            "serviceEndpoint": endpoint,
+        }
+        if entry.get("name"):
+            service_entry["name"] = entry["name"]
+        if entry.get("location"):
+            service_entry["location"] = entry["location"]
+        services.append(service_entry)
+    return services

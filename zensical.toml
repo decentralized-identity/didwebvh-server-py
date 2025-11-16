@@ -1,0 +1,27 @@
+[project]
+site_name = "DID WebVH Server Documentation"
+site_description = "Documentation for the DID WebVH Server"
+site_url = "https://your-org.github.io/didwebvh-server-py"
+docs_dir = "docs/content"
+site_dir = "docs/site"
+
+nav = [
+    { Home = "index.md" },
+    { "User Manual" = "user-manual.md" },
+    { "Introduction" = "introduction.md" },
+    { "Roles" = "roles.md" },
+    { "Getting Started" = "getting-started.md" },
+    { "Configuration" = "configuration.md" },
+    { "API Endpoints" = "api-endpoints.md" },
+    { "Protocols" = "protocols.md" },
+    { "Admin Operations" = "admin-operations.md" },
+    { "DID Operations" = "did-operations.md" },
+    { "Examples" = "examples.md" }
+]
+
+[theme]
+name = "default"
+
+[theme.palette]
+primary = "#1a365d"
+accent = "#38a169"

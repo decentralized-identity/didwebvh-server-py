@@ -19,6 +19,7 @@ from app.db.models import (
     AdminBackgroundTask,
     ServerPolicy,
     KnownWitnessRegistry,
+    WitnessInvitation,
     TailsFile,
 )
 from app.plugins import DidWebVH
@@ -103,7 +104,7 @@ class StorageManager:
                 logger.info("All tables dropped.")
 
             logger.info("Creating database tables...")
-            Base.metadata.create_all(bind=self._engine)
+            Base.metadata.create_all(bind=self._engine, checkfirst=True)
             logger.info("DB provisioning finished.")
         except Exception as e:
             logger.error(f"DB provisioning failed: {str(e)}")
@@ -905,9 +906,12 @@ class StorageManager:
                 # Update existing
                 for key, value in policy_data.items():
                     setattr(policy, key, value)
+                # Also update the JSON policy_data column
+                policy.policy_data = policy_data
             else:
                 # Create new
                 policy = ServerPolicy(policy_id=policy_id, **policy_data)
+                policy.policy_data = policy_data
                 session.add(policy)
 
             session.commit()
@@ -960,6 +964,68 @@ class StorageManager:
                 .filter(KnownWitnessRegistry.registry_id == registry_id)
                 .first()
             )
+
+    # ========== Witness Invitation Operations ==========
+
+    def create_or_update_witness_invitation(
+        self,
+        witness_did: str,
+        invitation_url: str,
+        invitation_payload: Dict[str, Any],
+        invitation_id: Optional[str] = None,
+        label: Optional[str] = None,
+    ) -> WitnessInvitation:
+        """Create or update a witness invitation record."""
+        with self.get_session() as session:
+            record = (
+                session.query(WitnessInvitation)
+                .filter(WitnessInvitation.witness_did == witness_did)
+                .first()
+            )
+
+            if record:
+                record.invitation_url = invitation_url
+                record.invitation_payload = invitation_payload
+                record.invitation_id = invitation_id or invitation_payload.get("@id")
+                record.label = label or invitation_payload.get("label")
+                record.goal_code = invitation_payload.get("goal_code")
+                record.goal = invitation_payload.get("goal")
+            else:
+                record = WitnessInvitation(
+                    witness_did=witness_did,
+                    invitation_url=invitation_url,
+                    invitation_payload=invitation_payload,
+                    invitation_id=invitation_id or invitation_payload.get("@id"),
+                    label=label or invitation_payload.get("label"),
+                    goal_code=invitation_payload.get("goal_code"),
+                    goal=invitation_payload.get("goal"),
+                )
+                session.add(record)
+
+            session.commit()
+            session.refresh(record)
+            return record
+
+    def get_witness_invitation(self, witness_did: str) -> Optional[WitnessInvitation]:
+        """Retrieve a stored witness invitation."""
+        with self.get_session() as session:
+            return (
+                session.query(WitnessInvitation)
+                .filter(WitnessInvitation.witness_did == witness_did)
+                .first()
+            )
+
+    def delete_witness_invitation(self, witness_did: str) -> None:
+        """Delete a stored witness invitation."""
+        with self.get_session() as session:
+            record = (
+                session.query(WitnessInvitation)
+                .filter(WitnessInvitation.witness_did == witness_did)
+                .first()
+            )
+            if record:
+                session.delete(record)
+                session.commit()
 
     # ========== Witness File Operations ==========
 

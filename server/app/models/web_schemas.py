@@ -18,9 +18,16 @@ from .base import CustomBaseModel
 class AddWitness(CustomBaseModel):
     """AddWitness model."""
 
-    id: str = Field()
-    label: str = Field()
-    invitationUrl: str = Field(None)
+    id: str = Field(
+        json_schema_extra={"example": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"}
+    )
+    label: str = Field(json_schema_extra={"example": "Example Witness Service"})
+    invitationUrl: str = Field(
+        None,
+        json_schema_extra={
+            "example": "https://witness.example.com/oob-invite?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICJpbnYtZXhhbXBsZS0xMjMiLCAibGFiZWwiOiAiRXhhbXBsZSBXaXRuZXNzIFNlcnZpY2UiLCAiZ29hbF9jb2RlIjogIndpdG5lc3Mtc2VydmljZSIsICJzZXJ2aWNlcyI6IFt7ImlkIjogIiNpbmxpbmUiLCAidHlwZSI6ICJkaWQtY29tbXVuaWNhdGlvbiIsICJzZXJ2aWNlRW5kcG9pbnQiOiAiaHR0cHM6Ly93aXRuZXNzLmV4YW1wbGUuY29tL2FnZW50IiwgInJlY2lwaWVudEtleXMiOiBbImRpZDprZXk6ejZNa2hhWGdCWkR2b3REa0w1MjU3ZmFpenRpR2lDMlF0S0xHcGJubkVHdGEyZG9LI3JlY2lwaWVudCJdfV19"
+        },
+    )
 
 
 class RegisterDID(CustomBaseModel):
@@ -109,3 +116,25 @@ class CredentialUpload(CustomBaseModel):
 
     verifiableCredential: Union[VerifiableCredential, EnvelopedVerifiableCredential] = Field()
     options: CredentialOptions = Field(None)
+
+
+class OobService(CustomBaseModel):
+    """Service entry inside a DIDComm OOB invitation."""
+
+    id: str = Field()
+    type: str = Field()
+    serviceEndpoint: str = Field()
+    recipientKeys: List[str] = Field(default_factory=list)
+    routingKeys: List[str] = Field(default=None)
+
+
+class OobInvitation(CustomBaseModel):
+    """DIDComm Out-of-Band invitation with optional Data Integrity proof."""
+
+    type: str = Field(alias="@type")
+    id: str = Field(alias="@id")
+    label: str = Field(default=None)
+    goal_code: str = Field(default=None)
+    goal: str = Field(default=None)
+    services: List[OobService] = Field()
+    proof: Union[List[DataIntegrityProof], DataIntegrityProof, None] = Field(default=None)

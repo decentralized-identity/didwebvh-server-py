@@ -487,7 +487,9 @@ class TestResourceOperations:
 
         assert len(witnessed) == 1
         assert witnessed[0].resource_id == witnessed_digest
-        assert witnessed[0].attested_resource["proof"][0]["verificationMethod"].startswith(witness_did)
+        assert (
+            witnessed[0].attested_resource["proof"][0]["verificationMethod"].startswith(witness_did)
+        )
 
 
 class TestTaskOperations:

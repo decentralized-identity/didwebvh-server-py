@@ -106,7 +106,7 @@ class TaskManager:
                     "portability": settings.WEBVH_PORTABILITY,
                     "prerotation": settings.WEBVH_PREROTATION,
                     "endorsement": settings.WEBVH_ENDORSEMENT,
-                    "witness_registry_url": settings.KNOWN_WITNESS_REGISTRY,
+                    "witness_registry_url": None,
                 }
                 policy = storage.create_or_update_policy("active", policy_data)
             else:
@@ -116,17 +116,12 @@ class TaskManager:
 
             # Check/create witness registry in database
             if not (registry := storage.get_registry("knownWitnesses")):
-                logger.info("Creating known witness registry.")
-                registry_data = {}
-                if settings.KNOWN_WITNESS_KEY:
-                    witness_did = f"did:key:{settings.KNOWN_WITNESS_KEY}"
-                    registry_data[witness_did] = {"name": "Default Server Witness"}
-
+                logger.info("Creating empty known witness registry.")
                 meta = {"created": timestamp(), "updated": timestamp()}
                 registry = storage.create_or_update_registry(
                     registry_id="knownWitnesses",
                     registry_type="witnesses",
-                    registry_data=registry_data,
+                    registry_data={},
                     meta=meta,
                 )
             else:

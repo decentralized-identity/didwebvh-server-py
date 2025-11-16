@@ -29,11 +29,15 @@ class DidWebVH:
         self.method_version = f"{self.prefix}{settings.WEBVH_VERSION}"
         self.did_string_base = f"{self.prefix}{settings.SCID_PLACEHOLDER}:{settings.DOMAIN}"
         self.active_policy = active_policy or {}
-        self.known_witness_key = settings.KNOWN_WITNESS_KEY
+        self.known_witness_key = settings.WEBVH_WITNESS_ID
         self.known_witness_registry = active_registry or {}
 
         # Reserved namespaces based on existing API routes
-        self.reserved_namespaces = ["explorer", "policy", "server"]
+        self.reserved_namespaces = [
+            "explorer",
+            "policy",
+            "server",
+        ]
 
     def placeholder_id(self, namespace, identifier):
         """Return placeholder id."""
@@ -140,7 +144,12 @@ class DidWebVH:
         self.known_witness_registry = registry
 
         if self.known_witness_key:
-            witness_id = f"did:key:{self.known_witness_key}"
+            # WEBVH_WITNESS_ID is now a full did:key, not just the multikey
+            witness_id = self.known_witness_key
+            if not witness_id.startswith("did:key:"):
+                raise ValueError(
+                    f"WEBVH_WITNESS_ID must be a full did:key identifier, got: {witness_id}"
+                )
             if witness_id not in self.known_witness_registry:
                 self.known_witness_registry[witness_id] = {"name": "Default Server Witness"}
 
@@ -153,7 +162,9 @@ class DidWebVH:
                 self.known_witness_registry |= remote_registry
 
         invalid_entries = [
-            witness_id for witness_id in list(self.known_witness_registry.keys()) if not witness_id.startswith("did:key:")
+            witness_id
+            for witness_id in list(self.known_witness_registry.keys())
+            if not witness_id.startswith("did:key:")
         ]
         for witness_id in invalid_entries:
             self.known_witness_registry.pop(witness_id, None)
@@ -274,8 +285,6 @@ class DidWebVH:
             witnesses = []
             for witness_id, entry in (self.known_witness_registry or {}).items():
                 witness_info = {"id": witness_id}
-                if isinstance(entry, dict) and entry.get("serviceEndpoint"):
-                    witness_info["serviceEndpoint"] = entry.get("serviceEndpoint")
                 witnesses.append(witness_info)
 
             server_parameter["witness"] = {

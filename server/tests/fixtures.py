@@ -1,3 +1,6 @@
+import base64
+import json
+
 from app.models.did_document import DidDocument
 from config import settings
 from app.models.did_document import VerificationMethodMultikey
@@ -13,7 +16,26 @@ TEST_UPDATE_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
 # Known witness (registered in TEST_WITNESS_REGISTRY)
 TEST_WITNESS_SEED = "ixUwS8A2SYzmPiGor7t08wgg1ifNABrB"
 TEST_WITNESS_KEY = "z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV"
-TEST_WITNESS_SERVICE_ENDPOINT = "https://witness.example.com/oob-invite"
+TEST_WITNESS_INVITATION_PAYLOAD = {
+    "@type": "https://didcomm.org/out-of-band/1.1/invitation",
+    "@id": "test-invitation",
+    "label": "Test Witness",
+    "services": [
+        {
+            "id": "#inline",
+            "type": "did-communication",
+            "serviceEndpoint": "https://witness.example.com/agent",
+            "recipientKeys": ["did:key:z6Mkixacx8HJ5nRBJvJKNdv83v1ejZBpz3HvRCfa2JaKbQJV#test-key"],
+        }
+    ],
+}
+_encoded_invitation = (
+    base64.urlsafe_b64encode(json.dumps(TEST_WITNESS_INVITATION_PAYLOAD).encode("utf-8"))
+    .decode("utf-8")
+    .rstrip("=")
+)
+TEST_WITNESS_INVITATION_URL = f"https://witness.example.com/oob-invite?oob={_encoded_invitation}"
+TEST_WITNESS_SERVICE_ENDPOINT = f"https://{settings.DOMAIN}?_oobid={TEST_WITNESS_KEY}"
 
 # Known witness (same as above, for clarity)
 TEST_KNOWN_WITNESS_SEED = TEST_WITNESS_SEED
@@ -77,7 +99,12 @@ TEST_POLICY = ActivePolicy(
     witness_registry_url=None,
 ).model_dump()
 
-TEST_WITNESS_REGISTRY = {f"did:key:{TEST_WITNESS_KEY}": {"name": "Test Witness", "serviceEndpoint": TEST_WITNESS_SERVICE_ENDPOINT}}
+TEST_WITNESS_REGISTRY = {
+    f"did:key:{TEST_WITNESS_KEY}": {
+        "name": "Test Witness",
+        "serviceEndpoint": TEST_WITNESS_SERVICE_ENDPOINT,
+    }
+}
 TEST_ANONCREDS_SCHEMA = {"name": "test", "version": "1.0", "attributes": ["test_attribute"]}
 
 TEST_PARAMETERS = {}

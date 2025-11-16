@@ -166,7 +166,7 @@ def _extract_storage_credential_id(credential: dict, credential_format: str, opt
     return storage_id
 
 
-@router.post("/{namespace}/{identifier}/credentials")
+@router.post("/{namespace}/{alias}/credentials")
 async def publish_credential(
     request_body: CredentialUpload,
     did_controller: DidControllerRecord = Depends(get_did_controller_dependency),
@@ -236,7 +236,7 @@ async def publish_credential(
     return JSONResponse(status_code=201, content=verifiable_credential)
 
 
-@router.put("/{namespace}/{identifier}/credentials/{credential_id}")
+@router.put("/{namespace}/{alias}/credentials/{credential_id}")
 async def update_credential(
     credential_id: str,
     request_body: CredentialUpload,
@@ -299,7 +299,7 @@ async def update_credential(
         raise HTTPException(status_code=500, detail=f"Failed to update credential: {str(e)}")
 
 
-@router.get("/{namespace}/{identifier}/credentials/{credential_id}")
+@router.get("/{namespace}/{alias}/credentials/{credential_id}")
 async def get_credential(
     credential_id: str, did_controller: DidControllerRecord = Depends(get_did_controller_dependency)
 ):

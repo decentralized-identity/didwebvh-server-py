@@ -34,7 +34,7 @@ Set environment variables or create a `.env` file:
 
 ```env
 DOMAIN=localhost
-API_KEY=your-secret-key
+WEBVH_ADMIN_API_KEY=your-secret-key
 DATABASE_URL=sqlite:///app.db
 WEBVH_VERSION=1.0
 WEBVH_WITNESS=true

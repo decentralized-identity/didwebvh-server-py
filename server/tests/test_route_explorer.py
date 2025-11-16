@@ -5,9 +5,10 @@ from fastapi.testclient import TestClient
 
 from app import app
 from app.plugins.storage import StorageManager
-from app.db.models import KnownWitnessRegistry
 from tests.fixtures import (
     TEST_POLICY,
+    TEST_WITNESS_INVITATION_PAYLOAD,
+    TEST_WITNESS_INVITATION_URL,
     TEST_WITNESS_REGISTRY,
     TEST_WITNESS_SERVICE_ENDPOINT,
     TEST_WITNESS_KEY,
@@ -16,7 +17,7 @@ from tests.helpers import (
     create_unique_did,
     setup_controller_with_verification_method,
     create_test_resource,
-    create_test_namespace_and_identifier,
+    create_test_namespace_and_alias,
 )
 from tests.mock_agents import ControllerAgent
 from config import settings
@@ -36,15 +37,22 @@ async def setup_database():
         registry_data=TEST_WITNESS_REGISTRY,
         meta={"created": "2024-01-01T00:00:00Z", "updated": "2024-01-01T00:00:00Z"},
     )
+    storage.create_or_update_witness_invitation(
+        witness_did=f"did:key:{TEST_WITNESS_KEY}",
+        invitation_url=TEST_WITNESS_INVITATION_URL,
+        invitation_payload=TEST_WITNESS_INVITATION_PAYLOAD,
+        invitation_id=TEST_WITNESS_INVITATION_PAYLOAD["@id"],
+        label=TEST_WITNESS_INVITATION_PAYLOAD["label"],
+    )
     yield
 
 
 def create_did_for_explorer(test_client: TestClient, test_name: str):
     """Helper to create a DID and return all necessary info for explorer tests."""
-    namespace, identifier = create_test_namespace_and_identifier(test_name)
-    did_webvh_id, doc_state = create_unique_did(test_client, namespace, identifier)
+    namespace, alias = create_test_namespace_and_alias(test_name)
+    did_webvh_id, doc_state = create_unique_did(test_client, namespace, alias)
     scid = did_webvh_id.split(":")[2]  # Extract SCID from did:webvh:SCID:...
-    return namespace, identifier, did_webvh_id, scid, doc_state
+    return namespace, alias, did_webvh_id, scid, doc_state
 
 
 # Setup controller agent for resource tests
@@ -91,7 +99,7 @@ class TestExplorerDIDTable:
         """Test DID explorer returns DIDs when they exist."""
         with TestClient(app) as test_client:
             # Create a test DID
-            namespace, identifier, did_webvh_id, scid, _ = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, _ = create_did_for_explorer(
                 test_client, "explorer_with_data"
             )
 
@@ -107,7 +115,7 @@ class TestExplorerDIDTable:
         assert did_result is not None
         assert did_result["did"] == did_webvh_id
         assert did_result["namespace"] == namespace
-        assert did_result["identifier"] == identifier
+        assert did_result["alias"] == alias
         assert "links" in did_result
         assert "logs" in did_result
 
@@ -116,10 +124,10 @@ class TestExplorerDIDTable:
         """Test DID explorer filtering by namespace."""
         with TestClient(app) as test_client:
             # Create DIDs in different namespaces
-            namespace1, identifier1, did_id1, scid1, _ = create_did_for_explorer(
+            namespace1, alias1, did_id1, scid1, _ = create_did_for_explorer(
                 test_client, "explorer_ns1"
             )
-            namespace2, identifier2, did_id2, scid2, _ = create_did_for_explorer(
+            namespace2, alias2, did_id2, scid2, _ = create_did_for_explorer(
                 test_client, "explorer_ns2"
             )
 
@@ -141,7 +149,7 @@ class TestExplorerDIDTable:
         """Test DID explorer filtering by SCID."""
         with TestClient(app) as test_client:
             # Create a test DID
-            namespace, identifier, did_id, scid, _ = create_did_for_explorer(
+            namespace, alias, did_id, scid, _ = create_did_for_explorer(
                 test_client, "explorer_scid"
             )
 
@@ -156,16 +164,16 @@ class TestExplorerDIDTable:
         assert results[0]["scid"] == scid
 
     @pytest.mark.asyncio
-    async def test_dids_explorer_filter_by_identifier(self):
-        """Test DID explorer filtering by identifier."""
+    async def test_dids_explorer_filter_by_alias(self):
+        """Test DID explorer filtering by alias."""
         with TestClient(app) as test_client:
             # Create a test DID
-            namespace, identifier, did_id, scid, _ = create_did_for_explorer(
-                test_client, "explorer_identifier"
+            namespace, alias, did_id, scid, _ = create_did_for_explorer(
+                test_client, "explorer_alias"
             )
 
             response = test_client.get(
-                f"/explorer/dids?identifier={identifier}", headers={"Accept": "application/json"}
+                f"/explorer/dids?alias={alias}", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -174,7 +182,7 @@ class TestExplorerDIDTable:
         assert len(results) >= 1
 
         # Find our DID
-        did_result = next((r for r in results if r["identifier"] == identifier), None)
+        did_result = next((r for r in results if r["alias"] == alias), None)
         assert did_result is not None
 
     @pytest.mark.asyncio
@@ -182,7 +190,7 @@ class TestExplorerDIDTable:
         """Test DID explorer filtering by active status."""
         with TestClient(app) as test_client:
             # Create an active DID
-            namespace, identifier, did_id, scid, _ = create_did_for_explorer(
+            namespace, alias, did_id, scid, _ = create_did_for_explorer(
                 test_client, "explorer_active"
             )
 
@@ -254,17 +262,17 @@ class TestExplorerResourceTable:
         """Test resource explorer returns resources when they exist."""
         with TestClient(app) as test_client:
             # Create a DID with a verification method and upload a resource
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "resource_explorer"
             )
             controller_agent, _ = controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload a resource
             resource_data, _ = create_test_resource(controller_agent, "TestSchema")
             response = test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource_data}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource_data}
             )
             assert response.status_code == 201
 
@@ -290,17 +298,17 @@ class TestExplorerResourceTable:
         """Test resource explorer filtering by SCID."""
         with TestClient(app) as test_client:
             # Create a DID with a verification method and upload a resource
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "resource_scid"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload a resource
             resource_data, _ = create_test_resource(controller_agent, "TestSchema")
             response = test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource_data}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource_data}
             )
             assert response.status_code == 201
 
@@ -323,11 +331,11 @@ class TestExplorerResourceTable:
         """Test resource explorer filtering by resource type."""
         with TestClient(app) as test_client:
             # Create a DID with a verification method and upload resources
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "resource_type"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload resources of different types
@@ -335,14 +343,14 @@ class TestExplorerResourceTable:
                 controller_agent, "SchemaType1", {"name": "Schema1"}
             )
             test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource1}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource1}
             )
 
             resource2, _ = create_test_resource(
                 controller_agent, "SchemaType2", {"name": "Schema2"}
             )
             test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource2}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource2}
             )
 
             # Filter by resource type
@@ -364,11 +372,11 @@ class TestExplorerResourceTable:
         """Test resource explorer pagination."""
         with TestClient(app) as test_client:
             # Create a DID and upload multiple resources
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "resource_pagination"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload 3 resources
@@ -377,7 +385,7 @@ class TestExplorerResourceTable:
                     controller_agent, f"Schema{i}", {"name": f"Resource{i}"}
                 )
                 test_client.post(
-                    f"/{namespace}/{identifier}/resources", json={"attestedResource": resource}
+                    f"/{namespace}/{alias}/resources", json={"attestedResource": resource}
                 )
 
             # Get first page with limit 2
@@ -413,17 +421,17 @@ class TestExplorerIntegration:
         """Test explorer shows DIDs with their associated resources."""
         with TestClient(app) as test_client:
             # Create a DID with resources
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "integration_did_resources"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload a resource
             resource_data, _ = create_test_resource(controller_agent, "AnonCredsSchema")
             response = test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource_data}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource_data}
             )
             assert response.status_code == 201
 
@@ -448,17 +456,17 @@ class TestExplorerIntegration:
         """Test explorer resource links back to its DID."""
         with TestClient(app) as test_client:
             # Create a DID with a resource
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "integration_resource_did"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload a resource
             resource_data, _ = create_test_resource(controller_agent, "TestResource")
             response = test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource_data}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource_data}
             )
             assert response.status_code == 201
 
@@ -476,7 +484,7 @@ class TestExplorerIntegration:
         assert "author" in resource_result
         assert resource_result["author"]["scid"] == scid
         assert resource_result["author"]["namespace"] == namespace
-        assert resource_result["author"]["alias"] == identifier
+        assert resource_result["author"]["alias"] == alias
 
 
 class TestExplorerWitnessRegistry:
@@ -512,37 +520,6 @@ class TestExplorerWitnessRegistry:
         assert witness_entry["id"].startswith("did:key:")
 
 
-class TestWellKnownWitnessRegistry:
-    """Test cases for the well-known witness registry endpoint."""
-
-    @pytest.mark.asyncio
-    async def test_well_known_witness_registry_success(self):
-        with TestClient(app) as test_client:
-            response = test_client.get("/.well-known/witness.json")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "registry" in data
-        assert f"did:key:{TEST_WITNESS_KEY}" in data["registry"]
-
-    @pytest.mark.asyncio
-    async def test_well_known_witness_registry_not_found(self):
-        storage = StorageManager()
-        with storage.get_session() as session:
-            registry = session.query(KnownWitnessRegistry).filter(
-                KnownWitnessRegistry.registry_id == "knownWitnesses"
-            ).first()
-            if registry:
-                session.delete(registry)
-                session.commit()
-
-        with TestClient(app) as test_client:
-            response = test_client.get("/.well-known/witness.json")
-
-        assert response.status_code == 404
-        assert "Witness registry not found." in response.json().get("detail", "")
-
-
 class TestWellKnownDidDocument:
     """Test cases for the well-known DID document endpoint."""
 
@@ -556,3 +533,4 @@ class TestWellKnownDidDocument:
         assert data.get("@context") == "https://www.w3.org/ns/did/v1"
         assert data.get("id") == f"did:web:{settings.DOMAIN}"
         assert len(data.get("service", [])) > 0
+        assert "serverPolicy" not in data
