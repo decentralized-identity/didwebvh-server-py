@@ -2,9 +2,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, APIRouter, Request, status
+from fastapi import FastAPI, APIRouter, Request, Query, HTTPException, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routers import admin, identifiers, resources, credentials, explorer, tails
@@ -39,6 +39,58 @@ async def lifespan(app: FastAPI):
         }
         storage.create_or_update_policy("active", policy_data)
         logger.info(f"Policy {policy_data['version']} applied successfully")
+        
+        # Register initial witness from environment variables if provided
+        if settings.WEBVH_WITNESS_ID and settings.WEBVH_WITNESS_INVITATION:
+            from app.plugins.invitations import decode_invitation_from_url, build_short_invitation_url
+            from app.utilities import timestamp
+            
+            logger.info("Registering initial witness from environment variables...")
+            try:
+                # Decode invitation to get label
+                invitation_payload = decode_invitation_from_url(settings.WEBVH_WITNESS_INVITATION)
+                invitation_label = invitation_payload.get("label") or "Default Server Witness"
+                
+                # Build short service endpoint
+                short_service_endpoint = build_short_invitation_url(
+                    settings.WEBVH_WITNESS_ID, invitation_payload
+                )
+                
+                # Get or create registry
+                registry = storage.get_registry("knownWitnesses")
+                if registry:
+                    registry_data = registry.registry_data
+                    meta = {"updated": timestamp()}
+                else:
+                    registry_data = {}
+                    meta = {"created": timestamp(), "updated": timestamp()}
+                
+                # Update or add witness entry
+                registry_data[settings.WEBVH_WITNESS_ID] = {
+                    "name": invitation_label,
+                    "serviceEndpoint": short_service_endpoint,
+                }
+                
+                # Update registry in database
+                storage.create_or_update_registry(
+                    registry_id="knownWitnesses",
+                    registry_type="witnesses",
+                    registry_data=registry_data,
+                    meta=meta,
+                )
+                
+                # Store invitation
+                storage.create_or_update_witness_invitation(
+                    witness_did=settings.WEBVH_WITNESS_ID,
+                    invitation_url=settings.WEBVH_WITNESS_INVITATION,
+                    invitation_payload=invitation_payload,
+                    invitation_id=invitation_payload.get("@id"),
+                    label=invitation_label,
+                )
+                
+                logger.info(f"Initial witness {settings.WEBVH_WITNESS_ID} registered successfully")
+            except Exception as e:
+                logger.warning(f"Failed to register initial witness: {e}")
     yield
     # Shutdown: cleanup if needed
     if not os.getenv("PYTEST_CURRENT_TEST"):
@@ -68,6 +120,73 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     logging.error(f"{request}: {exc_str}")
     content = {"status_code": 10422, "message": exc_str, "data": None}
     return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+
+
+@api_router.get("/", tags=["Resolvers"])
+async def root_endpoint(
+    namespace: str = Query(None),
+    alias: str = Query(None),
+    _oobid: str = Query(None),
+):
+    """Root endpoint - handles DID path requests, invitation lookup, or redirects to explorer."""
+    from app.plugins import DidWebVH
+    from app.utilities import timestamp
+    
+    # Handle invitation lookup by _oobid
+    if _oobid:
+        # Find witness by multikey (the _oobid is the witness key)
+        registry = storage.get_registry("knownWitnesses")
+        if registry:
+            for witness_id, entry in registry.registry_data.items():
+                witness_key = witness_id.split(":")[-1]
+                if witness_key == _oobid:
+                    invitation = storage.get_witness_invitation(witness_id)
+                    if invitation and invitation.invitation_payload:
+                        return JSONResponse(status_code=200, content=invitation.invitation_payload)
+        raise HTTPException(status_code=404, detail="Invitation not found")
+    
+    # Handle DID path request
+    if namespace and alias:
+        # Get policy and registry
+        policy = storage.get_policy("active")
+        registry = storage.get_registry("knownWitnesses")
+        
+        policy_data = policy.to_dict() if policy else {}
+        registry_data = registry.registry_data if registry else {}
+        
+        webvh = DidWebVH(active_policy=policy_data, active_registry=registry_data)
+        
+        # Check if DID already exists
+        if storage.get_did_controller_by_alias(namespace, alias):
+            raise HTTPException(status_code=409, detail="Alias already exists")
+        
+        # Check reserved namespaces
+        if namespace in settings.RESERVED_NAMESPACES:
+            raise HTTPException(status_code=400, detail=f"Namespace '{namespace}' is reserved")
+        
+        # Generate parameters
+        parameters = webvh.parameters()
+        placeholder_id = webvh.placeholder_id(namespace, alias)
+        
+        # Create initial state
+        state = {
+            "@context": ["https://www.w3.org/ns/did/v1"],
+            "id": placeholder_id,
+        }
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "versionId": settings.SCID_PLACEHOLDER,
+                "versionTime": timestamp(),
+                "parameters": parameters,
+                "state": state,
+                "proof": webvh.proof_options(),
+            },
+        )
+    
+    # Default: redirect to explorer
+    return RedirectResponse(url="/explorer", status_code=307)
 
 
 @api_router.get("/server/status", tags=["Resolvers"], include_in_schema=False)
