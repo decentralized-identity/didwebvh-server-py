@@ -16,7 +16,7 @@ from fastapi.security import APIKeyHeader
 
 
 from app.models.web_schemas import AddWitness
-from app.services.invitations import (
+from app.plugins.invitations import (
     build_short_invitation_url,
     decode_invitation_from_url as parse_invitation_url,
 )
