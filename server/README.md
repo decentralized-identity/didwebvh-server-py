@@ -40,120 +40,43 @@ docker run -p 8000:8000 \
 
 ## Configuration
 
-Create a `.env` file in the `server` directory (see `env.example` for all options):
+Create a `.env` file in the `server` directory. See `env.example` for all available options.
 
-### Required Configuration
+**Minimum required configuration:**
 ```env
 WEBVH_DOMAIN=did.example.org
 WEBVH_ADMIN_API_KEY=your-secret-key
 ```
 
-### Policy Configuration
-```env
-WEBVH_VERSION=1.0
-WEBVH_WITNESS=true
-WEBVH_WATCHER=https://watcher.example.com  # Optional
-WEBVH_PORTABILITY=true
-WEBVH_PREROTATION=true
-WEBVH_ENDORSEMENT=true
-```
-
-### Witness Configuration (Optional)
-```env
-WEBVH_WITNESS_ID=did:key:z6Mk...
-WEBVH_WITNESS_INVITATION=https://witness.example.com/oob-invite?oob=...
-```
-
-### Database Configuration
-```env
-# Option 1: SQLite (default)
-# No configuration needed
-
-# Option 2: PostgreSQL
-POSTGRES_URL=postgresql://user:password@host:port/database
-# OR use individual components:
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=password
-POSTGRES_SERVER_NAME=localhost
-POSTGRES_SERVER_PORT=5432
-```
-
-See `env.example` for a complete list of all configuration options.
+For complete configuration details, see the [Configuration Guide](../docs/content/configuration.md) in the user manual.
 
 ## API Endpoints
 
-### Server Endpoints
-- `GET /` - Root endpoint (DID path requests, invitation lookup, or explorer redirect)
-- `GET /.well-known/did.json` - Server DID document with witness services
-- `GET /server/status` - Server status and health
+For complete API documentation, see:
+- **[API Endpoints Guide](../docs/content/api-endpoints.md)** - Detailed endpoint reference
+- **Swagger UI** - Interactive API docs at `/docs` when server is running
 
-### Identifier Endpoints
-- `GET /?namespace={namespace}&alias={alias}` - Request DID creation parameters
-- `POST /{namespace}/{alias}` - Create or update DID with log entry
-- `GET /{namespace}/{alias}/did.json` - Resolve DID document
-- `GET /{namespace}/{alias}/did.jsonl` - Get DID log history
-- `GET /{namespace}/{alias}/did-witness.json` - Get witness file
-- `GET /{namespace}/{alias}/whois.vp` - Get WHOIS presentation
-
-### Resource Endpoints
-- `POST /{namespace}/{alias}/resources` - Upload attested resource
-- `PUT /{namespace}/{alias}/resources/{resource_id}` - Update resource metadata
-- `GET /{namespace}/{alias}/resources/{resource_id}` - Get specific resource
-- `GET /{namespace}/{alias}/resources` - List all resources for a DID
-
-### Credential Endpoints
-- `POST /{namespace}/{alias}/credentials` - Upload verifiable credential
-- `GET /{namespace}/{alias}/credentials` - List credentials for a DID
-
-### Admin Endpoints
-- `POST /admin/witnesses` - Add known witness
-- `DELETE /admin/witnesses/{witness_id}` - Remove witness
-- `GET /admin/parameters` - Get current policy parameters
-- `POST /admin/tasks` - Start admin tasks (hidden from Swagger)
-
-### Explorer Endpoints
-- `GET /explorer` - Main explorer interface
-- `GET /explorer/dids` - DID explorer
-- `GET /explorer/resources` - Resource explorer
-- `GET /explorer/witnesses` - Witness network explorer
-
-### Tails Server (if enabled)
-- `GET /tails/{rev_reg_id}` - Get revocation registry tails file
-
-## Key Concepts
-
-### Roles
-- **Admin**: Manages server policies and witness registry
-- **Witness**: Signs DID operations and endorses resources/credentials
-- **Controller**: Creates and manages DIDs, publishes resources
-- **Watcher**: Optional monitoring service for DID operations
-
-### Policy Enforcement
-The server enforces policies configured via environment variables:
-- **Witness Requirements**: Requires witness signatures for DID operations
-- **Endorsement**: Requires witness endorsement for resources and credentials
-- **Portability**: Enforces portability in DID parameters
-- **Prerotation**: Requires next key hashes for key rotation
-- **Watcher**: Includes watcher URLs in DID parameters
-
-### Witness Registry
-Witnesses must be registered via the admin API before they can sign operations. Registered witnesses are advertised in the server's DID document as `WitnessInvitation` services.
+**Quick reference:**
+- `GET /` - Root endpoint (DID requests, invitation lookup, explorer)
+- `GET /?namespace={ns}&alias={alias}` - Request DID parameters
+- `POST /{namespace}/{alias}` - Create/update DID
+- `GET /{namespace}/{alias}/did.json` - Resolve DID
+- `POST /{namespace}/{alias}/resources` - Upload resource
+- `POST /admin/witnesses` - Manage witnesses
+- `GET /explorer` - Web explorer interface
 
 ## Documentation
 
-Comprehensive documentation is available in the `/docs` directory:
+📚 **See the [User Manual](../docs/content/index.md) for comprehensive documentation:**
 
-- **User Manual**: Complete guide with multiple sections
-  - Introduction and Roles
-  - Getting Started and Configuration
-  - API Endpoints and Protocols
-  - Admin Operations and DID Operations
-  - AnonCreds Support
-  - Examples
+- Getting Started & Configuration
+- API Endpoints & Protocols  
+- Roles (Admin, Witness, Controller, Watcher)
+- Admin Operations & DID Operations
+- AnonCreds Support
+- Examples
 
-- **API Documentation**: Interactive Swagger UI at `/docs` when server is running
-
-- **Project README**: See `../README.md` for project overview and architecture
+**Interactive API Docs**: Swagger UI at `/docs` when server is running
 
 ## Development
 
