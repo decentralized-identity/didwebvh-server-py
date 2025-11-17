@@ -16,6 +16,7 @@ nav = [
     { "Protocols" = "protocols.md" },
     { "Admin Operations" = "admin-operations.md" },
     { "DID Operations" = "did-operations.md" },
+    { "AnonCreds" = "anoncreds.md" },
     { "Examples" = "examples.md" }
 ]
 

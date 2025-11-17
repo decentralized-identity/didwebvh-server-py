@@ -14,5 +14,6 @@ Use the sidebar to navigate through the documentation sections:
 - [Protocols](protocols.md) - Core protocols for DID management
 - [Admin Operations](admin-operations.md) - Administrative endpoints
 - [DID Operations](did-operations.md) - Creating, updating, and resolving DIDs
+- [AnonCreds](anoncreds.md) - Publishing and resolving AnonCreds objects
 - [Examples](examples.md) - Practical examples and use cases
 
