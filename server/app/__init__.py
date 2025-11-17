@@ -49,6 +49,22 @@ async def lifespan(app: FastAPI):
             try:
                 # Decode invitation to get label
                 invitation_payload = decode_invitation_from_url(settings.WEBVH_WITNESS_INVITATION)
+                
+                # Validate invitation goal_code and goal
+                goal_code = invitation_payload.get("goal_code")
+                goal = invitation_payload.get("goal")
+                
+                if goal_code != "witness-service":
+                    raise ValueError(
+                        f"Invalid invitation goal_code. Expected 'witness-service', got '{goal_code}'"
+                    )
+                
+                if goal != settings.WEBVH_WITNESS_ID:
+                    raise ValueError(
+                        f"Invitation goal does not match witness ID. "
+                        f"Expected '{settings.WEBVH_WITNESS_ID}', got '{goal}'"
+                    )
+                
                 invitation_label = invitation_payload.get("label") or "Default Server Witness"
                 
                 # Build short service endpoint

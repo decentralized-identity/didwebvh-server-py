@@ -97,11 +97,30 @@ def _validate_witness_id(witness_did: str) -> str:
     return multikey
 
 
+def _validate_invitation_goal(invitation_payload: dict, witness_did: str) -> None:
+    """Validate that invitation goal_code and goal match witness requirements."""
+    goal_code = invitation_payload.get("goal_code")
+    goal = invitation_payload.get("goal")
+    
+    if goal_code != "witness-service":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid invitation goal_code. Expected 'witness-service', got '{goal_code}'"
+        )
+    
+    if goal != witness_did:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invitation goal does not match witness ID. Expected '{witness_did}', got '{goal}'"
+        )
+
+
 def _process_invitation(
     invitation_url: str, witness_did: str, default_label: str
 ) -> tuple[dict, str, str]:
     """Process invitation URL and return payload, label, and short endpoint."""
     invitation_payload = decode_invitation_from_url(invitation_url)
+    _validate_invitation_goal(invitation_payload, witness_did)
     invitation_label = invitation_payload.get("label") or default_label
     short_service_endpoint = build_short_invitation_url(witness_did, invitation_payload)
     return invitation_payload, invitation_label, short_service_endpoint
@@ -138,14 +157,12 @@ async def add_known_witness(request_body: AddWitness, api_key: str = Security(ge
     registry = storage.get_registry("knownWitnesses")
     if registry:
         registry_data = registry.registry_data
-        if registry_data.get(witness_did):
-            raise HTTPException(status_code=409, detail="Witness already exists.")
         meta = {"updated": timestamp()}
     else:
         registry_data = {}
         meta = {"created": timestamp(), "updated": timestamp()}
 
-    # Add witness entry
+    # Update or add witness entry (update if exists, as per user requirement)
     entry = _create_witness_entry(invitation_label, short_service_endpoint, invitation_url)
     registry_data[witness_did] = entry
 
