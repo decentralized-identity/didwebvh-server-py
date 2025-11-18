@@ -44,3 +44,7 @@ POST /example/my-did
 - **History**: `GET /example/my-did/did.jsonl`
 - **Witness Proofs**: `GET /example/my-did/did-witness.json`
 
+
+
+
+

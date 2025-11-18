@@ -32,3 +32,7 @@ curl -X GET "https://did.example.org/admin/parameters" \
 - **Explorer UI**: Available at `/explorer` for browsing DIDs and resources
 - **DID WebVH Specification**: [https://identity.foundation/didwebvh](https://identity.foundation/didwebvh)
 
+
+
+
+

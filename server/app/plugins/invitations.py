@@ -45,3 +45,7 @@ def build_short_invitation_url(witness_id: str, invitation_payload: dict) -> str
     witness_key = witness_id.split(":")[-1]
     return f"https://{settings.DOMAIN}?_oobid={witness_key}"
 
+
+
+
+

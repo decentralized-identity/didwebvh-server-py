@@ -294,3 +294,7 @@ If `WEBVH_ENDORSEMENT=true` (default), resources must be endorsed by a witness:
 - [Data Integrity Proofs](https://www.w3.org/TR/vc-data-integrity/)
 - [DID WebVH Specification](https://identity.foundation/didwebvh/)
 
+
+
+
+

@@ -64,3 +64,7 @@ These URLs are:
 - Included in the server's DID document under `WitnessInvitation` services
 - Resolvable via the root endpoint to return the full invitation JSON
 
+
+
+
+

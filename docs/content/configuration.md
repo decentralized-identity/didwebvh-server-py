@@ -27,3 +27,7 @@ Create a `.env` file in the `server` directory with the following variables:
 
 The server automatically applies policy settings from environment variables on startup. Any changes to environment variables will be reflected after a server restart.
 
+
+
+
+

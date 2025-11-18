@@ -21,7 +21,7 @@ class AddWitness(CustomBaseModel):
     id: str = Field(
         json_schema_extra={"example": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"}
     )
-    label: str = Field(json_schema_extra={"example": "Example Witness Service"})
+    label: str = Field(None, json_schema_extra={"example": "Example Witness Service"})
     invitationUrl: str = Field(
         None,
         json_schema_extra={

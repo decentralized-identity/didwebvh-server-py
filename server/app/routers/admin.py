@@ -116,12 +116,22 @@ def _validate_invitation_goal(invitation_payload: dict, witness_did: str) -> Non
 
 
 def _process_invitation(
-    invitation_url: str, witness_did: str, default_label: str
+    invitation_url: str, witness_did: str, provided_label: str | None
 ) -> tuple[dict, str, str]:
-    """Process invitation URL and return payload, label, and short endpoint."""
+    """Process invitation URL and return payload, label, and short endpoint.
+    
+    Label priority: provided_label > invitation label > fallback
+    """
     invitation_payload = decode_invitation_from_url(invitation_url)
     _validate_invitation_goal(invitation_payload, witness_did)
-    invitation_label = invitation_payload.get("label") or default_label
+    
+    # Use provided label if available, otherwise use invitation label, otherwise fallback
+    invitation_label = (
+        provided_label 
+        or invitation_payload.get("label") 
+        or "Witness Service"
+    )
+    
     short_service_endpoint = build_short_invitation_url(witness_did, invitation_payload)
     return invitation_payload, invitation_label, short_service_endpoint
 

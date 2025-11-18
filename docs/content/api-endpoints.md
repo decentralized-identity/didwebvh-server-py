@@ -72,3 +72,7 @@
 - **GET** `/{namespace}/{alias}/credentials/{credential_id}`
   - Retrieve a specific credential
 
+
+
+
+

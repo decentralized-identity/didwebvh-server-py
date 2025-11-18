@@ -10,3 +10,7 @@ The DID WebVH Server is a FastAPI-based server for managing Decentralized Identi
 - **Admin API**: Administrative endpoints for managing witnesses and policies
 - **Resource Management**: Store and serve attested resources bound to DIDs
 
+
+
+
+
