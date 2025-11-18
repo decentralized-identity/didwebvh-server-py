@@ -2,8 +2,8 @@
 site_name = "DID WebVH Server Documentation"
 site_description = "Documentation for the DID WebVH Server"
 site_url = "https://your-org.github.io/didwebvh-server-py"
-docs_dir = "docs/content"
-site_dir = "docs/site"
+docs_dir = "docs/input"
+site_dir = "docs"
 
 nav = [
     { Home = "index.md" },
