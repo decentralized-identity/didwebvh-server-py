@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - witness-service-endpoint
 permissions:
   contents: read
   pages: write
