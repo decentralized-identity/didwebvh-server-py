@@ -32,12 +32,8 @@ class DidWebVH:
         self.known_witness_key = settings.WEBVH_WITNESS_ID
         self.known_witness_registry = active_registry or {}
 
-        # Reserved namespaces based on existing API routes
-        self.reserved_namespaces = [
-            "explorer",
-            "policy",
-            "server",
-        ]
+        # Reserved namespaces from settings (single source of truth)
+        self.reserved_namespaces = settings.RESERVED_NAMESPACES
 
     def placeholder_id(self, namespace, identifier):
         """Return placeholder id."""

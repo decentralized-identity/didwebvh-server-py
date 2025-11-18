@@ -3,7 +3,7 @@
 ## Example: Adding a Witness via Admin API
 
 ```bash
-curl -X POST "https://did.example.org/admin/witnesses" \
+curl -X POST "https://did.example.org/api/admin/witnesses" \
   -H "x-api-key: your-api-key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -16,20 +16,20 @@ curl -X POST "https://did.example.org/admin/witnesses" \
 ## Example: Retrieving Invitation
 
 ```bash
-curl "https://did.example.org?_oobid=z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
+curl "https://did.example.org/api/invitations?_oobid=z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
 ```
 
 ## Example: Getting Server Parameters
 
 ```bash
-curl -X GET "https://did.example.org/admin/parameters" \
+curl -X GET "https://did.example.org/api/admin/parameters" \
   -H "x-api-key: your-api-key"
 ```
 
 ## Additional Resources
 
 - **API Documentation**: Available at `/docs` when the server is running
-- **Explorer UI**: Available at `/explorer` for browsing DIDs and resources
+- **Explorer UI**: Available at `/api/explorer` for browsing DIDs and resources
 - **DID WebVH Specification**: [https://identity.foundation/didwebvh](https://identity.foundation/didwebvh)
 
 

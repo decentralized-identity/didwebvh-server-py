@@ -98,7 +98,7 @@ class TestWitnessRegistryEndpoints:
             assert "registry" in registry_data
             witness_did = f"did:key:{new_witness_key}"
             assert witness_did in registry_data["registry"]
-            expected_short_url = f"https://{settings.DOMAIN}?_oobid={new_witness_key}"
+            expected_short_url = f"https://{settings.DOMAIN}/api/invitations?_oobid={new_witness_key}"
             assert registry_data["registry"][witness_did]["name"] == invitation_payload["label"]
             assert registry_data["registry"][witness_did]["serviceEndpoint"] == expected_short_url
             stored_invitation = storage.get_witness_invitation(witness_did)

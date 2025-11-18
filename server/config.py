@@ -102,7 +102,7 @@ class Settings(BaseSettings):
     }
     UNIRESOLVER_URL: str = "https://dev.uniresolver.io"
 
-    RESERVED_NAMESPACES: list = ["explorer", "admin", "server", "tails"]
+    RESERVED_NAMESPACES: list = ["api", ".well-known"]
 
 
 settings = Settings()

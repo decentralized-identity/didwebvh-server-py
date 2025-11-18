@@ -23,7 +23,7 @@ Witnesses advertise their onboarding invitations through the server's DID docume
    - Extract the `serviceEndpoint` URL
 
 4. **Retrieve the Invitation**
-   - The `serviceEndpoint` is a short URL: `https://{domain}?_oobid={witness_key}`
+   - The `serviceEndpoint` is a short URL: `https://{domain}/api/invitations?_oobid={witness_key}`
    - **GET** the short URL to retrieve the full invitation as JSON
    - The invitation contains a DIDComm Out-of-Band invitation payload
 
@@ -43,14 +43,14 @@ curl https://did.example.org/.well-known/did.json
     {
       "id": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
       "type": "WitnessInvitation",
-      "serviceEndpoint": "https://did.example.org?_oobid=z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
+      "serviceEndpoint": "https://did.example.org/api/invitations?_oobid=z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
       "name": "Example Witness Service"
     }
   ]
 }
 
 # 2. Retrieve invitation from short URL
-curl "https://did.example.org?_oobid=z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
+curl "https://did.example.org/api/invitations?_oobid=z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
 
 # Returns full invitation JSON
 {

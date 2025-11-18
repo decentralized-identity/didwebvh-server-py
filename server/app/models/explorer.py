@@ -141,7 +141,7 @@ class ExplorerDidRecord(CustomBaseModel):
             resolver=f"{settings.UNIRESOLVER_URL}/#{controller.did}",
             log_file=f"https://{controller.domain}/{controller.namespace}/{controller.alias}/did.jsonl",
             witness_file=f"https://{controller.domain}/{controller.namespace}/{controller.alias}/did-witness.json",
-            resource_query=f"https://{settings.DOMAIN}/explorer/resources?scid={controller.scid}",
+            resource_query=f"https://{settings.DOMAIN}/api/explorer/resources?scid={controller.scid}",
             whois_presentation=f"https://{controller.domain}/{controller.namespace}/{controller.alias}/whois.vp",
         )
 

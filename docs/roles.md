@@ -9,23 +9,23 @@ The **Admin** role manages the server configuration, policies, and witness regis
 ### Responsibilities
 
 - **Server Policy Management**: Configure and update server policies including:
-  - Witness requirements (`WEBVH_WITNESS`)
-  - Watcher URLs (`WEBVH_WATCHER`)
-  - Portability settings (`WEBVH_PORTABILITY`)
-  - Prerotation requirements (`WEBVH_PREROTATION`)
-  - Endorsement requirements (`WEBVH_ENDORSEMENT`)
-  - WebVH method version (`WEBVH_VERSION`)
+    - Witness requirements (`WEBVH_WITNESS`)
+    - Watcher URLs (`WEBVH_WATCHER`)
+    - Portability settings (`WEBVH_PORTABILITY`)
+    - Prerotation requirements (`WEBVH_PREROTATION`)
+    - Endorsement requirements (`WEBVH_ENDORSEMENT`)
+    - WebVH method version (`WEBVH_VERSION`)
 
 - **Witness Registry Management**: 
-  - Add known witnesses to the registry
-  - Remove witnesses from the registry
-  - Update witness invitation URLs
-  - View the current witness registry
+    - Add known witnesses to the registry
+    - Remove witnesses from the registry
+    - Update witness invitation URLs
+    - View the current witness registry
 
 - **Server Monitoring**: 
-  - View server status and health
-  - Monitor DID operations
-  - Access administrative endpoints
+    - View server status and health
+    - Monitor DID operations
+    - Access administrative endpoints
 
 ### Authentication
 
@@ -33,16 +33,16 @@ Admins authenticate using the `WEBVH_ADMIN_API_KEY` environment variable. This A
 
 ### API Endpoints
 
-- `POST /admin/witnesses` - Add a known witness
-- `DELETE /admin/witnesses/{witness_id}` - Remove a witness
-- `GET /admin/parameters` - Get current policy parameters
-- `GET /server/status` - Get server status
+- `POST /api/admin/witnesses` - Add a known witness
+- `DELETE /api/admin/witnesses/{witness_id}` - Remove a witness
+- `GET /api/admin/parameters` - Get current policy parameters
+- `GET /api/server/status` - Get server status
 
 ### Example
 
 ```bash
 # Add a witness
-curl -X POST "https://did.example.org/admin/witnesses" \
+curl -X POST "https://did.example.org/api/admin/witnesses" \
   -H "x-api-key: your-admin-api-key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -70,14 +70,14 @@ The **Witness** role provides attestation and signing services for DID operation
 Witnesses must be registered by an Admin before they can provide services:
 
 1. Admin adds the witness to the known witness registry with:
-   - Witness DID (`did:key:...`)
-   - Witness label/name
-   - Full invitation URL (with `?oob=` parameter)
+    - Witness DID (`did:key:...`)
+    - Witness label/name
+    - Full invitation URL (with `?oob=` parameter)
 
 2. The server:
-   - Stores the witness invitation
-   - Adds the witness to the server's DID document as a `WitnessInvitation` service
-   - Makes the witness available for controllers to discover and connect
+    - Stores the witness invitation
+    - Adds the witness to the server's DID document as a `WitnessInvitation` service
+    - Makes the witness available for controllers to discover and connect
 
 ### Witness Keys
 
@@ -97,7 +97,7 @@ curl https://did.example.org/.well-known/did.json
     {
       "id": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
       "type": "WitnessInvitation",
-      "serviceEndpoint": "https://did.example.org?_oobid=z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
+      "serviceEndpoint": "https://did.example.org/api/invitations?_oobid=z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
       "name": "Example Witness Service"
     }
   ]
@@ -107,21 +107,21 @@ curl https://did.example.org/.well-known/did.json
 ### Signature Requirements
 
 When server policy requires witnesses (`WEBVH_WITNESS=true`), controllers must obtain witness signatures for:
-- Initial DID registration
-- DID updates (if policy requires ongoing witness attestation)
+    - Initial DID registration
+    - DID updates (if policy requires ongoing witness attestation)
 
 Witness signatures are included in the `witnessSignature` field of log entry requests.
 
 ### Endorsement Requirements
 
 When server policy requires endorsement (`WEBVH_ENDORSEMENT=true`), witnesses must endorse:
-- **Attested Resources**: Controllers submit resources with witness proofs. The witness verifies and signs the resource, providing an endorsement proof that must be included when uploading to the server.
-- **Verifiable Credentials**: Controllers issue credentials that require witness endorsement. Witnesses verify and sign credentials, providing endorsement proofs.
+    - **Attested Resources**: Controllers submit resources with witness proofs. The witness verifies and signs the resource, providing an endorsement proof that must be included when uploading to the server.
+    - **Verifiable Credentials**: Controllers issue credentials that require witness endorsement. Witnesses verify and sign credentials, providing endorsement proofs.
 
 Endorsement proofs are included alongside controller proofs in resource and credential upload requests. The server validates that:
-- The witness is registered in the known witness registry
-- The witness proof is cryptographically valid
-- The witness key matches a registered witness DID
+    - The witness is registered in the known witness registry
+    - The witness proof is cryptographically valid
+    - The witness key matches a registered witness DID
 
 ## Controller
 
@@ -140,22 +140,22 @@ The **Controller** role owns and manages DIDs. Controllers create, update, and d
 ### DID Lifecycle
 
 1. **Request DID Path**
-   - Controller requests a DID path: `GET /?namespace={namespace}&alias={alias}`
-   - Server returns policy-driven parameters
+    - Controller requests a DID path: `GET /?namespace={namespace}&alias={alias}`
+    - Server returns policy-driven parameters
 
 2. **Create Initial Log Entry**
-   - Controller constructs the initial log entry
-   - Controller signs the log entry with their update key
-   - If policy requires witnesses, controller requests witness signatures
+    - Controller constructs the initial log entry
+    - Controller signs the log entry with their update key
+    - If policy requires witnesses, controller requests witness signatures
 
 3. **Submit Log Entry**
-   - Controller submits the log entry: `POST /{namespace}/{alias}`
-   - Server validates and publishes the DID
+    - Controller submits the log entry: `POST /{namespace}/{alias}`
+    - Server validates and publishes the DID
 
 4. **Update DID**
-   - Controller submits subsequent log entries to update the DID
-   - Each update must be signed with the controller's update key
-   - Witness signatures may be required depending on policy
+    - Controller submits subsequent log entries to update the DID
+    - Each update must be signed with the controller's update key
+    - Witness signatures may be required depending on policy
 
 ### Update Keys
 
@@ -167,9 +167,9 @@ When watchers are configured (`WEBVH_WATCHER` is set), controllers are responsib
 
 1. **Include Watcher in Parameters**: Controllers must include watcher URLs in DID parameters as specified by server policy
 2. **Notify on Operations**: Controllers notify watchers when:
-   - Creating new DIDs
-   - Updating existing DIDs
-   - Publishing resources or credentials (if watcher monitoring is required)
+    - Creating new DIDs
+    - Updating existing DIDs
+    - Publishing resources or credentials (if watcher monitoring is required)
 
 Watcher notification ensures that monitoring services can observe and audit DID operations for compliance purposes.
 
@@ -179,9 +179,9 @@ Controllers are responsible for requesting and collecting witness signatures. Wh
 
 1. **Connect to Witness**: Controller connects to witness service using invitation from server DID document
 2. **Request Signatures**: Controller requests witness signatures for:
-   - DID log entries (registration and updates)
-   - Attested resources (when `WEBVH_ENDORSEMENT=true`)
-   - Verifiable credentials (when `WEBVH_ENDORSEMENT=true`)
+    - DID log entries (registration and updates)
+    - Attested resources (when `WEBVH_ENDORSEMENT=true`)
+    - Verifiable credentials (when `WEBVH_ENDORSEMENT=true`)
 3. **Collect Signatures**: Controller collects witness signatures and proofs
 4. **Include in Submissions**: Controller includes witness signatures when submitting to server
 
@@ -236,9 +236,9 @@ When configured, the watcher URL is included in all DID parameters:
 ### Policy Enforcement
 
 If a watcher is configured:
-- All DID parameters must include the watcher URL
-- Controllers must include the watcher in their DID configuration
-- The server validates that watchers match policy requirements
+    - All DID parameters must include the watcher URL
+    - Controllers must include the watcher in their DID configuration
+    - The server validates that watchers match policy requirements
 
 ### Optional Role
 
@@ -257,9 +257,9 @@ Watchers are optional. If `WEBVH_WATCHER` is not set, the `watchers` array in DI
 - Controller discovers witnesses through server DID document
 - Controller connects to witness via DIDComm invitation
 - Controller requests and collects witness signatures for:
-  - DID log entries (registration and updates)
-  - Attested resources (when endorsement required)
-  - Verifiable credentials (when endorsement required)
+    - DID log entries (registration and updates)
+    - Attested resources (when endorsement required)
+    - Verifiable credentials (when endorsement required)
 - Witness verifies and signs controller requests
 - Controller coordinates with witnesses to obtain all required signatures
 

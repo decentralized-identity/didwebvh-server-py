@@ -1,28 +1,58 @@
 [project]
 site_name = "DID WebVH Server Documentation"
 site_description = "Documentation for the DID WebVH Server"
-site_url = "https://your-org.github.io/didwebvh-server-py"
-docs_dir = "docs/input"
-site_dir = "docs"
+site_url = "http://localhost:8000"
+docs_dir = "docs"
+site_dir = "site"
+# Custom CSS for brand colors
+# extra_css = ["stylesheets/custom.css"]
+# Custom JavaScript for top navigation (temporarily disabled)
+# extra_javascript = ["javascripts/top-nav.js"]
 
 nav = [
     { Home = "index.md" },
-    { "User Manual" = "user-manual.md" },
-    { "Introduction" = "introduction.md" },
-    { "Roles" = "roles.md" },
-    { "Getting Started" = "getting-started.md" },
-    { "Configuration" = "configuration.md" },
-    { "API Endpoints" = "api-endpoints.md" },
-    { "Protocols" = "protocols.md" },
-    { "Admin Operations" = "admin-operations.md" },
-    { "DID Operations" = "did-operations.md" },
-    { "AnonCreds" = "anoncreds.md" },
-    { "Examples" = "examples.md" }
+    { About = "about.md" },
+    { "User Guide" = [
+        "user-manual.md",
+        "roles.md",
+        "getting-started.md",
+        "configuration.md"
+    ]},
+    { "API Reference" = [
+        "api-endpoints.md",
+        "admin-operations.md",
+        "did-operations.md"
+    ]},
+    { "Guides" = [
+        {"Protocols" = "guides/protocols.md"},
+        {"AnonCreds" = "guides/anoncreds.md"},
+        {"Examples" = "guides/examples.md"}
+    ]}
 ]
 
-[theme]
+[project.theme]
 name = "default"
+scheme = "default"
+features = [
+    "navigation.instant",
+    "navigation.instant.prefetch",
+    "navigation.instant.progress",
+    "navigation.tracking",
+    "navigation.tabs",
+    "navigation.tabs.sticky",
+    "navigation.sections",
+    "navigation.expand",
+    "navigation.path",
+    "navigation.prune",
+    "navigation.indexes",
+    "toc.follow",
+    "toc.integrate",
+    "navigation.top"
+]
 
 [theme.palette]
-primary = "#1a365d"
-accent = "#38a169"
+# Primary color: indigo, blue, red, pink, purple, teal, green, orange, etc.
+# Or use "custom" and define colors in extra_css
+primary = "custom"
+# Accent color
+accent = "custom"

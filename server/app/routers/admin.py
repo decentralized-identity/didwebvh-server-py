@@ -232,7 +232,7 @@ async def remove_known_witness(multikey: str, api_key: str = Security(get_api_ke
     return JSONResponse(status_code=200, content=updated_registry.to_dict())
 
 
-@router.post("/tasks", include_in_schema=False)
+@router.post("/tasks")
 async def sync_storage(
     tasks: BackgroundTasks,
     task_type: TaskType = Query(...),
@@ -254,7 +254,7 @@ async def sync_storage(
     return JSONResponse(status_code=201, content={"task_id": task_id})
 
 
-@router.get("/tasks", include_in_schema=False)
+@router.get("/tasks")
 async def fetch_tasks(
     task_type: TaskType = Query(None),
     status: TaskStatus = Query(None),
@@ -273,7 +273,7 @@ async def fetch_tasks(
     return JSONResponse(status_code=200, content={"tasks": tasks_data})
 
 
-@router.get("/tasks/{task_id}", include_in_schema=False)
+@router.get("/tasks/{task_id}")
 async def check_task_status(task_id: str, api_key: str = Security(get_api_key)):
     """Check the status of an administrative task."""
     if not (task := storage.get_task(task_id)):

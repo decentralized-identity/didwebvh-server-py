@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routers import admin, identifiers, resources, credentials, explorer, tails
+from app.routers import admin, identifiers, resources, credentials, explorer, tails, invitations
 from app.plugins.storage import StorageManager
 from config import settings
 from app.utilities import build_witness_services
@@ -138,28 +138,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
 
-@api_router.get("/", tags=["Resolvers"])
+@api_router.get("/", tags=["Server"])
 async def root_endpoint(
     namespace: str = Query(None),
     alias: str = Query(None),
-    _oobid: str = Query(None),
 ):
-    """Root endpoint - handles DID path requests, invitation lookup, or redirects to explorer."""
+    """Root endpoint - handles DID path requests or redirects to explorer."""
     from app.plugins import DidWebVH
     from app.utilities import timestamp
-    
-    # Handle invitation lookup by _oobid
-    if _oobid:
-        # Find witness by multikey (the _oobid is the witness key)
-        registry = storage.get_registry("knownWitnesses")
-        if registry:
-            for witness_id, entry in registry.registry_data.items():
-                witness_key = witness_id.split(":")[-1]
-                if witness_key == _oobid:
-                    invitation = storage.get_witness_invitation(witness_id)
-                    if invitation and invitation.invitation_payload:
-                        return JSONResponse(status_code=200, content=invitation.invitation_payload)
-        raise HTTPException(status_code=404, detail="Invitation not found")
     
     # Handle DID path request
     if namespace and alias:
@@ -202,13 +188,7 @@ async def root_endpoint(
         )
     
     # Default: redirect to explorer
-    return RedirectResponse(url="/explorer", status_code=307)
-
-
-@api_router.get("/server/status", tags=["Resolvers"], include_in_schema=False)
-async def server_status():
-    """Server status endpoint."""
-    return JSONResponse(status_code=200, content={"status": "ok", "domain": settings.DOMAIN})
+    return RedirectResponse(url="/api/explorer", status_code=307)
 
 
 @api_router.get("/.well-known/did.json", tags=["Resolvers"])
@@ -227,13 +207,22 @@ async def well_known_did_document():
     return JSONResponse(status_code=200, content=document)
 
 
-api_router.include_router(explorer.router, prefix="/explorer", include_in_schema=False)
-api_router.include_router(admin.router, prefix="/admin")
+# API routes (under /api prefix)
+api_router.include_router(explorer.router, prefix="/api/explorer")
+api_router.include_router(admin.router, prefix="/api/admin")
+api_router.include_router(invitations.router, prefix="/api/invitations")
+api_router.include_router(tails.router, prefix="/api/tails", tags=["Tails"])
 
+# Add server status endpoint under /api
+@api_router.get("/api/server/status", tags=["Server"])
+async def server_status():
+    """Server status endpoint."""
+    return JSONResponse(status_code=200, content={"status": "ok", "domain": settings.DOMAIN})
+
+# Identifier routes (stay at root - these are DID paths)
 api_router.include_router(identifiers.resolver_router)
 api_router.include_router(identifiers.router)
 api_router.include_router(credentials.router)
 api_router.include_router(resources.router)
-api_router.include_router(tails.router, prefix="/tails", tags=["Tails"])
 
 app.include_router(api_router)

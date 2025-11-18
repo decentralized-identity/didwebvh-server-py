@@ -26,8 +26,8 @@
 The server will be available at `http://localhost:8000` (or your configured domain). You can:
 
 - Access the API documentation at `http://localhost:8000/docs`
-- Access the explorer UI at `http://localhost:8000/explorer`
-- Check server status at `http://localhost:8000/server/status`
+- Access the explorer UI at `http://localhost:8000/api/explorer`
+- Check server status at `http://localhost:8000/api/server/status`
 
 
 

@@ -6,7 +6,7 @@ Admin endpoints require API key authentication via the `x-api-key` header.
 
 ### Add Witness
 
-- **POST** `/admin/witnesses`
+- **POST** `/api/admin/witnesses`
   - **Headers**: `x-api-key: <WEBVH_ADMIN_API_KEY>`
   - **Body**:
     ```json
@@ -20,7 +20,7 @@ Admin endpoints require API key authentication via the `x-api-key` header.
 
 ### Remove Witness
 
-- **DELETE** `/admin/witnesses/{multikey}`
+- **DELETE** `/api/admin/witnesses/{multikey}`
   - **Headers**: `x-api-key: <WEBVH_ADMIN_API_KEY>`
   - Removes a witness from the registry
 
@@ -28,7 +28,7 @@ Admin endpoints require API key authentication via the `x-api-key` header.
 
 ### Get Parameters
 
-- **GET** `/admin/parameters`
+- **GET** `/api/admin/parameters`
   - **Headers**: `x-api-key: <WEBVH_ADMIN_API_KEY>`
   - Returns the parameters generated from the active policy
   - Includes witness configuration, method version, and other policy-driven settings
@@ -41,14 +41,14 @@ If both `WEBVH_WITNESS_ID` and `WEBVH_WITNESS_INVITATION` are set, the server wi
 
 1. Decode the invitation from the URL
 2. Store the invitation using the witness DID as the key
-3. Update the witness registry with a short URL (`https://{DOMAIN}?_oobid={witness_key}`)
+3. Update the witness registry with a short URL (`https://{DOMAIN}/api/invitations?_oobid={witness_key}`)
 4. Update the invitation if it changes on restart
 
 ### Invitation Lookup
 
 Witness invitations can be retrieved via the root endpoint:
 
-- **GET** `/?_oobid={witness_key}`
+- **GET** `/api/invitations?_oobid={witness_key}`
   - Returns the stored invitation as JSON
   - The `witness_key` is the multikey portion of the `did:key` identifier
 
@@ -56,7 +56,7 @@ Witness invitations can be retrieved via the root endpoint:
 
 The server generates short URLs for witness invitations in the format:
 ```
-https://{DOMAIN}?_oobid={witness_key}
+https://{DOMAIN}/api/invitations?_oobid={witness_key}
 ```
 
 These URLs are:

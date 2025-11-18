@@ -729,13 +729,13 @@
                             <h4 class="mb-0">Resources (${did.resources.length})</h4>
                         </div>
                         <div class="col-auto">
-                            <a href="/explorer/resources?scid=${did.scid}" class="btn btn-sm btn-outline-primary">
+                            <a href="/api/explorer/resources?scid=${did.scid}" class="btn btn-sm btn-outline-primary">
                                 <i class="ti ti-external-link me-1"></i>View All Resources
                             </a>
                         </div>
                     </div>
                     ${did.resources.length > 0 ? did.resources.map((r, i) => `
-                        <a href="/explorer/resources?resource_id=${r.digest}" class="card card-sm mb-2 card-link" style="text-decoration: none;">
+                        <a href="/api/explorer/resources?resource_id=${r.digest}" class="card card-sm mb-2 card-link" style="text-decoration: none;">
                             <div class="card-body">
                                 <div class="d-flex align-items-center">
                                     <div class="flex-fill">
@@ -758,13 +758,13 @@
                             <h4 class="mb-0">Credentials (${did.credentials.length})</h4>
                         </div>
                         <div class="col-auto">
-                            <a href="/explorer/credentials?namespace=${did.namespace}&alias=${did.identifier}" class="btn btn-sm btn-outline-primary">
+                            <a href="/api/explorer/credentials?namespace=${did.namespace}&alias=${did.identifier}" class="btn btn-sm btn-outline-primary">
                                 <i class="ti ti-external-link me-1"></i>View All Credentials
                             </a>
                         </div>
                     </div>
                     ${did.credentials.length > 0 ? did.credentials.map((c, i) => `
-                        <a href="/explorer/credentials?credential_id=${encodeURIComponent(c.id)}" class="card card-sm mb-2 card-link" style="text-decoration: none;">
+                        <a href="/api/explorer/credentials?credential_id=${encodeURIComponent(c.id)}" class="card card-sm mb-2 card-link" style="text-decoration: none;">
                             <div class="card-body">
                                 <div class="d-flex align-items-center">
                                     <div class="flex-fill">

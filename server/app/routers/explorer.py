@@ -1,7 +1,7 @@
 """Explorer routes for DIDs and resources UI."""
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.plugins.storage import StorageManager
 from app.utilities import create_pagination
@@ -19,6 +19,7 @@ router = APIRouter(tags=["Explorer"])
 storage = StorageManager()
 
 
+@router.get("", include_in_schema=False)
 @router.get("/")
 async def explorer_index(request: Request):
     """Landing page for the explorer UI."""
