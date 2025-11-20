@@ -6,11 +6,7 @@ site_url = "https://identity.foundation/didwebvh-server-py"
 dev_addr = "localhost:8000"
 docs_dir = "docs"
 site_dir = "site"
-copyright: "Copyright &copy; 2025 DIF"
-# Custom CSS for brand colors
-# extra_css = ["stylesheets/custom.css"]
-# Custom JavaScript for top navigation (temporarily disabled)
-# extra_javascript = ["javascripts/top-nav.js"]
+copyright = "Copyright &copy; 2025 DIF"
 
 nav = [
     { Home = "index.md" },
@@ -67,10 +63,6 @@ logo = "lucide/smile"
 previous = "fontawesome/solid/angle-left"
 next = "fontawesome/solid/angle-right"
 
-[project.theme.palette]
-primary = "indigo"
-accent = "indigo"
-
 [[project.theme.palette]]
 media = "(prefers-color-scheme)"
 toggle.icon = "lucide/sun-moon"
@@ -82,13 +74,15 @@ scheme = "default"
 toggle.icon = "lucide/sun"
 toggle.name = "Switch to dark mode"
 primary = "indigo"
-accent = "indigo"
+accent = "blue"
 
 [[project.theme.palette]]
 media = "(prefers-color-scheme: dark)"
 scheme = "slate"
 toggle.icon = "lucide/moon"
 toggle.name = "Switch to light mode"
+primary = "indigo"
+accent = "blue"
 
 [project.extra]
 generator = false

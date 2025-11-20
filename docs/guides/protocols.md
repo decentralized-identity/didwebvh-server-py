@@ -9,27 +9,27 @@ Witnesses advertise their onboarding invitations through the server's DID docume
 ### Protocol Flow
 
 1. **Collect Inputs**
-   - WebVH server base URL (e.g., `https://did.example.org`)
-   - Witness DID (`did:key:z6Mk...`)
+    - WebVH server base URL (e.g., `https://did.example.org`)
+    - Witness DID (`did:key:z6Mk...`)
 
 2. **Resolve the Server DID**
-   - **GET** `https://did.example.org/.well-known/did.json`
-   - The document contains a `service` array generated from the known witness registry
-   - Each service entry represents an available witness
+    - **GET** `https://did.example.org/.well-known/did.json`
+    - The document contains a `service` array generated from the known witness registry
+    - Each service entry represents an available witness
 
 3. **Locate the Witness Entry**
-   - Find the service object whose `id` matches the witness DID
-   - Verify the service `type` is `WitnessInvitation`
-   - Extract the `serviceEndpoint` URL
+    - Find the service object whose `id` matches the witness DID
+    - Verify the service `type` is `WitnessInvitation`
+    - Extract the `serviceEndpoint` URL
 
 4. **Retrieve the Invitation**
-   - The `serviceEndpoint` is a short URL: `https://{domain}/api/invitations?_oobid={witness_key}`
-   - **GET** the short URL to retrieve the full invitation as JSON
-   - The invitation contains a DIDComm Out-of-Band invitation payload
+    - The `serviceEndpoint` is a short URL: `https://{domain}/api/invitations?_oobid={witness_key}`
+    - **GET** the short URL to retrieve the full invitation as JSON
+    - The invitation contains a DIDComm Out-of-Band invitation payload
 
 5. **Establish Connection**
-   - Use the invitation URL with your agent/connector to initiate the DIDComm relationship
-   - The witness service will handle the connection protocol
+    - Use the invitation URL with your agent/connector to initiate the DIDComm relationship
+    - The witness service will handle the connection protocol
 
 ### Example
 
@@ -69,29 +69,29 @@ This protocol enables clients to request DID creation parameters from the server
 ### Protocol Flow
 
 1. **Request Parameters**
-   - **GET** `/?namespace={namespace}&alias={alias}`
-   - Both `namespace` and `alias` are required query parameters
-   - The server validates that the namespace is not reserved
-   - The server checks if the alias is already in use
+    - **GET** `/?namespace={namespace}&alias={alias}`
+    - Both `namespace` and `alias` are required query parameters
+    - The server validates that the namespace is not reserved
+    - The server checks if the alias is already in use
 
 2. **Server Response**
-   - Returns policy-driven parameters including:
-     - `versionId`: SCID placeholder for the DID
-     - `versionTime`: Current timestamp
-     - `parameters`: Policy-driven configuration
-       - `method`: WebVH method version
-       - `witness`: Witness requirements (threshold and witness list)
-       - `portable`: Portability setting
-       - `updateKeys`: Required update keys
-       - `nextKeyHashes`: Prerotation requirements
-       - `watchers`: Optional watcher URLs
-     - `state`: Initial DID document state
-     - `proof`: Proof options for signing
+    - Returns policy-driven parameters including:
+        - `versionId`: SCID placeholder for the DID
+        - `versionTime`: Current timestamp
+        - `parameters`: Policy-driven configuration
+            - `method`: WebVH method version
+            - `witness`: Witness requirements (threshold and witness list)
+            - `portable`: Portability setting
+            - `updateKeys`: Required update keys
+            - `nextKeyHashes`: Prerotation requirements
+            - `watchers`: Optional watcher URLs
+        - `state`: Initial DID document state
+        - `proof`: Proof options for signing
 
 3. **Use Parameters**
-   - Client uses these parameters to construct the initial log entry
-   - Client must sign the log entry according to the proof options
-   - Client must obtain witness signatures if required by policy
+    - Client uses these parameters to construct the initial log entry
+    - Client must sign the log entry according to the proof options
+    - Client must obtain witness signatures if required by policy
 
 ### Example
 
@@ -140,49 +140,49 @@ This protocol enables clients to create or update DIDs by submitting log entries
 ### Protocol Flow
 
 1. **Prepare Log Entry**
-   - Construct a log entry using parameters from "Requesting a DID Path"
-   - Include:
-     - `versionId`: Unique identifier for this log entry
-     - `versionTime`: Timestamp for this entry
-     - `parameters`: Policy parameters (may differ from initial request for updates)
-     - `state`: DID document state at this point
-     - `proof`: Data Integrity Proof signed by the DID controller
+    - Construct a log entry using parameters from "Requesting a DID Path"
+    - Include:
+        - `versionId`: Unique identifier for this log entry
+        - `versionTime`: Timestamp for this entry
+        - `parameters`: Policy parameters (may differ from initial request for updates)
+        - `state`: DID document state at this point
+        - `proof`: Data Integrity Proof signed by the DID controller
 
 2. **Obtain Witness Signature** (if required)
-   - If server policy requires witnesses, request signatures from witness services
-   - Witness signs the log entry using their witness key
-   - Include witness signature in the request
+    - If server policy requires witnesses, request signatures from witness services
+    - Witness signs the log entry using their witness key
+    - Include witness signature in the request
 
 3. **Submit Log Entry**
-   - **POST** `/{namespace}/{alias}`
-   - **Body**:
-     ```json
-     {
-       "logEntry": {
-         "versionId": "...",
-         "versionTime": "...",
-         "parameters": {...},
-         "state": {...},
-         "proof": {...}
-       },
-       "witnessSignature": {
-         "versionId": "...",
-         "proof": [...]
-       }
-     }
-     ```
+    - **POST** `/{namespace}/{alias}`
+    - **Body**:
+        ```json
+        {
+          "logEntry": {
+            "versionId": "...",
+            "versionTime": "...",
+            "parameters": {...},
+            "state": {...},
+            "proof": {...}
+          },
+          "witnessSignature": {
+            "versionId": "...",
+            "proof": [...]
+          }
+        }
+        ```
 
 4. **Server Processing**
-   - Server validates the log entry structure
-   - Server verifies the controller's proof
-   - Server verifies witness signatures (if required)
-   - Server enforces policy compliance
-   - Server updates or creates the DID record
+    - Server validates the log entry structure
+    - Server verifies the controller's proof
+    - Server verifies witness signatures (if required)
+    - Server enforces policy compliance
+    - Server updates or creates the DID record
 
 5. **Response**
-   - **201 Created**: New DID created successfully
-   - **200 OK**: DID updated successfully
-   - **400 Bad Request**: Validation error or policy violation
+    - **201 Created**: New DID created successfully
+    - **200 OK**: DID updated successfully
+    - **400 Bad Request**: Validation error or policy violation
 
 ### Example
 
