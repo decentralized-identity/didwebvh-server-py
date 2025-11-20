@@ -75,3 +75,22 @@ The following policy variables can be used to enforce parameters from the did:we
 ### Exploring the resources
 
 Have a look at the demo directory for instructions on how to browse the explorer.
+
+## Documentation
+
+The documentation is built with [Zensical](https://zensical.org/). To view the documentation locally:
+
+```bash
+# Install Zensical
+pip install zensical
+
+# Navigate to the project root (where zensical.toml is located)
+cd /path/to/didwebvh-server-py
+
+# Start the documentation server
+zensical serve
+```
+
+The documentation will be available at `http://localhost:8000` (or the port specified in `zensical.toml`).
+
+For comprehensive documentation, see the [User Manual](docs/user-manual.md) in the `docs/` directory.
