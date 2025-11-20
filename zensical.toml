@@ -1,9 +1,12 @@
 [project]
 site_name = "DID WebVH Server Documentation"
-site_description = "Documentation for the DID WebVH Server"
-site_url = "http://localhost:8000"
+site_description = "Documentation for the DID WebVH Server Py project"
+site_author = "Identity Foundation"
+site_url = "https://identity.foundation/didwebvh-server-py"
+dev_addr = "localhost:8000"
 docs_dir = "docs"
 site_dir = "site"
+copyright: "Copyright &copy; 2025 DIF"
 # Custom CSS for brand colors
 # extra_css = ["stylesheets/custom.css"]
 # Custom JavaScript for top navigation (temporarily disabled)
@@ -31,9 +34,17 @@ nav = [
 ]
 
 [project.theme]
+variant = "classic"
 name = "default"
 scheme = "default"
+font.text = "Inter"
+font.code = "JetBrains Mono"
+logo = "assets/logo.png"
+favicon = "images/favicon.png"
+language = "en"
 features = [
+    "search.highlight",
+    "header.autohide",
     "navigation.instant",
     "navigation.instant.prefetch",
     "navigation.instant.progress",
@@ -45,14 +56,39 @@ features = [
     "navigation.path",
     "navigation.prune",
     "navigation.indexes",
+    "navigation.footer",
     "toc.follow",
     "toc.integrate",
     "navigation.top"
 ]
 
-[theme.palette]
-# Primary color: indigo, blue, red, pink, purple, teal, green, orange, etc.
-# Or use "custom" and define colors in extra_css
-primary = "custom"
-# Accent color
-accent = "custom"
+[project.theme.icon]
+logo = "lucide/smile"
+previous = "fontawesome/solid/angle-left"
+next = "fontawesome/solid/angle-right"
+
+[project.theme.palette]
+primary = "indigo"
+accent = "indigo"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+primary = "indigo"
+accent = "indigo"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[project.extra]
+generator = false
