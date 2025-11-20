@@ -80,10 +80,24 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def root_endpoint(
     namespace: str = Query(None),
     alias: str = Query(None),
+    identifier: str = Query(None),
 ):
-    """Root endpoint - handles DID path requests or redirects to explorer."""
+    """Root endpoint - handles DID path requests or redirects to explorer.
+
+    Accepts either 'alias' or 'identifier' query parameter (but not both).
+    """
+    # Validate that both alias and identifier are not provided together
+    if alias and identifier:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot specify both 'alias' and 'identifier' query parameters. Use only one.",
+        )
+
+    # Use identifier if provided, otherwise use alias
+    did_alias = identifier if identifier else alias
+
     # Handle DID path request
-    if namespace and alias:
+    if namespace and did_alias:
         # Check reserved namespaces
         if namespace in settings.RESERVED_NAMESPACES:
             raise HTTPException(status_code=400, detail=f"Namespace '{namespace}' is reserved")
@@ -98,12 +112,12 @@ async def root_endpoint(
         webvh = DidWebVH(active_policy=policy_data, active_registry=registry_data)
 
         # Check if DID already exists
-        if storage.get_did_controller_by_alias(namespace, alias):
+        if storage.get_did_controller_by_alias(namespace, did_alias):
             raise HTTPException(status_code=409, detail="Alias already exists")
 
         # Generate parameters
         parameters = webvh.parameters()
-        placeholder_id = webvh.placeholder_id(namespace, alias)
+        placeholder_id = webvh.placeholder_id(namespace, did_alias)
 
         # Create initial state
         state = {

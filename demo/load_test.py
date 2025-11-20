@@ -23,6 +23,7 @@ Environment Variables:
 
 import argparse
 import asyncio
+import base64
 import json
 import os
 import sys
@@ -57,28 +58,59 @@ logger.add(
 class DidWebVHClient:
     """Client for interacting with DID WebVH Server."""
 
-    def __init__(self, server_url: str):
+    def __init__(self, server_url: str, api_key: Optional[str] = None):
         """Initialize the DID WebVH client.
 
         Args:
             server_url: Base URL of the DID WebVH server
+            api_key: Optional API key for admin endpoints (defaults to env vars or "webvh")
         """
         self.server_url = server_url.rstrip("/")
         self.session = requests.Session()
-        self.api_key = os.getenv("WEBVH_API_KEY", os.getenv("API_KEY", "webvh"))
+        self.api_key = api_key or os.getenv(
+            "WEBVH_API_KEY", os.getenv("API_KEY", "webvh")
+        )
 
     def register_witness(
         self, witness_key: Key, label: str = "Load Test Witness"
     ) -> Dict:
         """Register a witness in the known witness registry."""
         witness_multikey = self.key_to_multikey(witness_key)
+        witness_did = f"did:key:{witness_multikey}"
+
+        # Create a simple invitation payload for load testing
+        invitation_payload = {
+            "@type": "https://didcomm.org/out-of-band/1.1/invitation",
+            "@id": f"inv-{uuid.uuid4().hex[:16]}",
+            "label": label,
+            "goal_code": "witness-service",
+            "goal": witness_did,
+            "services": [
+                {
+                    "id": "#inline",
+                    "type": "did-communication",
+                    "serviceEndpoint": f"{self.server_url}/api/invitations",
+                    "recipientKeys": [f"{witness_did}#recipient"],
+                }
+            ],
+        }
+
+        # Encode invitation as base64 URL-safe
+        invitation_json = json.dumps(invitation_payload)
+        invitation_b64 = (
+            base64.urlsafe_b64encode(invitation_json.encode()).decode().rstrip("=")
+        )
+
+        # Create invitation URL
+        invitation_url = f"{self.server_url}/api/invitations?oob={invitation_b64}"
 
         response = self.session.post(
-            f"{self.server_url}/admin/witnesses",
+            f"{self.server_url}/api/admin/witnesses",
             headers={"X-API-Key": self.api_key},
             json={
-                "multikey": witness_multikey,
+                "id": witness_did,
                 "label": label,
+                "invitationUrl": invitation_url,
             },
         )
 
@@ -135,10 +167,30 @@ class DidWebVHClient:
     def request_did(self, namespace: str, identifier: str) -> Dict:
         """Request DID creation template from server."""
         response = self.session.get(
-            f"{self.server_url}/?namespace={namespace}&identifier={identifier}"
+            f"{self.server_url}/?namespace={namespace}&alias={identifier}"
         )
-        response.raise_for_status()
-        return response.json()
+
+        if response.status_code != 200:
+            try:
+                error_detail = response.json()
+                error_msg = f"DID template request failed: {response.status_code} - {error_detail}"
+            except (ValueError, json.JSONDecodeError):
+                error_msg = f"DID template request failed: {response.status_code} - {response.text[:500]}"
+            logger.error(error_msg)
+            response.raise_for_status()
+
+        # Check if response has content before parsing JSON
+        if not response.text or not response.text.strip():
+            raise ValueError(
+                f"Empty response from server when requesting DID template (status {response.status_code})"
+            )
+
+        try:
+            return response.json()
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ValueError(
+                f"Invalid JSON response when requesting DID template (status {response.status_code}): {response.text[:500]}"
+            ) from e
 
     def create_did(
         self, namespace: str, identifier: str, update_key: Key, witness_key: Key
@@ -195,16 +247,27 @@ class DidWebVHClient:
         if response.status_code != 201:
             try:
                 error_detail = response.json()
-                logger.error(
+                error_msg = (
                     f"DID creation failed: {response.status_code} - {error_detail}"
                 )
-            except Exception:
-                logger.error(
-                    f"DID creation failed: {response.status_code} - {response.text}"
-                )
+            except (ValueError, json.JSONDecodeError):
+                # Response is not JSON, show raw text
+                error_msg = f"DID creation failed: {response.status_code} - {response.text[:500]}"
+            logger.error(error_msg)
+            response.raise_for_status()
 
-        response.raise_for_status()
-        return response.json()
+        # Check if response has content before parsing JSON
+        if not response.text or not response.text.strip():
+            raise ValueError(
+                f"Empty response from server (status {response.status_code})"
+            )
+
+        try:
+            return response.json()
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ValueError(
+                f"Invalid JSON response from server (status {response.status_code}): {response.text[:500]}"
+            ) from e
 
     def get_did_log(self, namespace: str, identifier: str) -> List[Dict]:
         """Get DID log entries."""
@@ -415,6 +478,7 @@ class DidWebVHClient:
         signing_key: Key,
         resource_content: Dict,
         resource_type: str = "genericResource",
+        witness_key: Optional[Key] = None,
     ) -> Dict:
         """Upload an attested resource."""
         # Get DID ID from the log
@@ -451,13 +515,43 @@ class DidWebVHClient:
             },
         }
 
-        # Sign the resource
+        # Sign the resource with author's key
         attested_resource = self.sign_document(
             attested_resource,
             signing_key,
             verification_method_id,
             proof_purpose="assertionMethod",
         )
+
+        # Add witness proof if witness_key is provided (required for endorsement)
+        if witness_key:
+            witness_multikey = self.key_to_multikey(witness_key)
+            witness_did = f"did:key:{witness_multikey}"
+            witness_vm = f"{witness_did}#{witness_multikey}"
+
+            # Create witness proof document (resource without proofs)
+            resource_for_witness = attested_resource.copy()
+            resource_for_witness.pop("proof", None)
+
+            # Sign with witness key
+            witness_proof_doc = self.sign_document(
+                resource_for_witness,
+                witness_key,
+                witness_vm,
+                proof_purpose="assertionMethod",
+            )
+
+            # Extract witness proof and add to proofs list
+            author_proof = attested_resource.get("proof", [])
+            if isinstance(author_proof, dict):
+                author_proof = [author_proof]
+
+            witness_proof = witness_proof_doc.get("proof", [])
+            if isinstance(witness_proof, dict):
+                witness_proof = [witness_proof]
+
+            # Combine proofs: author proof first, then witness proof
+            attested_resource["proof"] = author_proof + witness_proof
 
         # Upload to server
         response = self.session.post(
@@ -629,16 +723,21 @@ class DidWebVHClient:
 class DidWebVHAsyncClient:
     """Async client for interacting with DID WebVH Server (for concurrent requests)."""
 
-    def __init__(self, server_url: str, session: httpx.AsyncClient):
+    def __init__(
+        self, server_url: str, session: httpx.AsyncClient, api_key: Optional[str] = None
+    ):
         """Initialize the async DID WebVH client.
 
         Args:
             server_url: Base URL of the DID WebVH server
             session: Async HTTP client session
+            api_key: Optional API key for admin endpoints (defaults to env vars or "webvh")
         """
         self.server_url = server_url.rstrip("/")
         self.session = session
-        self.api_key = os.getenv("WEBVH_API_KEY", os.getenv("API_KEY", "webvh"))
+        self.api_key = api_key or os.getenv(
+            "WEBVH_API_KEY", os.getenv("API_KEY", "webvh")
+        )
 
     # Copy all the signing methods from sync client (they don't use HTTP)
     def key_to_multikey(self, key: Key) -> str:
@@ -682,11 +781,42 @@ class DidWebVHAsyncClient:
     ) -> Dict:
         """Register a witness in the known witness registry."""
         witness_multikey = self.key_to_multikey(witness_key)
+        witness_did = f"did:key:{witness_multikey}"
+
+        # Create a simple invitation payload for load testing
+        invitation_payload = {
+            "@type": "https://didcomm.org/out-of-band/1.1/invitation",
+            "@id": f"inv-{uuid.uuid4().hex[:16]}",
+            "label": label,
+            "goal_code": "witness-service",
+            "goal": witness_did,
+            "services": [
+                {
+                    "id": "#inline",
+                    "type": "did-communication",
+                    "serviceEndpoint": f"{self.server_url}/api/invitations",
+                    "recipientKeys": [f"{witness_did}#recipient"],
+                }
+            ],
+        }
+
+        # Encode invitation as base64 URL-safe
+        invitation_json = json.dumps(invitation_payload)
+        invitation_b64 = (
+            base64.urlsafe_b64encode(invitation_json.encode()).decode().rstrip("=")
+        )
+
+        # Create invitation URL
+        invitation_url = f"{self.server_url}/api/invitations?oob={invitation_b64}"
 
         response = await self.session.post(
-            f"{self.server_url}/admin/witnesses",
+            f"{self.server_url}/api/admin/witnesses",
             headers={"X-API-Key": self.api_key},
-            json={"multikey": witness_multikey, "label": label},
+            json={
+                "id": witness_did,
+                "label": label,
+                "invitationUrl": invitation_url,
+            },
         )
 
         # Ignore 409 (already exists)
@@ -702,10 +832,30 @@ class DidWebVHAsyncClient:
     async def request_did(self, namespace: str, identifier: str) -> Dict:
         """Request DID creation template from server."""
         response = await self.session.get(
-            f"{self.server_url}/?namespace={namespace}&identifier={identifier}"
+            f"{self.server_url}/?namespace={namespace}&alias={identifier}"
         )
-        response.raise_for_status()
-        return response.json()
+
+        if response.status_code != 200:
+            try:
+                error_detail = response.json()
+                error_msg = f"DID template request failed: {response.status_code} - {error_detail}"
+            except (ValueError, json.JSONDecodeError):
+                error_msg = f"DID template request failed: {response.status_code} - {response.text[:500]}"
+            logger.error(error_msg)
+            response.raise_for_status()
+
+        # Check if response has content before parsing JSON
+        if not response.text or not response.text.strip():
+            raise ValueError(
+                f"Empty response from server when requesting DID template (status {response.status_code})"
+            )
+
+        try:
+            return response.json()
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ValueError(
+                f"Invalid JSON response when requesting DID template (status {response.status_code}): {response.text[:500]}"
+            ) from e
 
     async def create_did(
         self, namespace: str, identifier: str, update_key: Key, witness_key: Key
@@ -752,16 +902,27 @@ class DidWebVHAsyncClient:
         if response.status_code != 201:
             try:
                 error_detail = response.json()
-                logger.error(
+                error_msg = (
                     f"DID creation failed: {response.status_code} - {error_detail}"
                 )
-            except Exception:
-                logger.error(
-                    f"DID creation failed: {response.status_code} - {response.text}"
-                )
+            except (ValueError, json.JSONDecodeError):
+                # Response is not JSON, show raw text
+                error_msg = f"DID creation failed: {response.status_code} - {response.text[:500]}"
+            logger.error(error_msg)
+            response.raise_for_status()
 
-        response.raise_for_status()
-        return response.json()
+        # Check if response has content before parsing JSON
+        if not response.text or not response.text.strip():
+            raise ValueError(
+                f"Empty response from server (status {response.status_code})"
+            )
+
+        try:
+            return response.json()
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ValueError(
+                f"Invalid JSON response from server (status {response.status_code}): {response.text[:500]}"
+            ) from e
 
     async def get_did_log(self, namespace: str, identifier: str) -> List[Dict]:
         """Get DID log entries."""
@@ -945,6 +1106,7 @@ class DidWebVHAsyncClient:
         signing_key: Key,
         resource_content: Dict,
         resource_type: str = "genericResource",
+        witness_key: Optional[Key] = None,
     ) -> Dict:
         """Upload an attested resource."""
         log_entries = await self.get_did_log(namespace, identifier)
@@ -975,12 +1137,43 @@ class DidWebVHAsyncClient:
             "metadata": {"resourceId": resource_id, "resourceType": resource_type},
         }
 
+        # Sign the resource with author's key
         attested_resource = self.sign_document(
             attested_resource,
             signing_key,
             verification_method_id,
             proof_purpose="assertionMethod",
         )
+
+        # Add witness proof if witness_key is provided (required for endorsement)
+        if witness_key:
+            witness_multikey = self.key_to_multikey(witness_key)
+            witness_did = f"did:key:{witness_multikey}"
+            witness_vm = f"{witness_did}#{witness_multikey}"
+
+            # Create witness proof document (resource without proofs)
+            resource_for_witness = attested_resource.copy()
+            resource_for_witness.pop("proof", None)
+
+            # Sign with witness key
+            witness_proof_doc = self.sign_document(
+                resource_for_witness,
+                witness_key,
+                witness_vm,
+                proof_purpose="assertionMethod",
+            )
+
+            # Extract witness proof and add to proofs list
+            author_proof = attested_resource.get("proof", [])
+            if isinstance(author_proof, dict):
+                author_proof = [author_proof]
+
+            witness_proof = witness_proof_doc.get("proof", [])
+            if isinstance(witness_proof, dict):
+                witness_proof = [witness_proof]
+
+            # Combine proofs: author proof first, then witness proof
+            attested_resource["proof"] = author_proof + witness_proof
 
         response = await self.session.post(
             f"{self.server_url}/{namespace}/{identifier}/resources",
@@ -1167,16 +1360,18 @@ async def create_did_with_updates_async(
     namespace: str,
     identifier: str,
     num_updates: int = 2,
+    witness_key: Optional[Key] = None,
+    shared_witness_key: Optional[Key] = None,
 ) -> Dict:
     """Create a DID and perform multiple updates (async version for concurrent execution)."""
     start_time = time.time()
 
     try:
-        # Generate keys
-        update_key, witness_key, signing_key = generate_keys()
-
-        # Register witness first
-        await client.register_witness(witness_key, label=f"Witness for {identifier}")
+        # Generate keys (witness_key is provided if shared across DIDs)
+        update_key, _, signing_key = generate_keys()
+        if witness_key is None:
+            # Fallback: generate witness key if not provided (shouldn't happen in normal flow)
+            _, witness_key, _ = generate_keys()
 
         # Create initial DID
         initial_log = await client.create_did(
@@ -1203,7 +1398,12 @@ async def create_did_with_updates_async(
         # Create and upload AnonCreds schema
         schema_content = create_anoncreds_schema(did_id, f"LoadTestSchema-{identifier}")
         schema_result = await client.upload_resource(
-            namespace, identifier, signing_key, schema_content, "anonCredsSchema"
+            namespace,
+            identifier,
+            signing_key,
+            schema_content,
+            "anonCredsSchema",
+            witness_key=shared_witness_key,
         )
         schema_id = schema_result.get("metadata", {}).get("resourceId", "unknown")
         logger.success(f"  [{identifier}] Schema uploaded: {schema_id[:20]}...")
@@ -1259,17 +1459,18 @@ async def create_did_with_updates(
     namespace: str,
     identifier: str,
     num_updates: int = 2,
+    witness_key: Optional[Key] = None,
+    shared_witness_key: Optional[Key] = None,
 ) -> Dict:
     """Create a DID and perform multiple updates."""
     start_time = time.time()
 
     try:
-        # Generate keys
-        update_key, witness_key, signing_key = generate_keys()
-
-        # Register witness first (required by policy)
-        logger.info(f"Registering witness for {namespace}/{identifier}")
-        client.register_witness(witness_key, label=f"Witness for {identifier}")
+        # Generate keys (witness_key is provided if shared across DIDs)
+        update_key, _, signing_key = generate_keys()
+        if witness_key is None:
+            # Fallback: generate witness key if not provided (shouldn't happen in normal flow)
+            _, witness_key, _ = generate_keys()
 
         logger.info(f"Creating DID {namespace}/{identifier}")
 
@@ -1301,7 +1502,12 @@ async def create_did_with_updates(
         logger.info(f"  Creating AnonCreds schema for {identifier}")
         schema_content = create_anoncreds_schema(did_id, f"LoadTestSchema-{identifier}")
         schema_result = client.upload_resource(
-            namespace, identifier, signing_key, schema_content, "anonCredsSchema"
+            namespace,
+            identifier,
+            signing_key,
+            schema_content,
+            "anonCredsSchema",
+            witness_key=shared_witness_key,
         )
         schema_id = schema_result.get("metadata", {}).get("resourceId", "unknown")
         logger.success(f"  ✓ Schema uploaded: {schema_id[:20]}...")
@@ -1360,6 +1566,7 @@ async def run_load_test(
     namespace: str,
     updates_per_did: int,
     concurrent: bool = False,
+    api_key: Optional[str] = None,
 ) -> Dict:
     """Run the load test."""
     logger.info(
@@ -1374,9 +1581,26 @@ async def run_load_test(
         f"{'=' * 70}"
     )
 
-    client = DidWebVHClient(server_url)
+    client = DidWebVHClient(server_url, api_key=api_key)
     start_time = time.time()
     results = []
+
+    # Generate a single witness key for all DIDs in this test run
+    _, shared_witness_key, _ = generate_keys()
+    witness_multikey = client.key_to_multikey(shared_witness_key)
+    witness_did = f"did:key:{witness_multikey}"
+
+    # Register witness once for the entire test run
+    logger.info(f"Registering shared witness: {witness_did[:30]}...")
+    witness_result = client.register_witness(
+        shared_witness_key, label="Load Test Witness"
+    )
+    if witness_result.get("status") == "failed":
+        logger.warning(
+            "Witness registration failed, but continuing (may already exist)"
+        )
+    else:
+        logger.success("✓ Witness registered successfully")
 
     # Generate unique identifiers using timestamp + counter to avoid conflicts
     run_id = uuid.uuid4().hex[:8]  # Short unique run ID
@@ -1391,7 +1615,9 @@ async def run_load_test(
         # Create async client
         async with httpx.AsyncClient(timeout=60.0) as async_session:
             # Create async wrapper for the client
-            async_client = DidWebVHAsyncClient(server_url, async_session)
+            async_client = DidWebVHAsyncClient(
+                server_url, async_session, api_key=api_key
+            )
 
             # Run with concurrency limit to avoid overwhelming server
             max_concurrent = min(10, count)  # Max 10 concurrent requests
@@ -1410,7 +1636,12 @@ async def run_load_test(
                 # Run batch concurrently
                 batch_tasks = [
                     create_did_with_updates_async(
-                        async_client, namespace, identifier, num_updates=updates_per_did
+                        async_client,
+                        namespace,
+                        identifier,
+                        num_updates=updates_per_did,
+                        witness_key=shared_witness_key,
+                        shared_witness_key=shared_witness_key,
                     )
                     for identifier in batch_identifiers
                 ]
@@ -1442,7 +1673,12 @@ async def run_load_test(
         for i, identifier in enumerate(identifiers, 1):
             logger.info(f"\n[{i}/{count}] Processing DID {identifier}")
             result = await create_did_with_updates(
-                client, namespace, identifier, num_updates=updates_per_did
+                client,
+                namespace,
+                identifier,
+                num_updates=updates_per_did,
+                witness_key=shared_witness_key,
+                shared_witness_key=shared_witness_key,
             )
             results.append(result)
 
@@ -1566,6 +1802,14 @@ Examples:
         help="Run tests concurrently (experimental)",
     )
 
+    parser.add_argument(
+        "-k",
+        "--api-key",
+        type=str,
+        default=None,
+        help="API key for admin endpoints (default: env WEBVH_API_KEY or 'webvh')",
+    )
+
     args = parser.parse_args()
 
     # Validate arguments
@@ -1586,6 +1830,7 @@ Examples:
                 args.namespace,
                 args.updates,
                 args.concurrent,
+                args.api_key,
             )
         )
 
