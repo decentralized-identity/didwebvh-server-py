@@ -31,8 +31,9 @@ data:
   {{- if .Values.server.branding }}
   APP_NAME: {{ .Values.server.branding.app_name | default "DID WebVH Server" | quote }}
   APP_DESCRIPTION: {{ .Values.server.branding.app_description | default "An api server to register and serve web dids with verifiable history." | quote }}
-  APP_ICON: {{ .Values.server.branding.app_icon | default "https://didwebvh.info/latest/assets/favicon.ico" | quote }}
-  APP_LOGO: {{ .Values.server.branding.app_logo | default "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/didwebvh.jpg" | quote }}
+  APP_ICON: {{ .Values.server.branding.icon | default "https://didwebvh.info/latest/assets/favicon.ico" | quote }}
+  APP_LOGO_VERTICAL: {{ .Values.server.branding.logo_vertical | default "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/didwebvh.jpg" | quote }}
+  APP_LOGO_HORIZONTAL: {{ .Values.server.branding.logo_horizontal | default "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/didwebvh.jpg" | quote }}
   APP_PRIMARY_COLOR: {{ .Values.server.branding.app_primary_color | default "#1a365d" | quote }}
   APP_SECONDARY_COLOR: {{ .Values.server.branding.app_secondary_color | default "#38a169" | quote }}
   APP_ACCENT_COLOR: {{ .Values.server.branding.app_accent_color | default "#3182ce" | quote }}

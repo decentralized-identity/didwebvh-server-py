@@ -35,7 +35,9 @@ _encoded_invitation = (
     .rstrip("=")
 )
 TEST_WITNESS_INVITATION_URL = f"https://witness.example.com/oob-invite?oob={_encoded_invitation}"
-TEST_WITNESS_SERVICE_ENDPOINT = f"https://{settings.DOMAIN}/api/invitations?_oobid={TEST_WITNESS_KEY}"
+TEST_WITNESS_SERVICE_ENDPOINT = (
+    f"https://{settings.DOMAIN}/api/invitations?_oobid={TEST_WITNESS_KEY}"
+)
 
 # Known witness (same as above, for clarity)
 TEST_KNOWN_WITNESS_SEED = TEST_WITNESS_SEED
@@ -94,7 +96,7 @@ TEST_POLICY = ActivePolicy(
     watcher=None,
     portability=False,
     prerotation=False,
-    endorsement=False,
+    endorsement=True,  # Updated to match new default
     validity=0,
     witness_registry_url=None,
 ).model_dump()

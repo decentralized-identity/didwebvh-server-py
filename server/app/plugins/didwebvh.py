@@ -187,6 +187,9 @@ class DidWebVH:
             if not self.known_witness_registry.get(witness_id, None):
                 raise PolicyError(f"Unknown witness: {witness_id}")
 
+        if not witness_signature:
+            raise PolicyError("Witness signature is required")
+
         witness_proof = self._find_witness_proof(witness_signature.get("proof"), witness_id)
 
         if not witness_proof:

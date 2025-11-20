@@ -22,7 +22,11 @@
 
 <div class="card">
     <div class="card-table">
-        <form action="resources" method="get">
+        <form action="/api/explorer/resources" method="get" id="resource-filter-form">
+            <!-- Preserve limit parameter -->
+            {% if request.query_params.get('limit') %}
+            <input type="hidden" name="limit" value="{{ request.query_params.get('limit') }}">
+            {% endif %}
             {% if pagination %}
             <div class="card-header position-relative">
                 <div class="position-absolute top-0 end-0 p-3">
@@ -99,11 +103,11 @@
                         <h3 class="card-title mb-3">
                             <i class="ti ti-filter me-2"></i>Filter Resources
                         </h3>
-                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <button type="submit" class="btn btn-primary w-100 mb-2" onclick="resetPaginationOnFilter()">
                             <i class="ti ti-search me-1"></i>Apply Filters
                         </button>
-                        <button onclick="window.location.reload()" class="btn btn-outline-secondary w-100" type="button">
-                            <i class="ti ti-refresh me-1"></i>Refresh Table
+                        <button onclick="window.location.href='/api/explorer/resources'" class="btn btn-outline-secondary w-100" type="button">
+                            <i class="ti ti-refresh me-1"></i>Clear Filters
                         </button>
                     </div>
                 </div>
@@ -237,6 +241,18 @@
 </div>
 
 <script>
+    // Reset pagination when applying filters
+    function resetPaginationOnFilter() {
+        const form = document.getElementById('resource-filter-form');
+        if (form) {
+            // Remove any existing page parameter
+            const pageInput = form.querySelector('input[name="page"]');
+            if (pageInput) {
+                pageInput.remove();
+            }
+        }
+    }
+
     const advancedTable = {
         headers: [
             { "data-sort": "sort-controller", name: "Controller" },

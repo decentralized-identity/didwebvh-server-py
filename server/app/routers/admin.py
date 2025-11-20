@@ -16,13 +16,9 @@ from fastapi.security import APIKeyHeader
 
 
 from app.models.web_schemas import AddWitness
-from app.plugins.invitations import (
-    build_short_invitation_url,
-    decode_invitation_from_url as parse_invitation_url,
-)
 from app.tasks import TaskManager, TaskStatus, TaskType
 from config import settings
-from app.utilities import timestamp, is_valid_multikey
+from app.utilities import timestamp, validate_witness_id, process_invitation, create_witness_entry
 from app.plugins import DidWebVH
 from app.plugins.storage import StorageManager
 
@@ -35,11 +31,15 @@ webvh = DidWebVH()
 
 api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
 
+# Constants
+WITNESS_REGISTRY_ID = "knownWitnesses"
+WITNESS_REGISTRY_TYPE = "witnesses"
 
-def get_api_key(
+
+def get_admin_api_key(
     api_key_header: str = Security(api_key_header),
 ) -> str:
-    """Retrieve and validate an API key from the query parameters or HTTP header.
+    """Retrieve and validate an admin API key from the query parameters or HTTP header.
 
     Args:
         api_key_header: The API key passed in the HTTP header.
@@ -59,175 +59,100 @@ def get_api_key(
     )
 
 
-def decode_invitation_from_url(invitation_url: str):
-    """Compatibility wrapper around shared invitation decoder."""
-    return parse_invitation_url(invitation_url)
+def _get_or_create_registry():
+    """Get existing witness registry or return empty dict and metadata."""
+    registry = storage.get_registry(WITNESS_REGISTRY_ID)
+    if registry:
+        return registry.registry_data, {"updated": timestamp()}
+    return {}, {"created": timestamp(), "updated": timestamp()}
+
+
+def _update_registry(registry_data: dict, meta: dict):
+    """Update witness registry in database."""
+    return storage.create_or_update_registry(
+        registry_id=WITNESS_REGISTRY_ID,
+        registry_type=WITNESS_REGISTRY_TYPE,
+        registry_data=registry_data,
+        meta=meta,
+    )
 
 
 @router.get("/parameters")
-async def get_parameters(api_key: str = Security(get_api_key)):
+async def get_parameters(api_key: str = Security(get_admin_api_key)):
     """Get the parameters generated from the active server policy."""
     policy = storage.get_policy("active")
     if not policy:
         raise HTTPException(status_code=404, detail="Active policy not found.")
 
-    # Load policy data into webvh instance
-    policy_data = policy.policy_data if policy.policy_data else policy.to_dict()
-    webvh.active_policy = policy_data
+    # Load policy and registry into webvh instance
+    webvh.active_policy = policy.policy_data or policy.to_dict()
+    registry = storage.get_registry(WITNESS_REGISTRY_ID)
+    webvh.known_witness_registry = registry.registry_data if registry else {}
 
-    # Load witness registry
-    registry = storage.get_registry("knownWitnesses")
-    if registry:
-        webvh.load_known_witness_registry(registry.registry_data)
-    else:
-        webvh.known_witness_registry = {}
-
-    # Generate and return parameters
-    parameters = webvh.parameters()
-    return JSONResponse(status_code=200, content=parameters)
-
-
-def _validate_witness_id(witness_did: str) -> str:
-    """Validate witness DID and return multikey."""
-    if not witness_did.startswith("did:key:"):
-        raise HTTPException(status_code=400, detail="Witness id must be a did:key identifier.")
-    multikey = witness_did.split("did:key:")[-1]
-    if not is_valid_multikey(multikey, alg="ed25519"):
-        raise HTTPException(status_code=400, detail="Invalid witness id, must be ed25519 multikey.")
-    return multikey
-
-
-def _validate_invitation_goal(invitation_payload: dict, witness_did: str) -> None:
-    """Validate that invitation goal_code and goal match witness requirements."""
-    goal_code = invitation_payload.get("goal_code")
-    goal = invitation_payload.get("goal")
-    
-    if goal_code != "witness-service":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid invitation goal_code. Expected 'witness-service', got '{goal_code}'"
-        )
-    
-    if goal != witness_did:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invitation goal does not match witness ID. Expected '{witness_did}', got '{goal}'"
-        )
-
-
-def _process_invitation(
-    invitation_url: str, witness_did: str, provided_label: str | None
-) -> tuple[dict, str, str]:
-    """Process invitation URL and return payload, label, and short endpoint.
-    
-    Label priority: provided_label > invitation label > fallback
-    """
-    invitation_payload = decode_invitation_from_url(invitation_url)
-    _validate_invitation_goal(invitation_payload, witness_did)
-    
-    # Use provided label if available, otherwise use invitation label, otherwise fallback
-    invitation_label = (
-        provided_label 
-        or invitation_payload.get("label") 
-        or "Witness Service"
-    )
-    
-    short_service_endpoint = build_short_invitation_url(witness_did, invitation_payload)
-    return invitation_payload, invitation_label, short_service_endpoint
-
-
-def _create_witness_entry(
-    invitation_label: str, short_service_endpoint: str | None, invitation_url: str
-) -> dict:
-    """Create witness registry entry."""
-    entry = {"name": invitation_label}
-    if short_service_endpoint:
-        entry["serviceEndpoint"] = short_service_endpoint
-    elif invitation_url:
-        entry["serviceEndpoint"] = invitation_url
-    return entry
+    return JSONResponse(status_code=200, content=webvh.parameters())
 
 
 @router.post("/witnesses")
-async def add_known_witness(request_body: AddWitness, api_key: str = Security(get_api_key)):
-    """Add known witness."""
-    request_body = request_body.model_dump()
-    witness_did = request_body["id"]
-    _validate_witness_id(witness_did)
+async def add_known_witness(request_body: AddWitness, api_key: str = Security(get_admin_api_key)):
+    """Add or update known witness."""
+    body = request_body.model_dump()
+    witness_did = body["id"]
+    validate_witness_id(witness_did)
 
-    invitation_url = request_body.get("invitationUrl")
+    invitation_url = body.get("invitationUrl")
     if not invitation_url:
         raise HTTPException(status_code=400, detail="Invitation URL is required.")
 
-    invitation_payload, invitation_label, short_service_endpoint = _process_invitation(
-        invitation_url, witness_did, request_body["label"]
-    )
-
-    # Get existing registry or create new one
-    registry = storage.get_registry("knownWitnesses")
-    if registry:
-        registry_data = registry.registry_data
-        meta = {"updated": timestamp()}
-    else:
-        registry_data = {}
-        meta = {"created": timestamp(), "updated": timestamp()}
-
-    # Update or add witness entry (update if exists, as per user requirement)
-    entry = _create_witness_entry(invitation_label, short_service_endpoint, invitation_url)
-    registry_data[witness_did] = entry
-
-    # Update registry in database
-    updated_registry = storage.create_or_update_registry(
-        registry_id="knownWitnesses",
-        registry_type="witnesses",
-        registry_data=registry_data,
-        meta=meta,
-    )
-
-    if invitation_payload:
-        storage.create_or_update_witness_invitation(
-            witness_did=witness_did,
-            invitation_url=invitation_url,
-            invitation_payload=invitation_payload,
-            invitation_id=invitation_payload.get("@id"),
-            label=invitation_label,
+    # Process invitation (validates and extracts data)
+    try:
+        invitation_payload, invitation_label, short_service_endpoint = process_invitation(
+            invitation_url, witness_did, body.get("label")
         )
+    except (ValueError, HTTPException) as e:
+        # decode_invitation_from_url raises ValueError,
+        # validate_invitation_goal raises HTTPException
+        if isinstance(e, ValueError):
+            raise HTTPException(status_code=400, detail=str(e))
+        raise
+
+    # Get or create registry and update witness entry
+    registry_data, meta = _get_or_create_registry()
+    registry_data[witness_did] = create_witness_entry(
+        invitation_label, short_service_endpoint, invitation_url
+    )
+
+    # Update registry and store invitation
+    updated_registry = _update_registry(registry_data, meta)
+    storage.create_or_update_witness_invitation(
+        witness_did=witness_did,
+        invitation_url=invitation_url,
+        invitation_payload=invitation_payload,
+        invitation_id=invitation_payload.get("@id"),
+        label=invitation_label,
+    )
 
     return JSONResponse(status_code=200, content=updated_registry.to_dict())
 
 
 @router.delete("/witnesses/{multikey}")
-async def remove_known_witness(multikey: str, api_key: str = Security(get_api_key)):
+async def remove_known_witness(multikey: str, api_key: str = Security(get_admin_api_key)):
     """Remove known witness."""
-    if not is_valid_multikey(multikey, alg="ed25519"):
-        raise HTTPException(status_code=400, detail="Invalid multikey, must be ed25519 type.")
-
-    witness_did = f"did:key:{multikey}"
+    witness_id = f"did:key:{multikey}"
+    validate_witness_id(witness_id)
 
     # Get existing registry
-    registry = storage.get_registry("knownWitnesses")
-
+    registry = storage.get_registry(WITNESS_REGISTRY_ID)
     if not registry:
         raise HTTPException(status_code=404, detail="Witness registry not found.")
 
     registry_data = registry.registry_data
-
-    if not registry_data.get(witness_did):
+    if witness_id not in registry_data:
         raise HTTPException(status_code=404, detail="Witness not found.")
 
-    # Remove witness
-    registry_data.pop(witness_did)
-    meta = {"updated": timestamp()}
-
-    # Update registry in database
-    updated_registry = storage.create_or_update_registry(
-        registry_id="knownWitnesses",
-        registry_type="witnesses",
-        registry_data=registry_data,
-        meta=meta,
-    )
-
-    storage.delete_witness_invitation(witness_did)
+    # Remove witness and update registry
+    registry_data.pop(witness_id)
+    updated_registry = _update_registry(registry_data, {"updated": timestamp()})
+    storage.delete_witness_invitation(witness_id)
 
     return JSONResponse(status_code=200, content=updated_registry.to_dict())
 
@@ -237,20 +162,20 @@ async def sync_storage(
     tasks: BackgroundTasks,
     task_type: TaskType = Query(...),
     force: bool = False,
-    api_key: str = Security(get_api_key),
+    api_key: str = Security(get_admin_api_key),
 ):
     """Start an administrative task."""
     task_id = str(uuid.uuid4())
-    logger.debug(
-        f"Task type: {task_type}, SetPolicy: {TaskType.SetPolicy}, "
-        f"SyncRecords: {TaskType.SyncRecords}"
-    )
+    task_manager = TaskManager(task_id)
+
     if task_type == TaskType.SetPolicy:
-        tasks.add_task(TaskManager(task_id).set_policies, force)
+        tasks.add_task(task_manager.set_policies, force)
     elif task_type == TaskType.SyncRecords:
-        tasks.add_task(TaskManager(task_id).sync_explorer_records, force)
+        # SyncRecords task not yet implemented
+        raise HTTPException(status_code=400, detail="SyncRecords task not implemented.")
     else:
         raise HTTPException(status_code=400, detail="Unknown task type.")
+
     return JSONResponse(status_code=201, content={"task_id": task_id})
 
 
@@ -258,23 +183,16 @@ async def sync_storage(
 async def fetch_tasks(
     task_type: TaskType = Query(None),
     status: TaskStatus = Query(None),
-    api_key: str = Security(get_api_key),
+    api_key: str = Security(get_admin_api_key),
 ):
-    """Check the status of an administrative task."""
-    filters = {}
-    if task_type:
-        filters["task_type"] = task_type.value
-    if status:
-        filters["status"] = status.value
-
-    tasks = storage.get_tasks(filters if filters else None)
-    tasks_data = [task.to_dict() for task in tasks]
-
-    return JSONResponse(status_code=200, content={"tasks": tasks_data})
+    """List administrative tasks with optional filtering."""
+    filters = {k: v.value for k, v in {"task_type": task_type, "status": status}.items() if v}
+    tasks_list = storage.get_tasks(filters if filters else None)
+    return JSONResponse(status_code=200, content={"tasks": [task.to_dict() for task in tasks_list]})
 
 
 @router.get("/tasks/{task_id}")
-async def check_task_status(task_id: str, api_key: str = Security(get_api_key)):
+async def check_task_status(task_id: str, api_key: str = Security(get_admin_api_key)):
     """Check the status of an administrative task."""
     if not (task := storage.get_task(task_id)):
         raise HTTPException(status_code=404, detail="Task not found.")

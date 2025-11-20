@@ -12,9 +12,11 @@ storage = StorageManager()
 
 
 @router.get("")
-async def get_invitation_by_oobid(_oobid: str = Query(..., description="Witness key (multikey) for invitation lookup")):
+async def get_invitation_by_oobid(
+    _oobid: str = Query(..., description="Witness key (multikey) for invitation lookup"),
+):
     """Retrieve a witness invitation by _oobid (witness key).
-    
+
     The _oobid parameter is the multikey portion of the witness DID (did:key:...).
     This endpoint looks up the stored invitation for the witness and returns it as JSON.
     """
@@ -27,6 +29,5 @@ async def get_invitation_by_oobid(_oobid: str = Query(..., description="Witness 
                 invitation = storage.get_witness_invitation(witness_id)
                 if invitation and invitation.invitation_payload:
                     return JSONResponse(status_code=200, content=invitation.invitation_payload)
-    
-    raise HTTPException(status_code=404, detail="Invitation not found")
 
+    raise HTTPException(status_code=404, detail="Invitation not found")

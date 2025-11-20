@@ -59,6 +59,16 @@ class TestUploadResource:
         }
 
         attested_resource, resource_id = controller.attest_resource(content, resource_type)
+        # Add witness endorsement
+        resource_for_witness = attested_resource.copy()
+        controller_proof = resource_for_witness.pop("proof")
+        if not isinstance(controller_proof, list):
+            controller_proof = [controller_proof]
+        witness_signed = witness.sign(resource_for_witness)
+        witness_proof = witness_signed.get("proof", [])
+        if not isinstance(witness_proof, list):
+            witness_proof = [witness_proof]
+        attested_resource["proof"] = controller_proof + witness_proof
         return attested_resource, resource_id
 
     @pytest.mark.asyncio
@@ -75,8 +85,10 @@ class TestUploadResource:
                 test_client, test_namespace, test_alias, doc_state
             )
 
-            # Create test resource
-            attested_resource, resource_id = create_test_resource(controller, "testResource")
+            # Create test resource with witness endorsement
+            attested_resource, resource_id = create_test_resource(
+                controller, "testResource", witness=witness
+            )
 
             # Upload resource
             response = test_client.post(
@@ -112,10 +124,15 @@ class TestUploadResource:
             )
 
             # Create resource with valid signature first
-            attested_resource, resource_id = create_test_resource(controller, "testResource")
+            attested_resource, resource_id = create_test_resource(
+                controller, "testResource", witness=witness
+            )
 
-            # Now tamper with the proof
-            attested_resource["proof"]["proofValue"] = "z" + "1" * 87
+            # Now tamper with the controller proof (first proof in list)
+            if isinstance(attested_resource["proof"], list):
+                attested_resource["proof"][0]["proofValue"] = "z" + "1" * 87
+            else:
+                attested_resource["proof"]["proofValue"] = "z" + "1" * 87
 
             response = test_client.post(
                 f"/{test_namespace}/{test_alias}/resources",
@@ -241,7 +258,9 @@ class TestGetResource:
             )
 
             # Upload a resource
-            attested_resource, resource_id = create_test_resource(controller, "testResource")
+            attested_resource, resource_id = create_test_resource(
+                controller, "testResource", witness=witness
+            )
 
             response = test_client.post(
                 f"/{test_namespace}/{test_alias}/resources",
@@ -305,7 +324,7 @@ class TestUpdateResource:
             # Upload initial resource
             initial_content = {"name": "Original Resource", "version": "1.0"}
             attested_resource, resource_id = create_test_resource(
-                controller, "testResource", initial_content
+                controller, "testResource", initial_content, witness=witness
             )
 
             response = test_client.post(
@@ -332,8 +351,18 @@ class TestUpdateResource:
                 }
             ]
 
-            # Sign the updated resource with controller
+            # Sign the updated resource with controller and witness
             updated_resource = controller.sign(fetched_resource)
+            # Add witness endorsement
+            resource_for_witness = updated_resource.copy()
+            controller_proof = resource_for_witness.pop("proof")
+            if not isinstance(controller_proof, list):
+                controller_proof = [controller_proof]
+            witness_signed = witness.sign(resource_for_witness)
+            witness_proof = witness_signed.get("proof", [])
+            if not isinstance(witness_proof, list):
+                witness_proof = [witness_proof]
+            updated_resource["proof"] = controller_proof + witness_proof
 
             response = test_client.put(
                 f"/{test_namespace}/{test_alias}/resources/{actual_resource_id}",
@@ -360,7 +389,7 @@ class TestUpdateResource:
             )
 
             # Try to update non-existent resource
-            fake_resource, _ = create_test_resource(controller, "testResource")
+            fake_resource, _ = create_test_resource(controller, "testResource", witness=witness)
 
             response = test_client.put(
                 f"/{test_namespace}/{test_alias}/resources/nonexistent123",
@@ -384,7 +413,9 @@ class TestUpdateResource:
             )
 
             # Upload initial resource
-            attested_resource, resource_id = create_test_resource(controller, "testResource")
+            attested_resource, resource_id = create_test_resource(
+                controller, "testResource", witness=witness
+            )
 
             response = test_client.post(
                 f"/{test_namespace}/{test_alias}/resources",
@@ -394,9 +425,14 @@ class TestUpdateResource:
             upload_response = response.json()
             actual_resource_id = upload_response["metadata"]["resourceId"]
 
-            # Try to update with tampered proof
+            # Try to update with tampered proof (tamper with controller proof)
             tampered_resource = attested_resource.copy()
-            tampered_resource["proof"]["proofValue"] = "z" + "1" * 87  # Valid multibase format
+            if isinstance(tampered_resource["proof"], list):
+                tampered_resource["proof"][0]["proofValue"] = (
+                    "z" + "1" * 87
+                )  # Valid multibase format
+            else:
+                tampered_resource["proof"]["proofValue"] = "z" + "1" * 87  # Valid multibase format
 
             response = test_client.put(
                 f"/{test_namespace}/{test_alias}/resources/{actual_resource_id}",

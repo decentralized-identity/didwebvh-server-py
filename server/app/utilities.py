@@ -3,10 +3,17 @@
 import base64
 import jcs
 import json
-from config import settings
 from datetime import datetime, timezone, timedelta
-from multiformats import multibase, multihash
 from operator import itemgetter
+
+from fastapi import HTTPException, status
+from multiformats import multibase, multihash
+
+from app.plugins.invitations import (
+    build_short_invitation_url,
+    decode_invitation_from_url,
+)
+from config import settings
 
 MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
@@ -279,3 +286,106 @@ def build_witness_services(registry):
             service_entry["location"] = entry["location"]
         services.append(service_entry)
     return services
+
+
+def validate_witness_id(witness_did: str) -> str:
+    """Validate witness DID and return multikey.
+
+    Args:
+        witness_did: Full did:key identifier for the witness
+
+    Returns:
+        The multikey portion of the witness DID
+
+    Raises:
+        HTTPException: If the witness DID is invalid
+    """
+    if not witness_did.startswith("did:key:"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Witness id must be a did:key identifier.",
+        )
+    multikey = witness_did.split("did:key:")[-1]
+    if not is_valid_multikey(multikey, alg="ed25519"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid witness id, must be ed25519 multikey.",
+        )
+    return multikey
+
+
+def validate_invitation_goal(invitation_payload: dict, witness_did: str) -> None:
+    """Validate that invitation goal_code and goal match witness requirements.
+
+    Args:
+        invitation_payload: Decoded invitation payload dict
+        witness_did: Full did:key identifier for the witness
+
+    Raises:
+        HTTPException: If invitation goal_code or goal don't match requirements
+    """
+    goal_code = invitation_payload.get("goal_code")
+    goal = invitation_payload.get("goal")
+
+    if goal_code != "witness-service":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid invitation goal_code. Expected 'witness-service', got '{goal_code}'",
+        )
+
+    if goal != witness_did:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Invitation goal does not match witness ID. Expected '{witness_did}', got '{goal}'"
+            ),
+        )
+
+
+def process_invitation(
+    invitation_url: str, witness_did: str, provided_label: str | None
+) -> tuple[dict, str, str]:
+    """Process invitation URL and return payload, label, and short endpoint.
+
+    Label priority: provided_label > invitation label > fallback
+
+    Args:
+        invitation_url: Full invitation URL with ?oob= parameter
+        witness_did: Full did:key identifier for the witness
+        provided_label: Optional label provided by admin (takes priority)
+
+    Returns:
+        Tuple of (invitation_payload, label, short_service_endpoint)
+
+    Raises:
+        HTTPException: If invitation validation fails
+    """
+    invitation_payload = decode_invitation_from_url(invitation_url)
+    validate_invitation_goal(invitation_payload, witness_did)
+
+    # Use provided label if available, otherwise use invitation label, otherwise fallback
+    invitation_label = provided_label or invitation_payload.get("label") or "Witness Service"
+
+    short_service_endpoint = build_short_invitation_url(witness_did, invitation_payload)
+    return invitation_payload, invitation_label, short_service_endpoint
+
+
+def create_witness_entry(
+    invitation_label: str, short_service_endpoint: str | None, invitation_url: str
+) -> dict:
+    """Create witness registry entry.
+
+    Args:
+        invitation_label: Label for the witness service
+        short_service_endpoint: Short URL endpoint (preferred)
+        invitation_url: Full invitation URL (fallback)
+
+    Returns:
+        Dictionary with witness entry data
+    """
+    entry = {"name": invitation_label}
+    if short_service_endpoint:
+        entry["serviceEndpoint"] = short_service_endpoint
+    elif invitation_url:
+        entry["serviceEndpoint"] = invitation_url
+    return entry

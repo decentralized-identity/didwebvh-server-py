@@ -9,8 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routers import admin, identifiers, resources, credentials, explorer, tails, invitations
 from app.plugins.storage import StorageManager
+from app.plugins import DidWebVH
+from app.plugins.invitations import (
+    decode_invitation_from_url,
+    build_short_invitation_url,
+)
 from config import settings
-from app.utilities import build_witness_services
+from app.utilities import build_witness_services, timestamp
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -39,39 +44,37 @@ async def lifespan(app: FastAPI):
         }
         storage.create_or_update_policy("active", policy_data)
         logger.info(f"Policy {policy_data['version']} applied successfully")
-        
+
         # Register initial witness from environment variables if provided
         if settings.WEBVH_WITNESS_ID and settings.WEBVH_WITNESS_INVITATION:
-            from app.plugins.invitations import decode_invitation_from_url, build_short_invitation_url
-            from app.utilities import timestamp
-            
             logger.info("Registering initial witness from environment variables...")
             try:
                 # Decode invitation to get label
                 invitation_payload = decode_invitation_from_url(settings.WEBVH_WITNESS_INVITATION)
-                
+
                 # Validate invitation goal_code and goal
                 goal_code = invitation_payload.get("goal_code")
                 goal = invitation_payload.get("goal")
-                
+
                 if goal_code != "witness-service":
                     raise ValueError(
-                        f"Invalid invitation goal_code. Expected 'witness-service', got '{goal_code}'"
+                        f"Invalid invitation goal_code. "
+                        f"Expected 'witness-service', got '{goal_code}'"
                     )
-                
+
                 if goal != settings.WEBVH_WITNESS_ID:
                     raise ValueError(
                         f"Invitation goal does not match witness ID. "
                         f"Expected '{settings.WEBVH_WITNESS_ID}', got '{goal}'"
                     )
-                
+
                 invitation_label = invitation_payload.get("label") or "Default Server Witness"
-                
+
                 # Build short service endpoint
                 short_service_endpoint = build_short_invitation_url(
                     settings.WEBVH_WITNESS_ID, invitation_payload
                 )
-                
+
                 # Get or create registry
                 registry = storage.get_registry("knownWitnesses")
                 if registry:
@@ -80,13 +83,13 @@ async def lifespan(app: FastAPI):
                 else:
                     registry_data = {}
                     meta = {"created": timestamp(), "updated": timestamp()}
-                
+
                 # Update or add witness entry
                 registry_data[settings.WEBVH_WITNESS_ID] = {
                     "name": invitation_label,
                     "serviceEndpoint": short_service_endpoint,
                 }
-                
+
                 # Update registry in database
                 storage.create_or_update_registry(
                     registry_id="knownWitnesses",
@@ -94,7 +97,7 @@ async def lifespan(app: FastAPI):
                     registry_data=registry_data,
                     meta=meta,
                 )
-                
+
                 # Store invitation
                 storage.create_or_update_witness_invitation(
                     witness_did=settings.WEBVH_WITNESS_ID,
@@ -103,7 +106,7 @@ async def lifespan(app: FastAPI):
                     invitation_id=invitation_payload.get("@id"),
                     label=invitation_label,
                 )
-                
+
                 logger.info(f"Initial witness {settings.WEBVH_WITNESS_ID} registered successfully")
             except Exception as e:
                 logger.warning(f"Failed to register initial witness: {e}")
@@ -144,38 +147,35 @@ async def root_endpoint(
     alias: str = Query(None),
 ):
     """Root endpoint - handles DID path requests or redirects to explorer."""
-    from app.plugins import DidWebVH
-    from app.utilities import timestamp
-    
     # Handle DID path request
     if namespace and alias:
         # Get policy and registry
         policy = storage.get_policy("active")
         registry = storage.get_registry("knownWitnesses")
-        
+
         policy_data = policy.to_dict() if policy else {}
         registry_data = registry.registry_data if registry else {}
-        
+
         webvh = DidWebVH(active_policy=policy_data, active_registry=registry_data)
-        
+
         # Check if DID already exists
         if storage.get_did_controller_by_alias(namespace, alias):
             raise HTTPException(status_code=409, detail="Alias already exists")
-        
+
         # Check reserved namespaces
         if namespace in settings.RESERVED_NAMESPACES:
             raise HTTPException(status_code=400, detail=f"Namespace '{namespace}' is reserved")
-        
+
         # Generate parameters
         parameters = webvh.parameters()
         placeholder_id = webvh.placeholder_id(namespace, alias)
-        
+
         # Create initial state
         state = {
             "@context": ["https://www.w3.org/ns/did/v1"],
             "id": placeholder_id,
         }
-        
+
         return JSONResponse(
             status_code=200,
             content={
@@ -186,7 +186,7 @@ async def root_endpoint(
                 "proof": webvh.proof_options(),
             },
         )
-    
+
     # Default: redirect to explorer
     return RedirectResponse(url="/api/explorer", status_code=307)
 
@@ -213,11 +213,13 @@ api_router.include_router(admin.router, prefix="/api/admin")
 api_router.include_router(invitations.router, prefix="/api/invitations")
 api_router.include_router(tails.router, prefix="/api/tails", tags=["Tails"])
 
+
 # Add server status endpoint under /api
 @api_router.get("/api/server/status", tags=["Server"])
 async def server_status():
     """Server status endpoint."""
     return JSONResponse(status_code=200, content={"status": "ok", "domain": settings.DOMAIN})
+
 
 # Identifier routes (stay at root - these are DID paths)
 api_router.include_router(identifiers.resolver_router)

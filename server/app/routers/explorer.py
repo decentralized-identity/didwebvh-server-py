@@ -1,7 +1,7 @@
 """Explorer routes for DIDs and resources UI."""
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 
 from app.plugins.storage import StorageManager
 from app.utilities import create_pagination
@@ -207,7 +207,6 @@ async def explorer_credential_table(
 
 
 @router.get("/witnesses")
-@router.get("/witnesses/")
 async def explorer_witness_registry(request: Request):
     """View the known witness registry."""
     registry = storage.get_registry("knownWitnesses")

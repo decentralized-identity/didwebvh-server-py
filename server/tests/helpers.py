@@ -139,6 +139,7 @@ def create_test_resource(
     controller: ControllerAgent,
     resource_name: str = "testResource",
     resource_data: Optional[Dict[str, Any]] = None,
+    witness: Optional[WitnessAgent] = None,
 ) -> Tuple[Dict[str, Any], str]:
     """
     Create a test resource using the controller.
@@ -147,6 +148,7 @@ def create_test_resource(
         controller: Controller agent for signing
         resource_name: Name of the resource
         resource_data: Optional resource data (defaults to {"name": "Test"})
+        witness: Optional witness agent for endorsement (required if endorsement policy is enabled)
 
     Returns:
         Tuple of (attested_resource, resource_id)
@@ -154,7 +156,29 @@ def create_test_resource(
     if resource_data is None:
         resource_data = {"name": "Test"}
 
-    return controller.attest_resource(resource_data, resource_name)
+    attested_resource, resource_id = controller.attest_resource(resource_data, resource_name)
+
+    # Add witness endorsement if witness is provided
+    if witness:
+        # Get controller proof (may be single proof or list)
+        controller_proof = attested_resource.get("proof")
+        if not isinstance(controller_proof, list):
+            controller_proof = [controller_proof]
+
+        # Extract the resource content for witness signing (without proof)
+        resource_for_witness = attested_resource.copy()
+        resource_for_witness.pop("proof", None)
+
+        # Witness signs the resource
+        witness_signed = witness.sign(resource_for_witness)
+        witness_proof = witness_signed.get("proof", [])
+        if not isinstance(witness_proof, list):
+            witness_proof = [witness_proof]
+
+        # Combine both proofs: controller proof first, then witness proof
+        attested_resource["proof"] = controller_proof + witness_proof
+
+    return attested_resource, resource_id
 
 
 def get_current_doc_state(test_client: TestClient, namespace: str, alias: str) -> DocumentState:

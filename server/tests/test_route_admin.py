@@ -22,13 +22,16 @@ from config import settings
 storage = StorageManager()
 
 
-def build_invitation(label: str, goal: str = "witness-service") -> tuple[dict, str]:
+def build_invitation(
+    label: str, witness_did: str = None, goal_code: str = "witness-service"
+) -> tuple[dict, str]:
     """Construct a sample DIDComm invitation payload and encoded URL."""
     payload = {
         "@type": "https://didcomm.org/out-of-band/1.1/invitation",
         "@id": f"inv-{label.replace(' ', '-').lower()}",
         "label": label,
-        "goal_code": goal,
+        "goal_code": goal_code,
+        "goal": witness_did,
         "services": [
             {
                 "id": "#inline",
@@ -81,10 +84,13 @@ class TestWitnessRegistryEndpoints:
         """Test adding a new witness to the registry."""
         with TestClient(app) as test_client:
             new_witness_key = "z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
-            invitation_payload, service_endpoint = build_invitation("New Test Witness")
+            new_witness_did = f"did:key:{new_witness_key}"
+            invitation_payload, service_endpoint = build_invitation(
+                "New Test Witness", witness_did=new_witness_did
+            )
 
             response = test_client.post(
-                "/admin/witnesses",
+                "/api/admin/witnesses",
                 headers={"x-api-key": TEST_API_KEY},
                 json={
                     "id": f"did:key:{new_witness_key}",
@@ -98,7 +104,9 @@ class TestWitnessRegistryEndpoints:
             assert "registry" in registry_data
             witness_did = f"did:key:{new_witness_key}"
             assert witness_did in registry_data["registry"]
-            expected_short_url = f"https://{settings.DOMAIN}/api/invitations?_oobid={new_witness_key}"
+            expected_short_url = (
+                f"https://{settings.DOMAIN}/api/invitations?_oobid={new_witness_key}"
+            )
             assert registry_data["registry"][witness_did]["name"] == invitation_payload["label"]
             assert registry_data["registry"][witness_did]["serviceEndpoint"] == expected_short_url
             stored_invitation = storage.get_witness_invitation(witness_did)
@@ -108,32 +116,45 @@ class TestWitnessRegistryEndpoints:
 
     @pytest.mark.asyncio
     async def test_add_known_witness_duplicate(self):
-        """Test adding a duplicate witness (should fail)."""
+        """Test adding a duplicate witness (should update existing)."""
         with TestClient(app) as test_client:
             # Try to add the same witness key again (fixture already added it)
+            # Should update instead of failing
             response = test_client.post(
-                "/admin/witnesses",
+                "/api/admin/witnesses",
                 headers={"x-api-key": TEST_API_KEY},
                 json={
                     "id": f"did:key:{TEST_WITNESS_KEY}",
                     "label": "Duplicate Witness",
-                    "invitationUrl": build_invitation("Duplicate Witness")[1],
+                    "invitationUrl": build_invitation(
+                        "Duplicate Witness", witness_did=f"did:key:{TEST_WITNESS_KEY}"
+                    )[1],
                 },
             )
 
-            assert_error_response(response, 409, "Witness already exists")
+            # Should succeed and update the existing witness
+            assert response.status_code == 200
+            registry_data = response.json()
+            assert "registry" in registry_data
+            assert f"did:key:{TEST_WITNESS_KEY}" in registry_data["registry"]
+            assert (
+                registry_data["registry"][f"did:key:{TEST_WITNESS_KEY}"]["name"]
+                == "Duplicate Witness"
+            )
 
     @pytest.mark.asyncio
     async def test_add_known_witness_invalid_key(self):
         """Test adding an invalid multikey."""
         with TestClient(app) as test_client:
             response = test_client.post(
-                "/admin/witnesses",
+                "/api/admin/witnesses",
                 headers={"x-api-key": TEST_API_KEY},
                 json={
                     "id": "invalid-key-12345",
                     "label": "Invalid Witness",
-                    "invitationUrl": build_invitation("Invalid Witness")[1],
+                    "invitationUrl": build_invitation(
+                        "Invalid Witness", witness_did="invalid-key-12345"
+                    )[1],
                 },
             )
 
@@ -144,11 +165,14 @@ class TestWitnessRegistryEndpoints:
         """Test adding witness without API key."""
         with TestClient(app) as test_client:
             response = test_client.post(
-                "/admin/witnesses",
+                "/api/admin/witnesses",
                 json={
                     "id": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
                     "label": "Unauthorized Witness",
-                    "invitationUrl": build_invitation("Unauthorized Witness")[1],
+                    "invitationUrl": build_invitation(
+                        "Unauthorized Witness",
+                        witness_did="did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
+                    )[1],
                 },
             )
 
@@ -160,20 +184,23 @@ class TestWitnessRegistryEndpoints:
         with TestClient(app) as test_client:
             # First add a witness
             new_witness_key = "z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH"
+            new_witness_did = f"did:key:{new_witness_key}"
 
             test_client.post(
-                "/admin/witnesses",
+                "/api/admin/witnesses",
                 headers={"x-api-key": TEST_API_KEY},
                 json={
-                    "id": f"did:key:{new_witness_key}",
+                    "id": new_witness_did,
                     "label": "Witness to Remove",
-                    "invitationUrl": build_invitation("Witness to Remove")[1],
+                    "invitationUrl": build_invitation(
+                        "Witness to Remove", witness_did=new_witness_did
+                    )[1],
                 },
             )
 
             # Now remove it
             response = test_client.delete(
-                f"/admin/witnesses/{new_witness_key}",
+                f"/api/admin/witnesses/{new_witness_key}",
                 headers={"x-api-key": TEST_API_KEY},
             )
 
@@ -191,7 +218,7 @@ class TestWitnessRegistryEndpoints:
             nonexistent_key = "z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH"
 
             response = test_client.delete(
-                f"/admin/witnesses/{nonexistent_key}",
+                f"/api/admin/witnesses/{nonexistent_key}",
                 headers={"x-api-key": TEST_API_KEY},
             )
 
@@ -205,16 +232,16 @@ class TestWitnessRegistryEndpoints:
         """Test removing with invalid multikey format."""
         with TestClient(app) as test_client:
             response = test_client.delete(
-                "/admin/witnesses/invalid-key", headers={"x-api-key": TEST_API_KEY}
+                "/api/admin/witnesses/invalid-key", headers={"x-api-key": TEST_API_KEY}
             )
 
-            assert_error_response(response, 400, "Invalid multikey")
+            assert_error_response(response, 400, "Invalid witness id, must be ed25519 multikey")
 
     @pytest.mark.asyncio
     async def test_remove_known_witness_unauthorized(self):
         """Test removing witness without API key."""
         with TestClient(app) as test_client:
-            response = test_client.delete(f"/admin/witnesses/{TEST_WITNESS_KEY}")
+            response = test_client.delete(f"/api/admin/witnesses/{TEST_WITNESS_KEY}")
 
             assert_error_response(response, 401, "Invalid or missing API Key")
 
@@ -223,7 +250,7 @@ class TestWitnessRegistryEndpoints:
         """Reject invitation URL without oob parameter."""
         with TestClient(app) as test_client:
             response = test_client.post(
-                "/admin/witnesses",
+                "/api/admin/witnesses",
                 headers={"x-api-key": TEST_API_KEY},
                 json={
                     "id": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
@@ -239,7 +266,7 @@ class TestWitnessRegistryEndpoints:
         """Reject malformed base64 encoded invitations."""
         with TestClient(app) as test_client:
             response = test_client.post(
-                "/admin/witnesses",
+                "/api/admin/witnesses",
                 headers={"x-api-key": TEST_API_KEY},
                 json={
                     "id": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
@@ -255,7 +282,7 @@ class TestWitnessRegistryEndpoints:
         """Reject witness creation when invitation URL is omitted."""
         with TestClient(app) as test_client:
             response = test_client.post(
-                "/admin/witnesses",
+                "/api/admin/witnesses",
                 headers={"x-api-key": TEST_API_KEY},
                 json={
                     "id": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
@@ -274,7 +301,7 @@ class TestTaskEndpoints:
         """Test creating a set policy task."""
         with TestClient(app) as test_client:
             response = test_client.post(
-                "/admin/tasks?task_type=set_policy", headers={"x-api-key": TEST_API_KEY}
+                "/api/admin/tasks?task_type=set_policy", headers={"x-api-key": TEST_API_KEY}
             )
 
             assert response.status_code == 201
@@ -285,7 +312,7 @@ class TestTaskEndpoints:
     async def test_sync_storage_task_unauthorized(self):
         """Test creating task without API key."""
         with TestClient(app) as test_client:
-            response = test_client.post("/admin/tasks?task_type=set_policy")
+            response = test_client.post("/api/admin/tasks?task_type=set_policy")
 
             assert_error_response(response, 401, "Invalid or missing API Key")
 
@@ -293,7 +320,7 @@ class TestTaskEndpoints:
     async def test_fetch_tasks_success(self):
         """Test fetching administrative tasks."""
         with TestClient(app) as test_client:
-            response = test_client.get("/admin/tasks", headers={"x-api-key": TEST_API_KEY})
+            response = test_client.get("/api/admin/tasks", headers={"x-api-key": TEST_API_KEY})
 
             assert response.status_code == 200
             tasks_data = response.json()
@@ -303,7 +330,7 @@ class TestTaskEndpoints:
     async def test_fetch_tasks_unauthorized(self):
         """Test fetching tasks without API key."""
         with TestClient(app) as test_client:
-            response = test_client.get("/admin/tasks")
+            response = test_client.get("/api/admin/tasks")
 
             assert_error_response(response, 401, "Invalid or missing API Key")
 
@@ -311,6 +338,6 @@ class TestTaskEndpoints:
     async def test_check_task_status_unauthorized(self):
         """Test checking task status without API key."""
         with TestClient(app) as test_client:
-            response = test_client.get("/admin/tasks/fake-task-id")
+            response = test_client.get("/api/admin/tasks/fake-task-id")
 
             assert_error_response(response, 401, "Invalid or missing API Key")
