@@ -170,6 +170,8 @@ async def sync_storage(
 
     if task_type == TaskType.SetPolicy:
         tasks.add_task(task_manager.set_policies, force)
+    elif task_type == TaskType.RegisterWitness:
+        tasks.add_task(task_manager.register_initial_witness)
     elif task_type == TaskType.SyncRecords:
         # SyncRecords task not yet implemented
         raise HTTPException(status_code=400, detail="SyncRecords task not implemented.")
