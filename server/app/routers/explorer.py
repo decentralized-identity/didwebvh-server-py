@@ -49,8 +49,8 @@ async def explorer_did_table(  # noqa: C901
         "domain": domain,
         "deactivated": False if status == "active" else (True if status == "deactivated" else None),
     }
-    # Remove None values
-    filters = {k: v for k, v in filters.items() if v is not None}
+    # Remove None values and empty strings
+    filters = {k: v for k, v in filters.items() if v is not None and v != ""}
 
     # Calculate offset
     offset = (page - 1) * limit
@@ -153,8 +153,8 @@ async def explorer_credential_table(
     def resolve_scid():
         if namespace and alias:
             controller = storage.get_did_controller_by_alias(namespace, alias)
-            return controller.scid if controller else "NOTFOUND"
-        return scid
+            return controller.scid if controller else None
+        return scid if scid else None
 
     # Helper: parse revoked string to boolean
     def parse_revoked():
@@ -169,8 +169,8 @@ async def explorer_credential_table(
         "subject_id": subject_id,
         "revoked": parse_revoked(),
     }
-    # Remove None values
-    filters = {k: v for k, v in filters.items() if v is not None}
+    # Remove None values and empty strings
+    filters = {k: v for k, v in filters.items() if v is not None and v != ""}
 
     # Calculate offset
     offset = (page - 1) * limit

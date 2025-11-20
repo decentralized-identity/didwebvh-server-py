@@ -15,7 +15,7 @@ services:
       WEBVH_ENDORSEMENT: ${WEBVH_ENDORSEMENT:-false}
       APP_PORT: 8000
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/server/status\")' || exit 1"]
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/api/server/status\")' || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10

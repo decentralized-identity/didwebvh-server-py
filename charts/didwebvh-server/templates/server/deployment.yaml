@@ -53,14 +53,14 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /server/status
+              path: /api/server/status
               port: {{ .Values.server.service.apiPort }}
             failureThreshold: 2
             initialDelaySeconds: 60
             periodSeconds: 5
           readinessProbe:
             httpGet:
-              path: /server/status
+              path: /api/server/status
               port: {{ .Values.server.service.apiPort }}
             initialDelaySeconds: 60
           resources:

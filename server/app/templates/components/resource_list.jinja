@@ -160,7 +160,7 @@
                                 <span class="avatar avatar-sm me-2" style="background-image: url({{ resource.author.avatar }})"></span>
                                 <div class="flex-fill">
                                     <div class="fw-bold text-truncate" style="max-width: 200px; font-size: 0.875rem;" title="{{ resource.author.domain }}:{{ resource.author.namespace }}:{{ resource.author.alias }}">
-                                        {{ resource.author.namespace | title }} / {{ resource.author.alias | replace('-', ' ') | title }}
+                                        {{ resource.author.namespace }} / {{ resource.author.alias }}
                                     </div>
                                     <div class="text-muted" style="font-size: 0.75rem; word-break: break-all;" title="{{ resource.author.scid }}">
                                         {{ resource.author.scid }}
@@ -250,8 +250,26 @@
             if (pageInput) {
                 pageInput.remove();
             }
+            
+            // Remove empty input fields before submission
+            const inputs = form.querySelectorAll('input[type="text"]');
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.disabled = true; // Disable empty fields so they're not submitted
+                }
+            });
         }
     }
+    
+    // Re-enable fields after form submission (in case of validation errors)
+    document.getElementById('resource-filter-form').addEventListener('submit', function(e) {
+        // Re-enable all fields after a short delay
+        setTimeout(() => {
+            const form = document.getElementById('resource-filter-form');
+            const inputs = form.querySelectorAll('input[disabled]');
+            inputs.forEach(input => input.disabled = false);
+        }, 100);
+    });
 
     const advancedTable = {
         headers: [

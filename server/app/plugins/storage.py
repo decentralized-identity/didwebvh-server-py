@@ -288,17 +288,17 @@ class StorageManager:
 
     def _apply_did_controller_filters(self, query, filters: Dict[str, Any]):
         """Apply filters to a DID controller query."""
-        if "scid" in filters:
+        if "scid" in filters and filters["scid"]:
             query = query.filter(DidControllerRecord.scid == filters["scid"])
-        if "did" in filters:
+        if "did" in filters and filters["did"]:
             query = query.filter(DidControllerRecord.did == filters["did"])
-        if "domain" in filters:
+        if "domain" in filters and filters["domain"]:
             query = query.filter(DidControllerRecord.domain == filters["domain"])
-        if "namespace" in filters:
+        if "namespace" in filters and filters["namespace"]:
             query = query.filter(DidControllerRecord.namespace == filters["namespace"])
-        if "alias" in filters:
+        if "alias" in filters and filters["alias"]:
             query = query.filter(DidControllerRecord.alias == filters["alias"])
-        if "deactivated" in filters:
+        if "deactivated" in filters and filters["deactivated"] is not None:
             query = query.filter(DidControllerRecord.deactivated == filters["deactivated"])
         return query
 
@@ -516,17 +516,17 @@ class StorageManager:
 
     def _apply_credential_filters(self, query, filters: Dict[str, Any]):
         """Apply filters to a credential query."""
-        if "scid" in filters:
+        if "scid" in filters and filters["scid"]:
             query = query.filter(VerifiableCredentialRecord.scid == filters["scid"])
-        if "issuer_did" in filters:
+        if "issuer_did" in filters and filters["issuer_did"]:
             query = query.filter(VerifiableCredentialRecord.issuer_did == filters["issuer_did"])
-        if "subject_id" in filters:
+        if "subject_id" in filters and filters["subject_id"]:
             query = query.filter(VerifiableCredentialRecord.subject_id == filters["subject_id"])
-        if "credential_id" in filters:
+        if "credential_id" in filters and filters["credential_id"]:
             query = query.filter(
                 VerifiableCredentialRecord.credential_id == filters["credential_id"]
             )
-        if "revoked" in filters:
+        if "revoked" in filters and filters["revoked"] is not None:
             query = query.filter(VerifiableCredentialRecord.revoked == filters["revoked"])
         return query
 

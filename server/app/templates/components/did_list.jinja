@@ -248,8 +248,7 @@
                                 <div class="flex-fill">
                                     <div class="fw-bold text-truncate" style="max-width: 200px; font-size: 0.875rem;"
                                         title="{{ did.domain }}:{{ did.namespace }}:{{ did.identifier }}">
-                                        {{ did.namespace | title }} / {{ did.identifier | replace('-', ' ') | title
-                                        }}
+                                        {{ did.namespace }} / {{ did.identifier }}
                                     </div>
                                     <div class="text-muted" style="font-size: 0.75rem; word-break: break-all;"
                                         title="{{ did.scid }}">
@@ -310,8 +309,26 @@
             if (pageInput) {
                 pageInput.remove();
             }
+            
+            // Remove empty input fields before submission
+            const inputs = form.querySelectorAll('input[type="text"], input[type="radio"]:not(:checked)');
+            inputs.forEach(input => {
+                if (input.type === 'text' && !input.value.trim()) {
+                    input.disabled = true; // Disable empty fields so they're not submitted
+                }
+            });
         }
     }
+    
+    // Re-enable fields after form submission (in case of validation errors)
+    document.getElementById('did-filter-form').addEventListener('submit', function(e) {
+        // Re-enable all fields after a short delay
+        setTimeout(() => {
+            const form = document.getElementById('did-filter-form');
+            const inputs = form.querySelectorAll('input[disabled]');
+            inputs.forEach(input => input.disabled = false);
+        }, 100);
+    });
 
     const advancedTable = {
         headers: [
