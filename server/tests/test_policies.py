@@ -23,7 +23,7 @@ from tests.fixtures import (
     TEST_UPDATE_TIME,
 )
 from tests.mock_agents import WitnessAgent, sign, transform
-from tests.helpers import create_test_namespace_and_identifier
+from tests.helpers import create_test_namespace_and_alias
 from app.plugins.storage import StorageManager
 
 
@@ -65,10 +65,10 @@ class TestWitnessPolicy:
 
     def test_create_did_with_witness_signature(self, witness_policy_client: TestClient):
         """Test that DID can be created with valid witness signature."""
-        namespace, identifier = create_test_namespace_and_identifier("witness_valid")
+        namespace, alias = create_test_namespace_and_alias("witness_valid")
 
         # Get DID template
-        response = witness_policy_client.get(f"?namespace={namespace}&identifier={identifier}")
+        response = witness_policy_client.get(f"?namespace={namespace}&alias={alias}")
         assert response.status_code == 200
 
         document = response.json().get("state")
@@ -95,7 +95,7 @@ class TestWitnessPolicy:
 
         # Submit DID creation with witness signature
         response = witness_policy_client.post(
-            f"/{namespace}/{identifier}",
+            f"/{namespace}/{alias}",
             json={
                 "logEntry": initial_log_entry,
                 "witnessSignature": witness_signature,
@@ -112,10 +112,10 @@ class TestWitnessPolicy:
         self, witness_policy_client: TestClient
     ):
         """Test that DID creation fails when witness is not in the known registry."""
-        namespace, identifier = create_test_namespace_and_identifier("unknown_witness")
+        namespace, alias = create_test_namespace_and_alias("unknown_witness")
 
         # Get DID template
-        response = witness_policy_client.get(f"?namespace={namespace}&identifier={identifier}")
+        response = witness_policy_client.get(f"?namespace={namespace}&alias={alias}")
         assert response.status_code == 200
 
         document = response.json().get("state")
@@ -159,7 +159,7 @@ class TestWitnessPolicy:
 
         # Submit DID creation with unknown witness
         response = witness_policy_client.post(
-            f"/{namespace}/{identifier}",
+            f"/{namespace}/{alias}",
             json={
                 "logEntry": initial_log_entry,
                 "witnessSignature": witness_signature,
@@ -172,10 +172,10 @@ class TestWitnessPolicy:
 
     def test_create_did_without_witness_signature_fails(self, witness_policy_client: TestClient):
         """Test that DID creation fails without witness signature when required."""
-        namespace, identifier = create_test_namespace_and_identifier("no_witness")
+        namespace, alias = create_test_namespace_and_alias("no_witness")
 
         # Get DID template
-        response = witness_policy_client.get(f"?namespace={namespace}&identifier={identifier}")
+        response = witness_policy_client.get(f"?namespace={namespace}&alias={alias}")
         assert response.status_code == 200
 
         document = response.json().get("state")
@@ -194,7 +194,7 @@ class TestWitnessPolicy:
 
         # Submit WITHOUT witness signature (should fail)
         response = witness_policy_client.post(
-            f"/{namespace}/{identifier}",
+            f"/{namespace}/{alias}",
             json={
                 "logEntry": initial_log_entry,
                 # No witnessSignature field
@@ -206,10 +206,10 @@ class TestWitnessPolicy:
 
     def test_update_did_with_witness_signature(self, witness_policy_client: TestClient):
         """Test that DID updates work with valid witness signature."""
-        namespace, identifier = create_test_namespace_and_identifier("witness_update")
+        namespace, alias = create_test_namespace_and_alias("witness_update")
 
         # First create a DID
-        response = witness_policy_client.get(f"?namespace={namespace}&identifier={identifier}")
+        response = witness_policy_client.get(f"?namespace={namespace}&alias={alias}")
         assert response.status_code == 200
 
         document = response.json().get("state")
@@ -220,6 +220,10 @@ class TestWitnessPolicy:
             "threshold": 1,
             "witnesses": [{"id": f"did:key:{TEST_WITNESS_KEY}"}],
         }
+
+        # Ensure nextKeyHashes is not an empty list (validation issue)
+        if "nextKeyHashes" in parameters and parameters["nextKeyHashes"] == []:
+            del parameters["nextKeyHashes"]
 
         initial_state = DocumentState.initial(
             timestamp=TEST_VERSION_TIME,
@@ -233,7 +237,7 @@ class TestWitnessPolicy:
 
         # Create DID
         response = witness_policy_client.post(
-            f"/{namespace}/{identifier}",
+            f"/{namespace}/{alias}",
             json={
                 "logEntry": initial_log_entry,
                 "witnessSignature": witness_signature,
@@ -241,11 +245,18 @@ class TestWitnessPolicy:
         )
         assert response.status_code == 201
 
+        # Reload state from database
+        response = witness_policy_client.get(f"/{namespace}/{alias}/did.jsonl")
+        log_entries_text = response.text.split("\n")[:-1]
+        current_state = None
+        for log_entry in log_entries_text:
+            current_state = DocumentState.load_history_json(log_entry, current_state)
+
         # Now update the DID
-        updated_doc = initial_state.document.copy()
+        updated_doc = current_state.document.copy()
         updated_doc["@context"].append("https://www.w3.org/ns/cid/v1")
 
-        next_state = initial_state.create_next(
+        next_state = current_state.create_next(
             timestamp=TEST_UPDATE_TIME,
             document=updated_doc,
             params_update=None,
@@ -256,11 +267,13 @@ class TestWitnessPolicy:
 
         # Submit update with witness signature
         response = witness_policy_client.post(
-            f"/{namespace}/{identifier}",
+            f"/{namespace}/{alias}",
             json={
                 "logEntry": next_log_entry,
                 "witnessSignature": next_witness_sig,
             },
         )
 
+        if response.status_code != 200:
+            print(f"Error response: {response.status_code} - {response.json()}")
         assert response.status_code == 200

@@ -113,6 +113,8 @@ Build Options:
 Load Test Options:
   -c, --count N     Number of DIDs to create (default: 10)
   -u, --updates N   Updates per DID (default: 2)
+  -s, --server URL  Server URL for load test (default: http://localhost:8000)
+                    Use this to test against an existing server instead of starting one
   --concurrent      Run tests concurrently (faster)
   --agent           Use agent provisioning instead of load test
 
@@ -126,6 +128,8 @@ Server Options:
 Examples:
   ./magic.sh                          # Quick start with defaults
   ./magic.sh -c 50 --concurrent       # 50 DIDs concurrently
+  ./magic.sh -s http://localhost:8000 # Test existing server (skip startup)
+  ./magic.sh -s https://did.example.com -c 20  # Test remote server
   ./magic.sh --ngrok                  # Start with ngrok
   ./magic.sh --agent --ngrok          # Agent provisioning with ngrok
   ./magic.sh --no-rebuild -c 20       # Skip rebuild, 20 DIDs

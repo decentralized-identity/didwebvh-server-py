@@ -2,16 +2,9 @@
     <div class="container-xl">
         <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
             <a href="/" aria-label="{{ branding.app_name }}">
-                <img src="https://opsecid.github.io/did.observer/icon.ico" alt="{{ branding.app_name }}" height="32" class="navbar-brand-image">
+                <img src="{{ branding.icon }}" alt="{{ branding.app_name }}" height="48" class="navbar-brand-image">
             </a>
         </h1>
-        <div class="navbar-nav d-none d-md-flex align-items-center me-auto">
-            <div class="nav-item">
-                <span class="badge bg-white text-dark me-2 user-select-all">
-                    <i class="ti ti-world me-1"></i>{{ (branding.app_url | replace('https://', ''))[:64] }}
-                </span>
-            </div>
-        </div>
         <div class="navbar-nav flex-row order-md-last">
             <div class="d-none d-md-flex">
                 <div class="nav-item">
@@ -21,21 +14,27 @@
                     </a>
                 </div>
                 <div class="nav-item">
-                    <a href="dids" class="nav-link px-3">
+                    <a href="/api/explorer/dids" class="nav-link px-3">
                         <i class="ti ti-fingerprint me-1"></i>
                         <span>DIDs</span>
                     </a>
                 </div>
                 <div class="nav-item">
-                    <a href="credentials" class="nav-link px-3">
+                    <a href="/api/explorer/credentials" class="nav-link px-3">
                         <i class="ti ti-id-badge-2 me-1"></i>
                         <span>Credentials</span>
                     </a>
                 </div>
                 <div class="nav-item">
-                    <a href="resources" class="nav-link px-3">
+                    <a href="/api/explorer/resources" class="nav-link px-3">
                         <i class="ti ti-files me-1"></i>
                         <span>Resources</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/api/explorer/witnesses" class="nav-link px-3">
+                        <i class="ti ti-shield-check me-1"></i>
+                        <span>Witnesses</span>
                     </a>
                 </div>
                 <div class="nav-item">

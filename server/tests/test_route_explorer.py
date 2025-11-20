@@ -7,15 +7,20 @@ from app import app
 from app.plugins.storage import StorageManager
 from tests.fixtures import (
     TEST_POLICY,
+    TEST_WITNESS_INVITATION_PAYLOAD,
+    TEST_WITNESS_INVITATION_URL,
     TEST_WITNESS_REGISTRY,
+    TEST_WITNESS_SERVICE_ENDPOINT,
+    TEST_WITNESS_KEY,
 )
 from tests.helpers import (
     create_unique_did,
     setup_controller_with_verification_method,
     create_test_resource,
-    create_test_namespace_and_identifier,
+    create_test_namespace_and_alias,
 )
-from tests.mock_agents import ControllerAgent
+from tests.mock_agents import ControllerAgent, WitnessAgent
+from config import settings
 
 
 @pytest.fixture(autouse=True)
@@ -32,15 +37,26 @@ async def setup_database():
         registry_data=TEST_WITNESS_REGISTRY,
         meta={"created": "2024-01-01T00:00:00Z", "updated": "2024-01-01T00:00:00Z"},
     )
+    storage.create_or_update_witness_invitation(
+        witness_did=f"did:key:{TEST_WITNESS_KEY}",
+        invitation_url=TEST_WITNESS_INVITATION_URL,
+        invitation_payload=TEST_WITNESS_INVITATION_PAYLOAD,
+        invitation_id=TEST_WITNESS_INVITATION_PAYLOAD["@id"],
+        label=TEST_WITNESS_INVITATION_PAYLOAD["label"],
+    )
     yield
+
+
+# Setup test witness for endorsement
+witness = WitnessAgent()
 
 
 def create_did_for_explorer(test_client: TestClient, test_name: str):
     """Helper to create a DID and return all necessary info for explorer tests."""
-    namespace, identifier = create_test_namespace_and_identifier(test_name)
-    did_webvh_id, doc_state = create_unique_did(test_client, namespace, identifier)
+    namespace, alias = create_test_namespace_and_alias(test_name)
+    did_webvh_id, doc_state = create_unique_did(test_client, namespace, alias)
     scid = did_webvh_id.split(":")[2]  # Extract SCID from did:webvh:SCID:...
-    return namespace, identifier, did_webvh_id, scid, doc_state
+    return namespace, alias, did_webvh_id, scid, doc_state
 
 
 # Setup controller agent for resource tests
@@ -54,7 +70,7 @@ class TestExplorerIndex:
     async def test_explorer_index_html(self):
         """Test explorer index returns HTML template."""
         with TestClient(app) as test_client:
-            response = test_client.get("/explorer/")
+            response = test_client.get("/api/explorer/")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
 
@@ -62,7 +78,7 @@ class TestExplorerIndex:
     async def test_explorer_index_content(self):
         """Test explorer index contains expected content."""
         with TestClient(app) as test_client:
-            response = test_client.get("/explorer/")
+            response = test_client.get("/api/explorer/")
         assert response.status_code == 200
         # Basic check that it's the explorer page
         assert b"<!DOCTYPE html>" in response.content or b"<html" in response.content
@@ -75,7 +91,7 @@ class TestExplorerDIDTable:
     async def test_dids_explorer_empty(self):
         """Test DID explorer returns empty results when no DIDs exist."""
         with TestClient(app) as test_client:
-            response = test_client.get("/explorer/dids", headers={"Accept": "application/json"})
+            response = test_client.get("/api/explorer/dids", headers={"Accept": "application/json"})
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data.get("results"), list)
@@ -87,11 +103,11 @@ class TestExplorerDIDTable:
         """Test DID explorer returns DIDs when they exist."""
         with TestClient(app) as test_client:
             # Create a test DID
-            namespace, identifier, did_webvh_id, scid, _ = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, _ = create_did_for_explorer(
                 test_client, "explorer_with_data"
             )
 
-            response = test_client.get("/explorer/dids", headers={"Accept": "application/json"})
+            response = test_client.get("/api/explorer/dids", headers={"Accept": "application/json"})
 
         assert response.status_code == 200
         data = response.json()
@@ -103,7 +119,7 @@ class TestExplorerDIDTable:
         assert did_result is not None
         assert did_result["did"] == did_webvh_id
         assert did_result["namespace"] == namespace
-        assert did_result["identifier"] == identifier
+        assert did_result["identifier"] == alias
         assert "links" in did_result
         assert "logs" in did_result
 
@@ -112,16 +128,16 @@ class TestExplorerDIDTable:
         """Test DID explorer filtering by namespace."""
         with TestClient(app) as test_client:
             # Create DIDs in different namespaces
-            namespace1, identifier1, did_id1, scid1, _ = create_did_for_explorer(
+            namespace1, alias1, did_id1, scid1, _ = create_did_for_explorer(
                 test_client, "explorer_ns1"
             )
-            namespace2, identifier2, did_id2, scid2, _ = create_did_for_explorer(
+            namespace2, alias2, did_id2, scid2, _ = create_did_for_explorer(
                 test_client, "explorer_ns2"
             )
 
             # Filter by first namespace
             response = test_client.get(
-                f"/explorer/dids?namespace={namespace1}", headers={"Accept": "application/json"}
+                f"/api/explorer/dids?namespace={namespace1}", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -137,12 +153,12 @@ class TestExplorerDIDTable:
         """Test DID explorer filtering by SCID."""
         with TestClient(app) as test_client:
             # Create a test DID
-            namespace, identifier, did_id, scid, _ = create_did_for_explorer(
+            namespace, alias, did_id, scid, _ = create_did_for_explorer(
                 test_client, "explorer_scid"
             )
 
             response = test_client.get(
-                f"/explorer/dids?scid={scid}", headers={"Accept": "application/json"}
+                f"/api/explorer/dids?scid={scid}", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -152,16 +168,16 @@ class TestExplorerDIDTable:
         assert results[0]["scid"] == scid
 
     @pytest.mark.asyncio
-    async def test_dids_explorer_filter_by_identifier(self):
-        """Test DID explorer filtering by identifier."""
+    async def test_dids_explorer_filter_by_alias(self):
+        """Test DID explorer filtering by alias."""
         with TestClient(app) as test_client:
             # Create a test DID
-            namespace, identifier, did_id, scid, _ = create_did_for_explorer(
-                test_client, "explorer_identifier"
+            namespace, alias, did_id, scid, _ = create_did_for_explorer(
+                test_client, "explorer_alias"
             )
 
             response = test_client.get(
-                f"/explorer/dids?identifier={identifier}", headers={"Accept": "application/json"}
+                f"/api/explorer/dids?alias={alias}", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -170,7 +186,7 @@ class TestExplorerDIDTable:
         assert len(results) >= 1
 
         # Find our DID
-        did_result = next((r for r in results if r["identifier"] == identifier), None)
+        did_result = next((r for r in results if r["identifier"] == alias), None)
         assert did_result is not None
 
     @pytest.mark.asyncio
@@ -178,12 +194,12 @@ class TestExplorerDIDTable:
         """Test DID explorer filtering by active status."""
         with TestClient(app) as test_client:
             # Create an active DID
-            namespace, identifier, did_id, scid, _ = create_did_for_explorer(
+            namespace, alias, did_id, scid, _ = create_did_for_explorer(
                 test_client, "explorer_active"
             )
 
             response = test_client.get(
-                "/explorer/dids?status=active", headers={"Accept": "application/json"}
+                "/api/explorer/dids?status=active", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -205,7 +221,7 @@ class TestExplorerDIDTable:
 
             # Get first page with limit 2
             response = test_client.get(
-                "/explorer/dids?page=1&limit=2", headers={"Accept": "application/json"}
+                "/api/explorer/dids?page=1&limit=2", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -222,7 +238,7 @@ class TestExplorerDIDTable:
     async def test_dids_explorer_html_response(self):
         """Test DID explorer returns HTML when Accept header is not JSON."""
         with TestClient(app) as test_client:
-            response = test_client.get("/explorer/dids")
+            response = test_client.get("/api/explorer/dids")
 
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
@@ -236,7 +252,7 @@ class TestExplorerResourceTable:
         """Test resource explorer returns empty results when no resources exist."""
         with TestClient(app) as test_client:
             response = test_client.get(
-                "/explorer/resources", headers={"Accept": "application/json"}
+                "/api/explorer/resources", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -250,23 +266,23 @@ class TestExplorerResourceTable:
         """Test resource explorer returns resources when they exist."""
         with TestClient(app) as test_client:
             # Create a DID with a verification method and upload a resource
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "resource_explorer"
             )
             controller_agent, _ = controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
-            # Upload a resource
-            resource_data, _ = create_test_resource(controller_agent, "TestSchema")
+            # Upload a resource with witness endorsement
+            resource_data, _ = create_test_resource(controller_agent, "TestSchema", witness=witness)
             response = test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource_data}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource_data}
             )
             assert response.status_code == 201
 
             # Get resources from explorer
             response = test_client.get(
-                "/explorer/resources", headers={"Accept": "application/json"}
+                "/api/explorer/resources", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -286,23 +302,23 @@ class TestExplorerResourceTable:
         """Test resource explorer filtering by SCID."""
         with TestClient(app) as test_client:
             # Create a DID with a verification method and upload a resource
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "resource_scid"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
-            # Upload a resource
-            resource_data, _ = create_test_resource(controller_agent, "TestSchema")
+            # Upload a resource with witness endorsement
+            resource_data, _ = create_test_resource(controller_agent, "TestSchema", witness=witness)
             response = test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource_data}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource_data}
             )
             assert response.status_code == 201
 
             # Filter by SCID
             response = test_client.get(
-                f"/explorer/resources?scid={scid}", headers={"Accept": "application/json"}
+                f"/api/explorer/resources?scid={scid}", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -319,31 +335,31 @@ class TestExplorerResourceTable:
         """Test resource explorer filtering by resource type."""
         with TestClient(app) as test_client:
             # Create a DID with a verification method and upload resources
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "resource_type"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload resources of different types
             resource1, _ = create_test_resource(
-                controller_agent, "SchemaType1", {"name": "Schema1"}
+                controller_agent, "SchemaType1", {"name": "Schema1"}, witness=witness
             )
             test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource1}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource1}
             )
 
             resource2, _ = create_test_resource(
-                controller_agent, "SchemaType2", {"name": "Schema2"}
+                controller_agent, "SchemaType2", {"name": "Schema2"}, witness=witness
             )
             test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource2}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource2}
             )
 
             # Filter by resource type
             response = test_client.get(
-                "/explorer/resources?resource_type=SchemaType1",
+                "/api/explorer/resources?resource_type=SchemaType1",
                 headers={"Accept": "application/json"},
             )
 
@@ -360,25 +376,25 @@ class TestExplorerResourceTable:
         """Test resource explorer pagination."""
         with TestClient(app) as test_client:
             # Create a DID and upload multiple resources
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "resource_pagination"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload 3 resources
             for i in range(3):
                 resource, _ = create_test_resource(
-                    controller_agent, f"Schema{i}", {"name": f"Resource{i}"}
+                    controller_agent, f"Schema{i}", {"name": f"Resource{i}"}, witness=witness
                 )
                 test_client.post(
-                    f"/{namespace}/{identifier}/resources", json={"attestedResource": resource}
+                    f"/{namespace}/{alias}/resources", json={"attestedResource": resource}
                 )
 
             # Get first page with limit 2
             response = test_client.get(
-                "/explorer/resources?page=1&limit=2", headers={"Accept": "application/json"}
+                "/api/explorer/resources?page=1&limit=2", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -395,7 +411,7 @@ class TestExplorerResourceTable:
     async def test_resources_explorer_html_response(self):
         """Test resource explorer returns HTML when Accept header is not JSON."""
         with TestClient(app) as test_client:
-            response = test_client.get("/explorer/resources")
+            response = test_client.get("/api/explorer/resources")
 
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
@@ -409,23 +425,25 @@ class TestExplorerIntegration:
         """Test explorer shows DIDs with their associated resources."""
         with TestClient(app) as test_client:
             # Create a DID with resources
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "integration_did_resources"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload a resource
-            resource_data, _ = create_test_resource(controller_agent, "AnonCredsSchema")
+            resource_data, _ = create_test_resource(
+                controller_agent, "AnonCredsSchema", witness=witness
+            )
             response = test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource_data}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource_data}
             )
             assert response.status_code == 201
 
             # Get DID from explorer
             response = test_client.get(
-                f"/explorer/dids?scid={scid}", headers={"Accept": "application/json"}
+                f"/api/explorer/dids?scid={scid}", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -444,23 +462,25 @@ class TestExplorerIntegration:
         """Test explorer resource links back to its DID."""
         with TestClient(app) as test_client:
             # Create a DID with a resource
-            namespace, identifier, did_webvh_id, scid, doc_state = create_did_for_explorer(
+            namespace, alias, did_webvh_id, scid, doc_state = create_did_for_explorer(
                 test_client, "integration_resource_did"
             )
             controller_agent, _ = setup_controller_with_verification_method(
-                test_client, namespace, identifier, doc_state
+                test_client, namespace, alias, doc_state
             )
 
             # Upload a resource
-            resource_data, _ = create_test_resource(controller_agent, "TestResource")
+            resource_data, _ = create_test_resource(
+                controller_agent, "TestResource", witness=witness
+            )
             response = test_client.post(
-                f"/{namespace}/{identifier}/resources", json={"attestedResource": resource_data}
+                f"/{namespace}/{alias}/resources", json={"attestedResource": resource_data}
             )
             assert response.status_code == 201
 
             # Get resource from explorer
             response = test_client.get(
-                f"/explorer/resources?scid={scid}", headers={"Accept": "application/json"}
+                f"/api/explorer/resources?scid={scid}", headers={"Accept": "application/json"}
             )
 
         assert response.status_code == 200
@@ -472,4 +492,53 @@ class TestExplorerIntegration:
         assert "author" in resource_result
         assert resource_result["author"]["scid"] == scid
         assert resource_result["author"]["namespace"] == namespace
-        assert resource_result["author"]["alias"] == identifier
+        assert resource_result["author"]["alias"] == alias
+
+
+class TestExplorerWitnessRegistry:
+    """Test cases for the witness registry explorer endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_witnesses_page_html(self):
+        """Witness page should render with registry content."""
+        with TestClient(app) as test_client:
+            response = test_client.get("/api/explorer/witnesses")
+
+        assert response.status_code == 200
+        assert "Known Witness Registry" in response.text
+        assert f"did:key:{TEST_WITNESS_KEY}" in response.text
+
+    @pytest.mark.asyncio
+    async def test_witnesses_json_response(self):
+        """Witness endpoint should return structured JSON when requested."""
+        with TestClient(app) as test_client:
+            response = test_client.get(
+                "/api/explorer/witnesses", headers={"Accept": "application/json"}
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == len(TEST_WITNESS_REGISTRY)
+        assert "meta" in data
+        assert data["meta"]["created"]
+
+        witness_entry = data["results"][0]
+        assert witness_entry["service_endpoint"] == TEST_WITNESS_SERVICE_ENDPOINT
+        assert witness_entry["resolver_url"].startswith("https://")
+        assert witness_entry["id"].startswith("did:key:")
+
+
+class TestWellKnownDidDocument:
+    """Test cases for the well-known DID document endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_well_known_did_success(self):
+        with TestClient(app) as test_client:
+            response = test_client.get("/.well-known/did.json")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data.get("@context") == "https://www.w3.org/ns/did/v1"
+        assert data.get("id") == f"did:web:{settings.DOMAIN}"
+        assert len(data.get("service", [])) > 0
+        assert "serverPolicy" not in data

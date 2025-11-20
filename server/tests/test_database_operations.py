@@ -441,6 +441,56 @@ class TestResourceOperations:
         fetched = storage.get_resource(resource_digest)
         assert fetched is None
 
+    @pytest.mark.asyncio
+    async def test_get_resources_witnessed_by(self):
+        """Test retrieving resources witnessed by a given DID."""
+        storage = await setup_storage()
+
+        did_controller = await create_test_did_controller(storage)
+        witness_did = f"did:key:{TEST_WITNESS_KEY}"
+
+        # Resource witnessed by the known witness
+        content_witnessed = {"signed": True}
+        witnessed_digest = digest_multibase(content_witnessed)
+        witnessed_resource = create_test_attested_resource(
+            did_controller.did, witnessed_digest, content_witnessed
+        )
+        witnessed_resource["proof"] = [
+            {
+                "type": "DataIntegrityProof",
+                "cryptosuite": "eddsa-jcs-2022",
+                "proofPurpose": "assertionMethod",
+                "verificationMethod": f"{witness_did}#{TEST_WITNESS_KEY}",
+                "proofValue": "z" + "5" * 87,
+            }
+        ]
+        storage.create_resource(did_controller.scid, witnessed_resource)
+
+        # Resource witnessed by someone else
+        content_other = {"signed": False}
+        other_digest = digest_multibase(content_other)
+        other_resource = create_test_attested_resource(
+            did_controller.did, other_digest, content_other
+        )
+        other_resource["proof"] = [
+            {
+                "type": "DataIntegrityProof",
+                "cryptosuite": "eddsa-jcs-2022",
+                "proofPurpose": "assertionMethod",
+                "verificationMethod": f"{did_controller.did}#key-alt",
+                "proofValue": "z" + "5" * 87,
+            }
+        ]
+        storage.create_resource(did_controller.scid, other_resource)
+
+        witnessed = storage.get_resources_witnessed_by(witness_did)
+
+        assert len(witnessed) == 1
+        assert witnessed[0].resource_id == witnessed_digest
+        assert (
+            witnessed[0].attested_resource["proof"][0]["verificationMethod"].startswith(witness_did)
+        )
+
 
 class TestTaskOperations:
     """Test cases for Task CRUD operations."""

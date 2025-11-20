@@ -1,20 +1,20 @@
 {% extends 'layouts/base.jinja' %}
 {% block page %}
 <div class="page-wrapper">
-    <div class="page-header d-print-none" aria-label="Page header">
+    <div class="page-header d-print-none" aria-label="Witness registry header">
         <div class="container-xl">
             <div class="row g-2 align-items-center">
                 <div class="col-auto">
                     <span class="avatar avatar-lg bg-green-lt">
-                        <i class="ti ti-files" style="font-size: 1.5rem;"></i>
+                        <i class="ti ti-shield-star" style="font-size: 1.5rem;"></i>
                     </span>
                 </div>
                 <div class="col">
                     <h2 class="page-title mb-1">
-                        Attested Resources
+                        Witness Network
                     </h2>
                     <div class="text-secondary">
-                        Explore schemas, credential definitions, and other attested resources
+                        Review trusted witnesses available for DID operations
                     </div>
                 </div>
             </div>
@@ -22,8 +22,12 @@
     </div>
     <div class="page-body">
         <div class="container-xl">
-            {% include 'components/resource_list.jinja' %}
+            {% include 'components/witness_list.jinja' %}
         </div>
     </div>
 </div>
 {% endblock %}
+
+
+
+

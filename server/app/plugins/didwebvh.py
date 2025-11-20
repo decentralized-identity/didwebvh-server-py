@@ -29,11 +29,11 @@ class DidWebVH:
         self.method_version = f"{self.prefix}{settings.WEBVH_VERSION}"
         self.did_string_base = f"{self.prefix}{settings.SCID_PLACEHOLDER}:{settings.DOMAIN}"
         self.active_policy = active_policy or {}
-        self.known_witness_key = settings.KNOWN_WITNESS_KEY
+        self.known_witness_key = settings.WEBVH_WITNESS_ID
         self.known_witness_registry = active_registry or {}
 
-        # Reserved namespaces based on existing API routes
-        self.reserved_namespaces = ["explorer", "policy", "server"]
+        # Reserved namespaces from settings (single source of truth)
+        self.reserved_namespaces = settings.RESERVED_NAMESPACES
 
     def placeholder_id(self, namespace, identifier):
         """Return placeholder id."""
@@ -140,19 +140,30 @@ class DidWebVH:
         self.known_witness_registry = registry
 
         if self.known_witness_key:
-            witness_id = f"did:key:{self.known_witness_key}"
+            # WEBVH_WITNESS_ID is now a full did:key, not just the multikey
+            witness_id = self.known_witness_key
+            if not witness_id.startswith("did:key:"):
+                raise ValueError(
+                    f"WEBVH_WITNESS_ID must be a full did:key identifier, got: {witness_id}"
+                )
             if witness_id not in self.known_witness_registry:
                 self.known_witness_registry[witness_id] = {"name": "Default Server Witness"}
 
     def cache_known_witness_registry(self):
         """Cache known witness registry."""
         if self.active_policy.get("witness_registry_url"):
-            r = requests.get(self.active_policy.get("witness_registry_url"))
-            self.known_witness_registry |= r.json().get("registry")
+            response = requests.get(self.active_policy.get("witness_registry_url"))
+            remote_registry = response.json().get("registry", {}) if response.ok else {}
+            if remote_registry:
+                self.known_witness_registry |= remote_registry
 
-        for witness in self.known_witness_registry:
-            if not witness.startswith("did:key:"):
-                self.known_witness_registry.pop(witness)
+        invalid_entries = [
+            witness_id
+            for witness_id in list(self.known_witness_registry.keys())
+            if not witness_id.startswith("did:key:")
+        ]
+        for witness_id in invalid_entries:
+            self.known_witness_registry.pop(witness_id, None)
 
         return self.known_witness_registry
 
@@ -175,6 +186,9 @@ class DidWebVH:
             self.cache_known_witness_registry()
             if not self.known_witness_registry.get(witness_id, None):
                 raise PolicyError(f"Unknown witness: {witness_id}")
+
+        if not witness_signature:
+            raise PolicyError("Witness signature is required")
 
         witness_proof = self._find_witness_proof(witness_signature.get("proof"), witness_id)
 
@@ -267,9 +281,14 @@ class DidWebVH:
             server_parameter["nextKeyHashes"] = []
 
         if self.active_policy.get("witness"):
+            witnesses = []
+            for witness_id, entry in (self.known_witness_registry or {}).items():
+                witness_info = {"id": witness_id}
+                witnesses.append(witness_info)
+
             server_parameter["witness"] = {
                 "threshold": 1,
-                "witnesses": [{"id": witness} for witness in self.known_witness_registry],
+                "witnesses": witnesses,
             }
 
         if self.active_policy.get("watcher"):

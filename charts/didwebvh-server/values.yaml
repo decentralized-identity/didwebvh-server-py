@@ -16,7 +16,7 @@ networkPolicy:
 server:
   image:
     repository: ghcr.io/decentralized-identity/didwebvh-server-py
-    tag: 0.4.5
+    tag: 0.5.0
     pullPolicy: IfNotPresent
     pullSecrets: []
 
@@ -38,8 +38,9 @@ server:
   branding:
     app_name: "DID WebVH Server"
     app_description: "An api server to register and serve web dids with verifiable history."
-    app_icon: "https://didwebvh.info/latest/assets/favicon.ico"
-    app_logo: "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/didwebvh.jpg"
+    icon: "https://didwebvh.info/latest/assets/favicon.ico"
+    logo_vertical: "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/didwebvh.jpg"
+    logo_horizontal: "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/didwebvh.jpg"
     app_primary_color: "#1a365d"
     app_secondary_color: "#38a169"
     app_accent_color: "#3182ce"

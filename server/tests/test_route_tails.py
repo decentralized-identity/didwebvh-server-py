@@ -28,7 +28,7 @@ class TestUploadTailsFile:
         tails_file, tails_hash = valid_tails_file
         with TestClient(app) as test_client:
             response = test_client.put(
-                f"/tails/hash/{tails_hash}",
+                f"/api/tails/hash/{tails_hash}",
                 files={"tails": (tails_hash, tails_file, "multipart/form-data")},
             )
         assert response.status_code == 201
@@ -40,7 +40,7 @@ class TestUploadTailsFile:
         tails_file, tails_hash = invalid_start_bytes_tails_file
         with TestClient(app) as test_client:
             response = test_client.put(
-                f"/tails/hash/{tails_hash}",
+                f"/api/tails/hash/{tails_hash}",
                 files={"tails": (tails_hash, tails_file, "multipart/form-data")},
             )
         assert response.status_code == 400
@@ -52,7 +52,7 @@ class TestUploadTailsFile:
         tails_file, tails_hash = invalid_hash_tails_file
         with TestClient(app) as test_client:
             response = test_client.put(
-                f"/tails/hash/{tails_hash}",
+                f"/api/tails/hash/{tails_hash}",
                 files={"tails": (tails_hash, tails_file, "multipart/form-data")},
             )
         assert response.status_code == 400
@@ -64,7 +64,7 @@ class TestUploadTailsFile:
         tails_file, tails_hash = invalid_size_tails_file
         with TestClient(app) as test_client:
             response = test_client.put(
-                f"/tails/hash/{tails_hash}",
+                f"/api/tails/hash/{tails_hash}",
                 files={"tails": (tails_hash, tails_file, "multipart/form-data")},
             )
         assert response.status_code == 400
@@ -75,7 +75,7 @@ class TestUploadTailsFile:
         """Test upload fails without proper multipart/form-data header."""
         tails_file, tails_hash = valid_tails_file
         with TestClient(app) as test_client:
-            response = test_client.put(f"/tails/hash/{tails_hash}", content=tails_file)
+            response = test_client.put(f"/api/tails/hash/{tails_hash}", content=tails_file)
         assert response.status_code == 400
         assert response.json() == {"detail": "Expecting multipart/form-data content-type."}
 
@@ -90,13 +90,13 @@ class TestGetTailsFile:
         with TestClient(app) as test_client:
             # First upload the file
             upload_response = test_client.put(
-                f"/tails/hash/{tails_hash}",
+                f"/api/tails/hash/{tails_hash}",
                 files={"tails": (tails_hash, tails_file, "multipart/form-data")},
             )
             assert upload_response.status_code == 201
 
             # Then retrieve it
-            response = test_client.get(f"/tails/hash/{tails_hash}")
+            response = test_client.get(f"/api/tails/hash/{tails_hash}")
 
         assert response.status_code == 200
         assert response.headers["content-type"] == "application/octet-stream"
@@ -109,7 +109,7 @@ class TestGetTailsFile:
         """Test retrieval of non-existent tails file returns 404."""
         tails_file, tails_hash = valid_tails_file
         with TestClient(app) as test_client:
-            response = test_client.get(f"/tails/hash/{tails_hash}")
+            response = test_client.get(f"/api/tails/hash/{tails_hash}")
         assert response.status_code == 404
         assert response.json() == {"detail": "Not Found"}
 
@@ -120,14 +120,14 @@ class TestGetTailsFile:
         with TestClient(app) as test_client:
             # Upload with correct hash
             upload_response = test_client.put(
-                f"/tails/hash/{tails_hash}",
+                f"/api/tails/hash/{tails_hash}",
                 files={"tails": (tails_hash, tails_file, "multipart/form-data")},
             )
             assert upload_response.status_code == 201
 
             # Try to retrieve with different hash
             different_hash = "9" + tails_hash[1:]
-            response = test_client.get(f"/tails/hash/{different_hash}")
+            response = test_client.get(f"/api/tails/hash/{different_hash}")
 
         assert response.status_code == 404
         assert response.json() == {"detail": "Not Found"}
@@ -155,7 +155,7 @@ class TestTailsFileIntegration:
             for tails_file, tails_hash in files:
                 tails_file.seek(0)
                 response = test_client.put(
-                    f"/tails/hash/{tails_hash}",
+                    f"/api/tails/hash/{tails_hash}",
                     files={"tails": (tails_hash, tails_file, "multipart/form-data")},
                 )
                 assert response.status_code == 201
@@ -163,7 +163,7 @@ class TestTailsFileIntegration:
 
             # Retrieve all files
             for tails_file, tails_hash in files:
-                response = test_client.get(f"/tails/hash/{tails_hash}")
+                response = test_client.get(f"/api/tails/hash/{tails_hash}")
                 assert response.status_code == 200
 
                 # Verify content matches
@@ -179,7 +179,7 @@ class TestTailsFileIntegration:
         with TestClient(app) as test_client:
             # Upload file
             response = test_client.put(
-                f"/tails/hash/{tails_hash}",
+                f"/api/tails/hash/{tails_hash}",
                 files={"tails": (tails_hash, tails_file, "multipart/form-data")},
             )
             assert response.status_code == 201

@@ -22,7 +22,7 @@ storage = StorageManager()
 verifier = AskarVerifier()
 
 
-@router.post("/{namespace}/{identifier}/resources")
+@router.post("/{namespace}/{alias}/resources")
 async def upload_attested_resource(
     request_body: ResourceUpload,
     did_controller: DidControllerRecord = Depends(get_did_controller_dependency),
@@ -84,7 +84,7 @@ async def upload_attested_resource(
     return JSONResponse(status_code=201, content=secured_resource)
 
 
-@router.put("/{namespace}/{identifier}/resources/{resource_id}")
+@router.put("/{namespace}/{alias}/resources/{resource_id}")
 async def update_attested_resource(
     resource_id: str,
     request_body: ResourceUpload,
@@ -125,7 +125,7 @@ async def update_attested_resource(
     return JSONResponse(status_code=200, content=secured_resource)
 
 
-@router.get("/{namespace}/{identifier}/resources/{resource_id}")
+@router.get("/{namespace}/{alias}/resources/{resource_id}")
 async def get_resource(
     resource_id: str, did_controller: DidControllerRecord = Depends(get_did_controller_dependency)
 ):

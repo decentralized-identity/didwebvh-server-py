@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from app import app
 from app.models.did_log import LogEntry
 from app.plugins.storage import StorageManager
+
 from tests.fixtures import (
     TEST_DID_NAMESPACE,
     TEST_VERSION_TIME,
@@ -20,7 +21,7 @@ from tests.mock_agents import sign
 from tests.helpers import (
     create_unique_did,
     setup_controller_with_verification_method,
-    create_test_namespace_and_identifier,
+    create_test_namespace_and_alias,
     assert_error_response,
 )
 from did_webvh.core.state import DocumentState
@@ -53,11 +54,11 @@ class TestNewLogEntryCreate:
     @pytest.mark.asyncio
     async def test_create_did_success(self):
         """Test successful creation of a new DID."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("create01")
+        test_namespace, test_alias = create_test_namespace_and_alias("create01")
 
         with TestClient(app) as test_client:
             # Create DID (the helper returns the created DID, but we need to verify the creation response)
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Verify the DID was created successfully
             assert did_id is not None
@@ -65,7 +66,7 @@ class TestNewLogEntryCreate:
             assert doc_state.document.get("id") == did_id
 
             # Verify we can retrieve the DID log
-            response = test_client.get(f"/{test_namespace}/{test_identifier}/did.jsonl")
+            response = test_client.get(f"/{test_namespace}/{test_alias}/did.jsonl")
             assert response.status_code == 200
             log_entries = response.text.split("\n")[:-1]
             assert len(log_entries) == 1
@@ -73,11 +74,11 @@ class TestNewLogEntryCreate:
     @pytest.mark.asyncio
     async def test_create_did_without_witness_signature(self):
         """Test creating a DID without witness signature (should fail policy)."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("create02")
+        test_namespace, test_alias = create_test_namespace_and_alias("create02")
 
         with TestClient(app) as test_client:
             # Get DID template
-            response = test_client.get(f"?namespace={test_namespace}&identifier={test_identifier}")
+            response = test_client.get(f"?namespace={test_namespace}&alias={test_alias}")
             assert response.status_code == 200
 
             document = response.json().get("state")
@@ -94,7 +95,7 @@ class TestNewLogEntryCreate:
 
             # Try to create without witness signature (policy requires it)
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}",
+                f"/{test_namespace}/{test_alias}",
                 json={
                     "logEntry": initial_log_entry,
                     "witnessSignature": None,
@@ -107,12 +108,12 @@ class TestNewLogEntryCreate:
     @pytest.mark.asyncio
     async def test_create_did_invalid_log_entry(self):
         """Test creating a DID with invalid log entry format."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("create03")
+        test_namespace, test_alias = create_test_namespace_and_alias("create03")
 
         with TestClient(app) as test_client:
             # Try to create with malformed log entry
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}",
+                f"/{test_namespace}/{test_alias}",
                 json={
                     "logEntry": {"invalid": "data"},
                     "witnessSignature": None,
@@ -129,11 +130,11 @@ class TestNewLogEntryUpdate:
     @pytest.mark.asyncio
     async def test_update_did_success(self):
         """Test successful update of an existing DID."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("update01")
+        test_namespace, test_alias = create_test_namespace_and_alias("update01")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Prepare updated document
             updated_document = doc_state.document.copy()
@@ -152,7 +153,7 @@ class TestNewLogEntryUpdate:
 
             # Update the DID
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}",
+                f"/{test_namespace}/{test_alias}",
                 json={
                     "logEntry": next_log_entry,
                     "witnessSignature": witness_signature,
@@ -163,20 +164,18 @@ class TestNewLogEntryUpdate:
             assert LogEntry.model_validate(response.json())
 
             # Verify the log now has 2 entries
-            response = test_client.get(f"/{test_namespace}/{test_identifier}/did.jsonl")
+            response = test_client.get(f"/{test_namespace}/{test_alias}/did.jsonl")
             log_entries = response.text.split("\n")[:-1]
             assert len(log_entries) == 2
 
     @pytest.mark.asyncio
     async def test_update_did_invalid_proof(self):
         """Test updating a DID with invalid proof should fail."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier(
-            "update-invalid-proof"
-        )
+        test_namespace, test_alias = create_test_namespace_and_alias("update-invalid-proof")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Create an update with invalid/tampered proof
             updated_document = doc_state.document.copy()
@@ -194,7 +193,7 @@ class TestNewLogEntryUpdate:
 
             # Try to update with invalid proof
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}",
+                f"/{test_namespace}/{test_alias}",
                 json={
                     "logEntry": next_log_entry,
                     "witnessSignature": witness_signature,
@@ -211,11 +210,11 @@ class TestNewLogEntryDeactivation:
     @pytest.mark.asyncio
     async def test_deactivate_did(self):
         """Test deactivating a DID."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("deactivate01")
+        test_namespace, test_alias = create_test_namespace_and_alias("deactivate01")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Create deactivation update
             updated_document = doc_state.document.copy()
@@ -232,7 +231,7 @@ class TestNewLogEntryDeactivation:
 
             # Deactivate the DID
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}",
+                f"/{test_namespace}/{test_alias}",
                 json={
                     "logEntry": deactivate_log_entry,
                     "witnessSignature": witness_signature,
@@ -272,15 +271,15 @@ class TestNewLogEntryValidation:
 
     @pytest.mark.asyncio
     async def test_namespace_path_parameters(self):
-        """Test that namespace and identifier are properly extracted from path."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("params01")
+        """Test that namespace and alias are properly extracted from path."""
+        test_namespace, test_alias = create_test_namespace_and_alias("params01")
 
         with TestClient(app) as test_client:
             # Create DID and verify namespace/identifier are in the DID state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Verify the DID contains the correct namespace and identifier
-            assert test_namespace in did_id or test_identifier in did_id
+            assert test_namespace in did_id or test_alias in did_id
             assert doc_state is not None
 
 
@@ -332,15 +331,15 @@ class TestUpdateWhois:
     @pytest.mark.asyncio
     async def test_update_whois_success(self):
         """Test successful WHOIS update with valid verifiable presentation."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("whois01")
+        test_namespace, test_alias = create_test_namespace_and_alias("whois01")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Create WHOIS presentation
@@ -348,13 +347,13 @@ class TestUpdateWhois:
 
             # Update WHOIS
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/whois",
+                f"/{test_namespace}/{test_alias}/whois",
                 json={"verifiablePresentation": whois_presentation},
             )
             assert response.status_code == 200
 
             # Verify WHOIS was stored
-            response = test_client.get(f"/{test_namespace}/{test_identifier}/whois.vp")
+            response = test_client.get(f"/{test_namespace}/{test_alias}/whois.vp")
             assert response.status_code == 200
             stored_whois = response.json()
             assert stored_whois["type"] == ["VerifiablePresentation"]
@@ -363,15 +362,15 @@ class TestUpdateWhois:
     @pytest.mark.asyncio
     async def test_update_whois_invalid_holder(self):
         """Test WHOIS update with verification method from wrong DID."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("whois02")
+        test_namespace, test_alias = create_test_namespace_and_alias("whois02")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Create WHOIS presentation with wrong verification method
@@ -379,7 +378,7 @@ class TestUpdateWhois:
             whois_vp = self.create_whois_presentation(did_id, wrong_verification_method)
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/whois",
+                f"/{test_namespace}/{test_alias}/whois",
                 json={"verifiablePresentation": whois_vp},
             )
 
@@ -389,15 +388,15 @@ class TestUpdateWhois:
     @pytest.mark.asyncio
     async def test_update_whois_invalid_verification_method(self):
         """Test WHOIS update with verification method not in DID document."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("whois-invalid-vm")
+        test_namespace, test_alias = create_test_namespace_and_alias("whois-invalid-vm")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Create WHOIS VP with a DIFFERENT non-existent verification method
@@ -405,7 +404,7 @@ class TestUpdateWhois:
             whois_vp = self.create_whois_presentation(did_id, nonexistent_vm)
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/whois",
+                f"/{test_namespace}/{test_alias}/whois",
                 json={"verifiablePresentation": whois_vp},
             )
 
@@ -415,15 +414,15 @@ class TestUpdateWhois:
     @pytest.mark.asyncio
     async def test_update_whois_verification_failed(self):
         """Test WHOIS update with invalid proof signature."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("whois04")
+        test_namespace, test_alias = create_test_namespace_and_alias("whois04")
 
         with TestClient(app) as test_client:
             # Create DID and get document state
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Set up controller with verification method
             controller, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Create WHOIS VP with correct structure but invalid signature
@@ -433,7 +432,7 @@ class TestUpdateWhois:
             whois_vp["proof"][0]["proofValue"] = "z" + "1" * 87
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/whois",
+                f"/{test_namespace}/{test_alias}/whois",
                 json={"verifiablePresentation": whois_vp},
             )
 
@@ -448,15 +447,15 @@ class TestUpdateWhois:
     @pytest.mark.asyncio
     async def test_update_whois_missing_fields(self):
         """Test WHOIS update with missing required fields."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("whois05")
+        test_namespace, test_alias = create_test_namespace_and_alias("whois05")
 
         with TestClient(app) as test_client:
             # Create DID
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Try to update WHOIS with missing verifiablePresentation
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/whois",
+                f"/{test_namespace}/{test_alias}/whois",
                 json={},
             )
 

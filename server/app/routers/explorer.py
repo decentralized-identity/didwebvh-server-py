@@ -9,6 +9,8 @@ from app.models.explorer import (
     ExplorerDidRecord,
     ExplorerResourceRecord,
     ExplorerCredentialRecord,
+    ExplorerWitnessRecord,
+    ExplorerWitnessRegistryMeta,
 )
 
 from config import templates, settings
@@ -17,6 +19,7 @@ router = APIRouter(tags=["Explorer"])
 storage = StorageManager()
 
 
+@router.get("", include_in_schema=False)
 @router.get("/")
 async def explorer_index(request: Request):
     """Landing page for the explorer UI."""
@@ -46,8 +49,8 @@ async def explorer_did_table(  # noqa: C901
         "domain": domain,
         "deactivated": False if status == "active" else (True if status == "deactivated" else None),
     }
-    # Remove None values
-    filters = {k: v for k, v in filters.items() if v is not None}
+    # Remove None values and empty strings
+    filters = {k: v for k, v in filters.items() if v is not None and v != ""}
 
     # Calculate offset
     offset = (page - 1) * limit
@@ -80,18 +83,24 @@ async def explorer_resource_table(
     scid: str = None,
     resource_id: str = None,
     resource_type: str = None,
+    namespace: str = None,
+    alias: str = None,
     page: int = 1,
     limit: int = 50,
 ):
     """Resource table with pagination."""
+
     # Build filters for StorageManager query
+    # Storage manager now supports namespace/alias directly via SQL join
     filters = {
-        "scid": scid,
+        "namespace": namespace,
+        "alias": alias,
+        "scids": [scid] if scid else None,  # Convert single scid to list for consistency
         "resource_id": resource_id,
         "resource_type": resource_type,
     }
-    # Remove None values
-    filters = {k: v for k, v in filters.items() if v is not None}
+    # Remove None values, empty strings, and empty lists
+    filters = {k: v for k, v in filters.items() if v is not None and v != "" and v != []}
 
     # Calculate offset
     offset = (page - 1) * limit
@@ -144,8 +153,8 @@ async def explorer_credential_table(
     def resolve_scid():
         if namespace and alias:
             controller = storage.get_did_controller_by_alias(namespace, alias)
-            return controller.scid if controller else "NOTFOUND"
-        return scid
+            return controller.scid if controller else None
+        return scid if scid else None
 
     # Helper: parse revoked string to boolean
     def parse_revoked():
@@ -160,8 +169,8 @@ async def explorer_credential_table(
         "subject_id": subject_id,
         "revoked": parse_revoked(),
     }
-    # Remove None values
-    filters = {k: v for k, v in filters.items() if v is not None}
+    # Remove None values and empty strings
+    filters = {k: v for k, v in filters.items() if v is not None and v != ""}
 
     # Calculate offset
     offset = (page - 1) * limit
@@ -200,4 +209,39 @@ async def explorer_credential_table(
     CONTEXT["branding"] = settings.BRANDING
     return templates.TemplateResponse(
         request=request, name="pages/credentials.jinja", context=CONTEXT
+    )
+
+
+@router.get("/witnesses")
+async def explorer_witness_registry(request: Request):
+    """View the known witness registry."""
+    registry = storage.get_registry("knownWitnesses")
+    witness_records: list[ExplorerWitnessRecord] = []
+
+    if registry and registry.registry_data:
+        for witness_id, entry in registry.registry_data.items():
+            entry_data = entry or {}
+            witness_records.append(
+                ExplorerWitnessRecord.from_registry_entry(witness_id, entry_data)
+            )
+
+    # Sort alphabetically by name then short id for consistent display
+    witness_records.sort(key=lambda w: (w.name or w.short_id).lower())
+
+    meta = ExplorerWitnessRegistryMeta.from_meta(registry.meta if registry else None)
+
+    context = {
+        "results": [record.model_dump() for record in witness_records],
+        "total": len(witness_records),
+        "meta": meta.model_dump(),
+    }
+
+    if request.headers.get("Accept") == "application/json":
+        return JSONResponse(status_code=200, content=context)
+
+    context["branding"] = settings.BRANDING
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/witnesses.jinja",
+        context=context,
     )

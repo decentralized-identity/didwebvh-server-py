@@ -29,7 +29,7 @@ class DataIntegrityProofOptions(CustomBaseModel):
     @classmethod
     def validate_proof_purpose(cls, value):
         """Validate the proofPurpose field."""
-        assert value in ["assertionMethod", "authentication"]
+        assert value in ["assertionMethod", "authentication", "capabilityDelegation"]
         return value
 
 
@@ -64,7 +64,7 @@ class DataIntegrityProof(CustomBaseModel):
     @classmethod
     def validate_proof_purpose(cls, value):
         """Validate the proofPurpose field."""
-        assert value in ["assertionMethod", "authentication"]
+        assert value in ["assertionMethod", "authentication", "capabilityDelegation"]
         return value
 
     @field_validator("expires")

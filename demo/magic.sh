@@ -15,6 +15,9 @@
 # Options:
 #   -c, --count <N>      Number of DIDs to create (default: 10)
 #   -u, --updates <N>    Number of updates per DID (default: 2)
+#   -s, --server <URL>   Server URL for load test (default: http://localhost:8000)
+#                        Use this to test against an existing server instead of starting one
+#   -k, --api-key <KEY>  API key for admin endpoints (default: env WEBVH_API_KEY or 'webvh')
 #   --concurrent         Run load test concurrently (faster)
 #   --agent              Use agent provisioning (ACA-Py) instead of load test
 #   --stop               Stop server after load test (default: keep running)
@@ -28,6 +31,9 @@
 #   ./magic.sh                           # Create 10 DIDs, rebuild with cache
 #   ./magic.sh -c 50 --concurrent        # Create 50 DIDs concurrently
 #   ./magic.sh -c 100 -u 3 --stop        # Create 100 DIDs, stop server after
+#   ./magic.sh -s http://localhost:8000  # Test against existing server (skip startup)
+#   ./magic.sh -s https://did.example.com -c 20  # Test remote server
+#   ./magic.sh -k my-api-key -c 20       # Use custom API key
 #   ./magic.sh --agent                   # Use ACA-Py agent provisioning
 #   ./magic.sh --clean --full-rebuild    # Clean full rebuild (no cache)
 #   ./magic.sh --ngrok                   # Start with ngrok tunnel
@@ -56,6 +62,8 @@ USE_NGROK=false
 SERVER_URL="http://localhost:8000"
 INTERNAL_SERVER_URL=""  # Used for load test when ngrok is enabled
 NAMESPACE="loadtest"
+USE_EXISTING_SERVER=false  # If true, skip Docker Compose startup
+API_KEY=""  # API key for admin endpoints (defaults to env var or 'webvh')
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -66,6 +74,15 @@ while [[ $# -gt 0 ]]; do
             ;;
         -u|--updates)
             UPDATES_PER_DID="$2"
+            shift 2
+            ;;
+        -s|--server)
+            SERVER_URL="$2"
+            USE_EXISTING_SERVER=true
+            shift 2
+            ;;
+        -k|--api-key)
+            API_KEY="$2"
             shift 2
             ;;
         --concurrent)
@@ -131,6 +148,40 @@ echo "════════════════════════�
 echo "  🪄 DID WebVH Server - Magic Load Test Script"
 echo "═══════════════════════════════════════════════════════════════════════════════"
 echo -e "${NC}"
+
+# If using existing server, skip Docker Compose startup
+if [ "$USE_EXISTING_SERVER" = true ]; then
+    echo -e "${YELLOW}⚠ Using existing server: ${SERVER_URL}${NC}"
+    echo -e "${YELLOW}  Skipping Docker Compose startup${NC}"
+    echo ""
+    
+    # Wait for server to be ready
+    echo -e "${BLUE}Waiting for server to be ready...${NC}"
+    MAX_WAIT=60
+    WAIT_COUNT=0
+    while ! curl -sf "$SERVER_URL/api/server/status" > /dev/null 2>&1; do
+        if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
+            echo -e "${RED}✗ Server not responding after ${MAX_WAIT}s${NC}"
+            echo -e "${RED}  Please ensure the server is running at ${SERVER_URL}${NC}"
+            exit 1
+        fi
+        echo -n "."
+        sleep 1
+        WAIT_COUNT=$((WAIT_COUNT + 1))
+    done
+    echo ""
+    echo -e "${GREEN}✓ Server is ready!${NC}"
+    echo ""
+    
+    # Set load test URL
+    LOAD_TEST_URL="$SERVER_URL"
+    export WEBVH_SERVER_URL="$SERVER_URL"
+    
+    # Skip to load test section
+    SKIP_TO_LOAD_TEST=true
+else
+    SKIP_TO_LOAD_TEST=false
+fi
 
 # Display configuration
 echo -e "${BLUE}Configuration:${NC}"
@@ -201,80 +252,92 @@ if [ "$USE_NGROK" = true ]; then
     INTERNAL_SERVER_URL="http://localhost:8000"
 fi
 
-# Start the server
-echo -e "${BLUE}🚀 Starting DID WebVH server...${NC}"
-cd "$SCRIPT_DIR"
+# Skip Docker Compose section if using existing server
+if [ "$SKIP_TO_LOAD_TEST" = false ]; then
+    # Start the server
+    echo -e "${BLUE}🚀 Starting DID WebVH server...${NC}"
+    cd "$SCRIPT_DIR"
 
-# Build with --no-cache if requested (must be separate from 'up' command)
-if [ "$REBUILD_NO_CACHE" = true ]; then
-    echo -e "${YELLOW}Building with --no-cache (clean rebuild)...${NC}"
-    docker compose build --no-cache
-    REBUILD_FLAG=""  # Already built, don't rebuild again in 'up'
-fi
-
-# Export WEBVH_DOMAIN for docker-compose.yml config substitution
-if [ "$USE_NGROK" = true ]; then
-    export WEBVH_DOMAIN="${WEBVH_DOMAIN}"
-else
-    # For local/non-ngrok, use localhost
-    export WEBVH_DOMAIN="${WEBVH_DOMAIN:-localhost}"
-fi
-
-# Start with docker compose (include ngrok and/or agent profile if enabled)
-PROFILES=""
-if [ "$USE_NGROK" = true ]; then
-    PROFILES="$PROFILES --profile ngrok"
-fi
-if [ "$USE_AGENT" = true ]; then
-    PROFILES="$PROFILES --profile agent"
-fi
-
-if [ -n "$PROFILES" ]; then
-    docker compose $PROFILES up -d $REBUILD_FLAG
-else
-    docker compose up -d $REBUILD_FLAG
-fi
-
-# Wait for server to be healthy
-echo -e "${YELLOW}⏳ Waiting for server to be ready...${NC}"
-MAX_WAIT=60
-ELAPSED=0
-while ! curl -sf "$SERVER_URL/server/status" > /dev/null 2>&1; do
-    if [ $ELAPSED -ge $MAX_WAIT ]; then
-        echo -e "${RED}✗ Server failed to start within ${MAX_WAIT}s${NC}"
-        echo ""
-        echo -e "${YELLOW}📋 Server logs:${NC}"
-        docker compose logs --tail=50 webvh-server
-        echo ""
-        echo -e "${RED}Exiting...${NC}"
-        exit 1
+    # Build with --no-cache if requested (must be separate from 'up' command)
+    if [ "$REBUILD_NO_CACHE" = true ]; then
+        echo -e "${YELLOW}Building with --no-cache (clean rebuild)...${NC}"
+        docker compose build --no-cache
+        REBUILD_FLAG=""  # Already built, don't rebuild again in 'up'
     fi
-    
-    printf "."
-    sleep 2
-    ELAPSED=$((ELAPSED + 2))
-done
 
-echo ""
-echo -e "${GREEN}✓ Server is healthy and ready!${NC}"
-echo ""
+    # Export WEBVH_DOMAIN for docker-compose.yml config substitution
+    if [ "$USE_NGROK" = true ]; then
+        export WEBVH_DOMAIN="${WEBVH_DOMAIN}"
+    else
+        # For local/non-ngrok, use localhost
+        export WEBVH_DOMAIN="${WEBVH_DOMAIN:-localhost}"
+    fi
 
-# Show server info
-echo -e "${BLUE}📊 Server Status:${NC}"
-SERVER_STATUS=$(curl -s "$SERVER_URL/server/status" | jq -r '.domain // "unknown"')
-echo "  Domain: $SERVER_STATUS"
-echo "  Explorer: ${SERVER_URL}/explorer/dids"
-echo "  API Docs: ${SERVER_URL}/docs"
+    # Start with docker compose (include ngrok and/or agent profile if enabled)
+    PROFILES=""
+    if [ "$USE_NGROK" = true ]; then
+        PROFILES="$PROFILES --profile ngrok"
+    fi
+    if [ "$USE_AGENT" = true ]; then
+        PROFILES="$PROFILES --profile agent"
+    fi
 
-# Show ngrok info if enabled
-if [ "$USE_NGROK" = true ]; then
+    if [ -n "$PROFILES" ]; then
+        docker compose $PROFILES up -d $REBUILD_FLAG
+    else
+        docker compose up -d $REBUILD_FLAG
+    fi
+
+    # Wait for server to be healthy
+    echo -e "${YELLOW}⏳ Waiting for server to be ready...${NC}"
+    MAX_WAIT=60
+    ELAPSED=0
+    while ! curl -sf "$SERVER_URL/api/server/status" > /dev/null 2>&1; do
+        if [ $ELAPSED -ge $MAX_WAIT ]; then
+            echo -e "${RED}✗ Server failed to start within ${MAX_WAIT}s${NC}"
+            echo ""
+            echo -e "${YELLOW}📋 Server logs:${NC}"
+            docker compose logs --tail=50 webvh-server
+            echo ""
+            echo -e "${RED}Exiting...${NC}"
+            exit 1
+        fi
+        
+        printf "."
+        sleep 2
+        ELAPSED=$((ELAPSED + 2))
+    done
+
     echo ""
-    echo -e "${CYAN}🌐 ngrok Tunnel:${NC}"
-    echo "  Public URL: ${SERVER_URL}"
-    echo "  Internal URL: ${INTERNAL_SERVER_URL} (used by load test)"
-    echo "  ngrok Dashboard: https://dashboard.ngrok.com"
-fi
-echo ""
+    echo -e "${GREEN}✓ Server is healthy and ready!${NC}"
+    echo ""
+
+    # Show server info
+    echo -e "${BLUE}📊 Server Status:${NC}"
+    SERVER_STATUS=$(curl -s "$SERVER_URL/api/server/status" | jq -r '.domain // "unknown"')
+    echo "  Domain: $SERVER_STATUS"
+    echo "  Explorer: ${SERVER_URL}/api/explorer/dids"
+    echo "  API Docs: ${SERVER_URL}/docs"
+
+    # Show ngrok info if enabled
+    if [ "$USE_NGROK" = true ]; then
+        echo ""
+        echo -e "${CYAN}🌐 ngrok Tunnel:${NC}"
+        echo "  Public URL: ${SERVER_URL}"
+        echo "  Internal URL: ${INTERNAL_SERVER_URL} (used by load test)"
+        echo "  ngrok Dashboard: https://dashboard.ngrok.com"
+    fi
+    echo ""
+    
+    # Set load test URL
+    if [ "$USE_NGROK" = true ]; then
+        LOAD_TEST_URL="$INTERNAL_SERVER_URL"
+        export WEBVH_SERVER_URL="$SERVER_URL"  # Public URL for external references
+    else
+        LOAD_TEST_URL="$SERVER_URL"
+        export WEBVH_SERVER_URL="$SERVER_URL"
+    fi
+fi  # End of SKIP_TO_LOAD_TEST check
 
 # Run provisioning
 echo -e "${CYAN}═══════════════════════════════════════════════════════════════════════════════${NC}"
@@ -290,16 +353,11 @@ cd "$SCRIPT_DIR"
 
 # Export environment variables
 export WEBVH_NAMESPACE="$NAMESPACE"
-export WEBVH_API_KEY="webvh"  # Default API key for witness registration
-
-# Determine which URL to use
-# If ngrok is enabled, use internal URL to avoid tunnel overhead
-if [ "$USE_NGROK" = true ]; then
-    LOAD_TEST_URL="$INTERNAL_SERVER_URL"
-    export WEBVH_SERVER_URL="$SERVER_URL"  # Public URL for external references
+# Only set WEBVH_API_KEY if not provided via command line
+if [ -z "$API_KEY" ]; then
+    export WEBVH_API_KEY="${WEBVH_API_KEY:-webvh}"  # Default API key for witness registration
 else
-    LOAD_TEST_URL="$SERVER_URL"
-    export WEBVH_SERVER_URL="$SERVER_URL"
+    export WEBVH_API_KEY="$API_KEY"
 fi
 
 # Run either agent provisioning or load test
@@ -346,12 +404,22 @@ if [ "$USE_AGENT" = true ]; then
     LOAD_TEST_EXIT_CODE=$?
 else
     # Run the load test from demo directory with its own dependencies
-    uv run python load_test.py \
-        --count "$DID_COUNT" \
-        --updates "$UPDATES_PER_DID" \
-        --server "$LOAD_TEST_URL" \
-        --namespace "$NAMESPACE" \
-        $CONCURRENT_FLAG
+    if [ -n "$API_KEY" ]; then
+        uv run python load_test.py \
+            --count "$DID_COUNT" \
+            --updates "$UPDATES_PER_DID" \
+            --server "$LOAD_TEST_URL" \
+            --namespace "$NAMESPACE" \
+            --api-key "$API_KEY" \
+            $CONCURRENT_FLAG
+    else
+        uv run python load_test.py \
+            --count "$DID_COUNT" \
+            --updates "$UPDATES_PER_DID" \
+            --server "$LOAD_TEST_URL" \
+            --namespace "$NAMESPACE" \
+            $CONCURRENT_FLAG
+    fi
     LOAD_TEST_EXIT_CODE=$?
 fi
 set -e
@@ -367,15 +435,25 @@ if [ $LOAD_TEST_EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}✓ Load test completed successfully!${NC}"
     fi
     echo ""
-    echo -e "${BLUE}📊 View Results:${NC}"
-    echo "  DIDs:        ${SERVER_URL}/explorer/dids?namespace=${NAMESPACE}"
-    echo "  Resources:   ${SERVER_URL}/explorer/resources"
-    echo "  Credentials: ${SERVER_URL}/explorer/credentials?namespace=${NAMESPACE}"
-    echo ""
-    
-    # Calculate expected credentials
-    EXPECTED_CREDS=$((DID_COUNT * 2))
-    echo -e "${GREEN}Expected credentials: ${EXPECTED_CREDS} \(${DID_COUNT} regular + ${DID_COUNT} enveloped\)${NC}"
+    if [ "$USE_EXISTING_SERVER" = true ]; then
+        # Using existing server, just show results
+        echo -e "${CYAN}📊 View Results:${NC}"
+        echo ""
+        echo "  DIDs:        ${SERVER_URL}/api/explorer/dids?namespace=${NAMESPACE}"
+        echo "  Resources:   ${SERVER_URL}/api/explorer/resources"
+        echo "  Credentials: ${SERVER_URL}/api/explorer/credentials?namespace=${NAMESPACE}"
+        echo ""
+    else
+        echo -e "${BLUE}📊 View Results:${NC}"
+        echo "  DIDs:        ${SERVER_URL}/api/explorer/dids?namespace=${NAMESPACE}"
+        echo "  Resources:   ${SERVER_URL}/api/explorer/resources"
+        echo "  Credentials: ${SERVER_URL}/api/explorer/credentials?namespace=${NAMESPACE}"
+        echo ""
+        
+        # Calculate expected credentials
+        EXPECTED_CREDS=$((DID_COUNT * 2))
+        echo -e "${GREEN}Expected credentials: ${EXPECTED_CREDS} \(${DID_COUNT} regular + ${DID_COUNT} enveloped\)${NC}"
+    fi
 else
     echo -e "${RED}✗ Load test failed with exit code: $LOAD_TEST_EXIT_CODE${NC}"
     echo ""
@@ -385,8 +463,12 @@ fi
 
 echo ""
 
-# Decide whether to keep server running
-if [ "$KEEP_SERVER" = true ]; then
+# Decide whether to keep server running (only if we started it)
+if [ "$USE_EXISTING_SERVER" = true ]; then
+    # Using existing server, nothing to stop
+    echo -e "${GREEN}✓ Load test complete. Server remains running.${NC}"
+    echo ""
+elif [ "$KEEP_SERVER" = true ]; then
     echo -e "${GREEN}🎉 Server is still running!${NC}"
     echo ""
     echo -e "${BLUE}Useful commands:${NC}"
@@ -396,9 +478,9 @@ if [ "$KEEP_SERVER" = true ]; then
     echo "  Clean up:        cd $SCRIPT_DIR && docker compose down -v"
     echo ""
     echo -e "${CYAN}Explorer URLs:${NC}"
-    echo "  ${SERVER_URL}/explorer/dids"
-    echo "  ${SERVER_URL}/explorer/resources"
-    echo "  ${SERVER_URL}/explorer/credentials"
+    echo "  ${SERVER_URL}/api/explorer/dids"
+    echo "  ${SERVER_URL}/api/explorer/resources"
+    echo "  ${SERVER_URL}/api/explorer/credentials"
 else
     echo -e "${YELLOW}🛑 Stopping server...${NC}"
     cd "$SCRIPT_DIR"
