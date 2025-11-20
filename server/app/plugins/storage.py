@@ -402,15 +402,15 @@ class StorageManager:
             query = session.query(AttestedResourceRecord)
 
             if filters:
-                if "scid" in filters:
+                if "scid" in filters and filters["scid"]:
                     query = query.filter(AttestedResourceRecord.scid == filters["scid"])
-                if "did" in filters:
+                if "did" in filters and filters["did"]:
                     query = query.filter(AttestedResourceRecord.did == filters["did"])
-                if "resource_type" in filters:
+                if "resource_type" in filters and filters["resource_type"]:
                     query = query.filter(
                         AttestedResourceRecord.resource_type == filters["resource_type"]
                     )
-                if "resource_id" in filters:
+                if "resource_id" in filters and filters["resource_id"]:
                     query = query.filter(
                         AttestedResourceRecord.resource_id == filters["resource_id"]
                     )
@@ -452,15 +452,15 @@ class StorageManager:
             query = session.query(AttestedResourceRecord)
 
             if filters:
-                if "scid" in filters:
+                if "scid" in filters and filters["scid"]:
                     query = query.filter(AttestedResourceRecord.scid == filters["scid"])
-                if "did" in filters:
+                if "did" in filters and filters["did"]:
                     query = query.filter(AttestedResourceRecord.did == filters["did"])
-                if "resource_type" in filters:
+                if "resource_type" in filters and filters["resource_type"]:
                     query = query.filter(
                         AttestedResourceRecord.resource_type == filters["resource_type"]
                     )
-                if "resource_id" in filters:
+                if "resource_id" in filters and filters["resource_id"]:
                     query = query.filter(
                         AttestedResourceRecord.resource_id == filters["resource_id"]
                     )

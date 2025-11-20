@@ -83,18 +83,28 @@ async def explorer_resource_table(
     scid: str = None,
     resource_id: str = None,
     resource_type: str = None,
+    namespace: str = None,
+    alias: str = None,
     page: int = 1,
     limit: int = 50,
 ):
     """Resource table with pagination."""
+
+    # Helper: resolve namespace/alias to scid
+    def resolve_scid():
+        if namespace and alias:
+            controller = storage.get_did_controller_by_alias(namespace, alias)
+            return controller.scid if controller else "NOTFOUND"
+        return scid
+
     # Build filters for StorageManager query
     filters = {
-        "scid": scid,
+        "scid": resolve_scid(),
         "resource_id": resource_id,
         "resource_type": resource_type,
     }
-    # Remove None values
-    filters = {k: v for k, v in filters.items() if v is not None}
+    # Remove None values, empty strings, and "NOTFOUND" (invalid namespace/alias combination)
+    filters = {k: v for k, v in filters.items() if v is not None and v != "" and v != "NOTFOUND"}
 
     # Calculate offset
     offset = (page - 1) * limit
