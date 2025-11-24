@@ -2,6 +2,31 @@ apiVersion: v1
 entries:
   didwebvh-server-py:
   - apiVersion: v2
+    appVersion: 0.5.0
+    created: "2025-11-24T20:42:12.854609384Z"
+    dependencies:
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami/
+      version: 11.9.13
+    - name: common
+      repository: https://charts.bitnami.com/bitnami/
+      tags:
+      - bitnami-common
+      version: 2.x.x
+    description: An api server to register and serve web dids with verifiable history.
+    digest: a4de45dc972de4e01e98c1594c9cc0b624df7f1eec8f5177491b39f2bfc7abbb
+    icon: https://identity.foundation/didwebvh/didwebvh.jpg
+    maintainers:
+    - email: patrick.st-louis@opsecid.ca
+      name: PatStLouis
+      url: https://github.com/PatStLouis
+    name: didwebvh-server-py
+    type: application
+    urls:
+    - https://github.com/decentralized-identity/didwebvh-server-py/releases/download/didwebvh-server-py-0.5.0/didwebvh-server-py-0.5.0.tgz
+    version: 0.5.0
+  - apiVersion: v2
     appVersion: 0.4.5
     created: "2025-11-04T15:26:04.706376817Z"
     dependencies:
@@ -485,4 +510,4 @@ entries:
     urls:
     - https://github.com/decentralized-identity/trustdidweb-server-py/releases/download/trustdidweb-server-py-0.0.2/trustdidweb-server-py-0.0.2.tgz
     version: 0.0.2
-generated: "2025-11-04T15:26:04.706438733Z"
+generated: "2025-11-24T20:42:12.85471458Z"
