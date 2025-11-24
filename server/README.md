@@ -5,63 +5,100 @@ A comprehensive DID WebVH (Decentralized Identifier Web Verifiable History) serv
 ## Features
 
 - **DID Management**: Create, resolve, and manage DIDs with WebVH method
-- **Resource Management**: Upload and manage attested resources (schemas, credential definitions, etc.)
-- **Web Explorer**: Interactive web interface for browsing DIDs and resources
-- **Admin Tasks**: Background task system for migrations, load testing, and maintenance
+- **Resource Management**: Upload and manage attested resources (AnonCreds schemas, credential definitions, etc.)
+- **Witness Registry**: Manage known witness services and their invitation URLs
+- **Policy Enforcement**: Configurable policies for witness requirements, portability, prerotation, and endorsement
+- **Web Explorer**: Interactive web interface for browsing DIDs, resources, and witness network
+- **AnonCreds Support**: Publish and resolve AnonCreds objects as Attested Resources
 - **Multiple Storage**: Support for SQLite and PostgreSQL backends
-- **Theming**: Customizable branding and themes (including Halloween theme!)
+- **Customizable Branding**: Configurable UI themes and branding
 
 ## Quick Start
-
-### Using Docker
-```bash
-docker build -t didwebvh-server .
-docker run -p 8000:8000 didwebvh-server
-```
 
 ### Using uv
 ```bash
 # Install dependencies
+cd server
 uv sync
 
-# Run server
+# Copy example environment file
+cp env.example .env
+
+# Edit .env with your configuration
+# Then run server
 uv run python main.py
+```
+
+### Using Docker
+```bash
+docker build -t didwebvh-server .
+docker run -p 8000:8000 \
+  -e WEBVH_DOMAIN=did.example.org \
+  -e WEBVH_ADMIN_API_KEY=your-secret-key \
+  didwebvh-server
 ```
 
 ## Configuration
 
-Set environment variables or create a `.env` file:
+Create a `.env` file in the `server` directory. See `env.example` for all available options.
 
+**Minimum required configuration:**
 ```env
-DOMAIN=localhost
-API_KEY=your-secret-key
-DATABASE_URL=sqlite:///app.db
-WEBVH_VERSION=1.0
-WEBVH_WITNESS=true
+WEBVH_DOMAIN=did.example.org
+WEBVH_ADMIN_API_KEY=your-secret-key
 ```
+
+For complete configuration details, see the [Configuration Guide](../docs/content/configuration.md) in the user manual.
 
 ## API Endpoints
 
-- `GET /` - Web explorer interface
-- `GET /dids` - DID explorer
-- `GET /resources` - Resource explorer
-- `POST /dids` - Create DID
-- `GET /dids/{did}` - Resolve DID
-- `POST /resources` - Upload resource
-- `POST /admin/tasks` - Start admin tasks
+For complete API documentation, see:
+- **[API Endpoints Guide](../docs/content/api-endpoints.md)** - Detailed endpoint reference
+- **Swagger UI** - Interactive API docs at `/docs` when server is running
 
-## Admin Tasks
-
-- **Migration**: `migrate_askar_to_postgres` - Migrate from Askar to PostgreSQL
-- **Load Testing**: `load_test` - Performance testing
-- **Sync Records**: `sync_records` - Sync explorer records
+**Quick reference:**
+- `GET /` - Root endpoint (DID requests, invitation lookup, explorer)
+- `GET /?namespace={ns}&alias={alias}` - Request DID parameters
+- `POST /{namespace}/{alias}` - Create/update DID
+- `GET /{namespace}/{alias}/did.json` - Resolve DID
+- `POST /{namespace}/{alias}/resources` - Upload resource
+- `POST /admin/witnesses` - Manage witnesses
+- `GET /explorer` - Web explorer interface
 
 ## Documentation
 
-See `/docs` directory for detailed documentation:
-- `README.md` - Complete user guide
-- `ANONCREDS.md` - AnonCreds integration details
-- `SQLALCHEMY_STORAGE.md` - Database implementation
+📚 **See the [User Manual](../docs/content/index.md) for comprehensive documentation:**
+
+- Getting Started & Configuration
+- API Endpoints & Protocols  
+- Roles (Admin, Witness, Controller, Watcher)
+- Admin Operations & DID Operations
+- AnonCreds Support
+- Examples
+
+**Interactive API Docs**: Swagger UI at `/docs` when server is running
+
+## Development
+
+### Running Tests
+```bash
+cd server
+uv run pytest
+```
+
+### Code Structure
+```
+server/
+├── app/
+│   ├── routers/      # API route handlers
+│   ├── plugins/      # Core plugins (didwebvh, storage, invitations)
+│   ├── models/       # Data models and schemas
+│   ├── db/           # Database models and storage
+│   └── templates/    # Jinja2 templates for explorer UI
+├── config.py         # Configuration settings
+├── main.py           # Application entry point
+└── env.example        # Example environment file
+```
 
 ## License
 

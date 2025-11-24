@@ -16,7 +16,7 @@ from tests.mock_agents import WitnessAgent, ControllerAgent
 from tests.helpers import (
     create_unique_did,
     setup_controller_with_verification_method,
-    create_test_namespace_and_identifier,
+    create_test_namespace_and_alias,
 )
 
 # Setup test agents
@@ -146,13 +146,13 @@ class TestPublishCredential:
     @pytest.mark.asyncio
     async def test_publish_enveloped_vc_success(self):
         """Test successful EnvelopedVerifiableCredential (VC-JOSE) upload."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-enveloped-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-enveloped-01")
 
         with TestClient(app) as test_client:
             # Create DID and add verification method
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
             controller_agent, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Get signing key from controller agent
@@ -165,7 +165,7 @@ class TestPublishCredential:
 
             # Publish credential
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": enveloped_vc},
             )
 
@@ -179,13 +179,13 @@ class TestPublishCredential:
     @pytest.mark.asyncio
     async def test_publish_enveloped_vc_with_custom_id(self):
         """Test EnvelopedVC upload with custom credential ID."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-custom-id-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-custom-id-01")
 
         with TestClient(app) as test_client:
             # Create DID and add verification method
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
             controller_agent, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
 
             # Get signing key from controller agent
@@ -198,16 +198,14 @@ class TestPublishCredential:
 
             # Publish with custom ID in options
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": enveloped_vc, "options": {"credentialId": custom_id}},
             )
 
             assert response.status_code == 201
 
             # Verify we can retrieve it by custom ID
-            response = test_client.get(
-                f"/{test_namespace}/{test_identifier}/credentials/{custom_id}"
-            )
+            response = test_client.get(f"/{test_namespace}/{test_alias}/credentials/{custom_id}")
             assert response.status_code == 200
             retrieved = response.json()
             assert retrieved["id"].startswith("data:application/vc+jwt,")
@@ -215,13 +213,13 @@ class TestPublishCredential:
     @pytest.mark.asyncio
     async def test_publish_regular_vc_success(self):
         """Test successful regular VerifiableCredential upload with real signature."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-regular-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-regular-01")
 
         with TestClient(app) as test_client:
             # Create DID with verification method and signing key
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
             controller_agent, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
             signing_key = controller_agent.update_key
 
@@ -232,7 +230,7 @@ class TestPublishCredential:
 
             # Publish credential
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={
                     "verifiableCredential": enveloped_vc,
                     "options": {"credentialId": "degree-001"},
@@ -247,12 +245,12 @@ class TestPublishCredential:
     @pytest.mark.asyncio
     async def test_publish_duplicate_credential_fails(self):
         """Test that publishing a duplicate credential fails with 409."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-duplicate-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-duplicate-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
             controller_agent, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
             signing_key = controller_agent.update_key
 
@@ -261,7 +259,7 @@ class TestPublishCredential:
             custom_id = "duplicate-test-123"
 
             response1 = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": vc1, "options": {"credentialId": custom_id}},
             )
             assert response1.status_code == 201
@@ -272,7 +270,7 @@ class TestPublishCredential:
             )
 
             response2 = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={
                     "verifiableCredential": vc2,
                     "options": {"credentialId": custom_id},  # Same ID
@@ -289,10 +287,10 @@ class TestEnvelopedVCValidation:
     @pytest.mark.asyncio
     async def test_enveloped_vc_invalid_media_type_ld_json(self):
         """Test that ld+json media type is rejected for EnvelopedVC."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-invalid-ld-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-invalid-ld-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Create EnvelopedVC with INVALID media type (ld+json instead of jwt)
             invalid_vc = {
@@ -302,7 +300,7 @@ class TestEnvelopedVCValidation:
             }
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": invalid_vc},
             )
 
@@ -314,12 +312,10 @@ class TestEnvelopedVCValidation:
     @pytest.mark.asyncio
     async def test_enveloped_vc_invalid_media_type_plain_json(self):
         """Test that plain json media type is rejected for EnvelopedVC."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier(
-            "cred-invalid-json-01"
-        )
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-invalid-json-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             invalid_vc = {
                 "@context": ["https://www.w3.org/ns/credentials/v2"],
@@ -328,7 +324,7 @@ class TestEnvelopedVCValidation:
             }
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": invalid_vc},
             )
 
@@ -340,12 +336,10 @@ class TestEnvelopedVCValidation:
     @pytest.mark.asyncio
     async def test_enveloped_vc_missing_data_url(self):
         """Test that EnvelopedVC without data URL is rejected."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier(
-            "cred-no-data-url-01"
-        )
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-no-data-url-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # EnvelopedVC with HTTP URL instead of data URL
             invalid_vc = {
@@ -355,7 +349,7 @@ class TestEnvelopedVCValidation:
             }
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": invalid_vc},
             )
 
@@ -367,12 +361,10 @@ class TestEnvelopedVCValidation:
     @pytest.mark.asyncio
     async def test_enveloped_vc_malformed_jwt(self):
         """Test that EnvelopedVC with malformed JWT is rejected."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier(
-            "cred-malformed-jwt-01"
-        )
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-malformed-jwt-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Valid media type but malformed JWT (only 2 parts instead of 3)
             invalid_vc = {
@@ -382,7 +374,7 @@ class TestEnvelopedVCValidation:
             }
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": invalid_vc},
             )
 
@@ -399,12 +391,12 @@ class TestGetCredential:
     @pytest.mark.asyncio
     async def test_get_credential_success(self):
         """Test successful credential retrieval."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-get-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-get-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
             controller_agent, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
             signing_key = controller_agent.update_key
 
@@ -415,15 +407,13 @@ class TestGetCredential:
             custom_id = "test-get-001"
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": enveloped_vc, "options": {"credentialId": custom_id}},
             )
             assert response.status_code == 201
 
             # Retrieve credential using simple ID
-            response = test_client.get(
-                f"/{test_namespace}/{test_identifier}/credentials/{custom_id}"
-            )
+            response = test_client.get(f"/{test_namespace}/{test_alias}/credentials/{custom_id}")
 
             assert response.status_code == 200
             retrieved = response.json()
@@ -432,38 +422,30 @@ class TestGetCredential:
     @pytest.mark.asyncio
     async def test_get_credential_not_found(self):
         """Test retrieving non-existent credential returns 404."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier(
-            "cred-get-notfound-01"
-        )
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-get-notfound-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
-            response = test_client.get(
-                f"/{test_namespace}/{test_identifier}/credentials/nonexistent-id"
-            )
+            response = test_client.get(f"/{test_namespace}/{test_alias}/credentials/nonexistent-id")
 
             assert response.status_code == 404
 
     @pytest.mark.asyncio
     async def test_get_credential_wrong_did(self):
         """Test retrieving credential from wrong DID returns 403/404."""
-        test_namespace1, test_identifier1 = create_test_namespace_and_identifier(
-            "cred-wrong-did-01"
-        )
-        test_namespace2, test_identifier2 = create_test_namespace_and_identifier(
-            "cred-wrong-did-02"
-        )
+        test_namespace1, test_alias1 = create_test_namespace_and_alias("cred-wrong-did-01")
+        test_namespace2, test_alias2 = create_test_namespace_and_alias("cred-wrong-did-02")
 
         with TestClient(app) as test_client:
             # Create two DIDs
-            did_id1, doc_state1 = create_unique_did(test_client, test_namespace1, test_identifier1)
+            did_id1, doc_state1 = create_unique_did(test_client, test_namespace1, test_alias1)
             controller_agent1, verification_method_id1 = setup_controller_with_verification_method(
-                test_client, test_namespace1, test_identifier1, doc_state1
+                test_client, test_namespace1, test_alias1, doc_state1
             )
             signing_key1 = controller_agent1.update_key
 
-            did_id2, doc_state2 = create_unique_did(test_client, test_namespace2, test_identifier2)
+            did_id2, doc_state2 = create_unique_did(test_client, test_namespace2, test_alias2)
 
             # Publish credential to DID 1
             vc1, _ = create_jwt_credential(
@@ -472,15 +454,13 @@ class TestGetCredential:
             custom_id = "test-wrong-001"
 
             response = test_client.post(
-                f"/{test_namespace1}/{test_identifier1}/credentials",
+                f"/{test_namespace1}/{test_alias1}/credentials",
                 json={"verifiableCredential": vc1, "options": {"credentialId": custom_id}},
             )
             assert response.status_code == 201
 
             # Try to retrieve from DID 2
-            response = test_client.get(
-                f"/{test_namespace2}/{test_identifier2}/credentials/{custom_id}"
-            )
+            response = test_client.get(f"/{test_namespace2}/{test_alias2}/credentials/{custom_id}")
 
             # Credential found but belongs to different DID
             assert response.status_code in [403, 404]  # 403 if found, 404 if scoped
@@ -492,10 +472,10 @@ class TestCredentialValidation:
     @pytest.mark.asyncio
     async def test_publish_credential_missing_type(self):
         """Test that credential without type is rejected."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-no-type-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-no-type-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Credential without type
             invalid_vc = {
@@ -505,7 +485,7 @@ class TestCredentialValidation:
             }
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": invalid_vc},
             )
 
@@ -514,10 +494,10 @@ class TestCredentialValidation:
     @pytest.mark.asyncio
     async def test_publish_credential_missing_id(self):
         """Test that credential without ID is rejected."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-no-id-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-no-id-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Credential without id
             invalid_vc = {
@@ -528,7 +508,7 @@ class TestCredentialValidation:
             }
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": invalid_vc},
             )
 
@@ -549,10 +529,10 @@ class TestCredentialValidation:
     @pytest.mark.asyncio
     async def test_publish_enveloped_vc_missing_context_in_jwt(self):
         """Test that EnvelopedVC with missing @context in JWT payload is rejected."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("env-no-ctx")
+        test_namespace, test_alias = create_test_namespace_and_alias("env-no-ctx")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Create JWT with missing @context
             payload = {
@@ -575,7 +555,7 @@ class TestCredentialValidation:
             }
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": enveloped_vc},
             )
 
@@ -585,10 +565,10 @@ class TestCredentialValidation:
     @pytest.mark.asyncio
     async def test_publish_enveloped_vc_missing_type_in_jwt(self):
         """Test that EnvelopedVC with missing type in JWT payload is rejected."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("env-no-type")
+        test_namespace, test_alias = create_test_namespace_and_alias("env-no-type")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Create JWT with missing type
             payload = {
@@ -611,7 +591,7 @@ class TestCredentialValidation:
             }
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": enveloped_vc},
             )
 
@@ -621,10 +601,10 @@ class TestCredentialValidation:
     @pytest.mark.asyncio
     async def test_publish_enveloped_vc_invalid_type_in_jwt(self):
         """Test that EnvelopedVC with type not including VerifiableCredential is rejected."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("env-bad-type")
+        test_namespace, test_alias = create_test_namespace_and_alias("env-bad-type")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
 
             # Create JWT with wrong type
             payload = {
@@ -648,7 +628,7 @@ class TestCredentialValidation:
             }
 
             response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": enveloped_vc},
             )
 
@@ -662,13 +642,13 @@ class TestUpdateCredential:
     @pytest.mark.asyncio
     async def test_update_enveloped_vc_success(self):
         """Test successful update of EnvelopedVerifiableCredential."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-update-env-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-update-env-01")
 
         with TestClient(app) as test_client:
             # Create DID with verification method
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
             controller_agent, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
             signing_key = controller_agent.update_key
 
@@ -679,7 +659,7 @@ class TestUpdateCredential:
             custom_id = "update-test-001"
 
             pub_response = test_client.post(
-                f"/{test_namespace}/{test_identifier}/credentials",
+                f"/{test_namespace}/{test_alias}/credentials",
                 json={"verifiableCredential": initial_vc, "options": {"credentialId": custom_id}},
             )
             assert pub_response.status_code == 201
@@ -691,7 +671,7 @@ class TestUpdateCredential:
 
             # Update using the custom ID
             update_response = test_client.put(
-                f"/{test_namespace}/{test_identifier}/credentials/{custom_id}",
+                f"/{test_namespace}/{test_alias}/credentials/{custom_id}",
                 json={"verifiableCredential": updated_vc},
             )
 
@@ -703,12 +683,12 @@ class TestUpdateCredential:
     @pytest.mark.asyncio
     async def test_update_credential_not_found(self):
         """Test updating non-existent credential returns 404."""
-        test_namespace, test_identifier = create_test_namespace_and_identifier("cred-update-404-01")
+        test_namespace, test_alias = create_test_namespace_and_alias("cred-update-404-01")
 
         with TestClient(app) as test_client:
-            did_id, doc_state = create_unique_did(test_client, test_namespace, test_identifier)
+            did_id, doc_state = create_unique_did(test_client, test_namespace, test_alias)
             controller_agent, verification_method_id = setup_controller_with_verification_method(
-                test_client, test_namespace, test_identifier, doc_state
+                test_client, test_namespace, test_alias, doc_state
             )
             signing_key = controller_agent.update_key
 
@@ -718,7 +698,7 @@ class TestUpdateCredential:
             )
 
             response = test_client.put(
-                f"/{test_namespace}/{test_identifier}/credentials/nonexistent-id",
+                f"/{test_namespace}/{test_alias}/credentials/nonexistent-id",
                 json={"verifiableCredential": fake_vc},
             )
 
@@ -727,22 +707,18 @@ class TestUpdateCredential:
     @pytest.mark.asyncio
     async def test_update_credential_wrong_did(self):
         """Test updating credential from different DID fails."""
-        test_namespace1, test_identifier1 = create_test_namespace_and_identifier(
-            "cred-update-wrong-01"
-        )
-        test_namespace2, test_identifier2 = create_test_namespace_and_identifier(
-            "cred-update-wrong-02"
-        )
+        test_namespace1, test_alias1 = create_test_namespace_and_alias("cred-update-wrong-01")
+        test_namespace2, test_alias2 = create_test_namespace_and_alias("cred-update-wrong-02")
 
         with TestClient(app) as test_client:
             # Create two DIDs
-            did_id1, doc_state1 = create_unique_did(test_client, test_namespace1, test_identifier1)
+            did_id1, doc_state1 = create_unique_did(test_client, test_namespace1, test_alias1)
             controller_agent1, verification_method_id1 = setup_controller_with_verification_method(
-                test_client, test_namespace1, test_identifier1, doc_state1
+                test_client, test_namespace1, test_alias1, doc_state1
             )
             signing_key1 = controller_agent1.update_key
 
-            did_id2, _ = create_unique_did(test_client, test_namespace2, test_identifier2)
+            did_id2, _ = create_unique_did(test_client, test_namespace2, test_alias2)
 
             # Publish credential to DID1
             vc1, _ = create_jwt_credential(
@@ -751,7 +727,7 @@ class TestUpdateCredential:
             custom_id = "test-cred-001"
 
             pub_response = test_client.post(
-                f"/{test_namespace1}/{test_identifier1}/credentials",
+                f"/{test_namespace1}/{test_alias1}/credentials",
                 json={"verifiableCredential": vc1, "options": {"credentialId": custom_id}},
             )
             assert pub_response.status_code == 201
@@ -762,7 +738,7 @@ class TestUpdateCredential:
             )
 
             response = test_client.put(
-                f"/{test_namespace2}/{test_identifier2}/credentials/{custom_id}",
+                f"/{test_namespace2}/{test_alias2}/credentials/{custom_id}",
                 json={"verifiableCredential": updated_vc},
             )
 

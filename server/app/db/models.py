@@ -347,6 +347,24 @@ class KnownWitnessRegistry(Base):
         return {"registry": self.registry_data, "meta": self.meta or {}}
 
 
+class WitnessInvitation(Base):
+    """Stored witness invitations decoded from invitation URLs."""
+
+    __tablename__ = "witness_invitations"
+
+    witness_did = Column(String(255), primary_key=True, index=True)
+    invitation_id = Column(String(255), nullable=True, index=True)
+    invitation_url = Column(Text, nullable=False)
+    invitation_payload = Column(JSON, nullable=False)
+    label = Column(String(255), nullable=True)
+    goal_code = Column(String(255), nullable=True)
+    goal = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
 class TailsFile(Base):
     """AnonCreds revocation registry tails files."""
 

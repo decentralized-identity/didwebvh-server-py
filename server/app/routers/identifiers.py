@@ -2,11 +2,9 @@
 
 import json
 import logging
-
 from fastapi import APIRouter, HTTPException, Response, Depends
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 
-from config import settings
 
 from app.models.web_schemas import NewLogEntry, WhoisUpdate
 from app.plugins import PolicyError, DidWebVH, AskarVerifier
@@ -15,7 +13,6 @@ from app.db.models import DidControllerRecord
 from app.utilities import (
     first_proof,
     find_verification_method,
-    timestamp,
 )
 from app.dependencies import get_did_controller_dependency
 from app.plugins.storage import StorageManager
@@ -23,59 +20,25 @@ from app.plugins.storage import StorageManager
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Identifiers"])
+resolver_router = APIRouter(tags=["Resolvers"])
 storage = StorageManager()
 verifier = AskarVerifier()
 webvh = DidWebVH()
 
 
-@router.get("/")
-async def request_did(
-    namespace: str = None,
-    identifier: str = None,
-):
-    """Request a DID document and proof options for a given namespace and identifier."""
-
-    if not namespace and not identifier:
-        return RedirectResponse(url="/explorer", status_code=302)
-
-    if not namespace or not identifier:
-        raise HTTPException(status_code=400, detail="Missing namespace or identifier query.")
-
-    # Check if identifier already exists in database
-    if storage.get_did_controller_by_alias(namespace, identifier):
-        raise HTTPException(status_code=409, detail="Identifier unavailable.")
-
-    if namespace in settings.RESERVED_NAMESPACES:
-        raise HTTPException(status_code=400, detail=f"Unavailable namespace: {namespace}.")
-
-    return JSONResponse(
-        status_code=200,
-        content={
-            "versionId": webvh.scid_placeholder,
-            "versionTime": timestamp(),
-            "parameters": webvh.parameters(),
-            "state": {
-                "@context": ["https://www.w3.org/ns/did/v1"],
-                "id": webvh.placeholder_id(namespace, identifier),
-            },
-            "proof": webvh.proof_options(),
-        },
-    )
-
-
-@router.post("/{namespace}/{identifier}")
+@router.post("/{namespace}/{alias}")
 async def new_log_entry(
     namespace: str,
-    identifier: str,
+    alias: str,
     request_body: NewLogEntry,
 ):
-    """Create a new log entry for a given namespace and identifier."""
+    """Create a new log entry for a given namespace and alias."""
 
     log_entry = request_body.model_dump().get("logEntry")
     witness_signature = request_body.model_dump().get("witnessSignature")
 
     # Debug logging
-    logger.info(f"=== New Log Entry Request: {namespace}/{identifier} ===")
+    logger.info(f"=== New Log Entry Request: {namespace}/{alias} ===")
     logger.debug(f"Log Entry: {json.dumps(log_entry, indent=2)}")
     logger.debug(f"Witness Signature: {witness_signature is not None}")
 
@@ -93,7 +56,7 @@ async def new_log_entry(
     )
 
     # Get existing DID controller if it exists
-    if not (did_controller := storage.get_did_controller_by_alias(namespace, identifier)):
+    if not (did_controller := storage.get_did_controller_by_alias(namespace, alias)):
         try:
             log_entries, witness_file = await webvh.create_did(log_entry, witness_signature)
         except PolicyError as err:
@@ -137,7 +100,7 @@ async def new_log_entry(
     return JSONResponse(status_code=200, content=log_entries[-1])
 
 
-@router.post("/{namespace}/{identifier}/whois")
+@router.post("/{namespace}/{alias}/whois")
 async def update_whois(
     request_body: WhoisUpdate,
     did_controller: DidControllerRecord = Depends(get_did_controller_dependency),
@@ -170,7 +133,7 @@ async def update_whois(
     return JSONResponse(status_code=200, content={"Message": "Whois VP updated."})
 
 
-@router.get("/{namespace}/{identifier}/did.json")
+@resolver_router.get("/{namespace}/{alias}/did.json")
 async def read_did(did_controller: DidControllerRecord = Depends(get_did_controller_dependency)):
     """See https://identity.foundation/didwebvh/next/#publishing-a-parallel-didweb-did."""
 
@@ -179,7 +142,7 @@ async def read_did(did_controller: DidControllerRecord = Depends(get_did_control
     return Response(json.dumps(document_state.to_did_web()), media_type="application/did+ld+json")
 
 
-@router.get("/{namespace}/{identifier}/did.jsonl")
+@resolver_router.get("/{namespace}/{alias}/did.jsonl")
 async def read_did_log(
     did_controller: DidControllerRecord = Depends(get_did_controller_dependency),
 ):
@@ -188,7 +151,7 @@ async def read_did_log(
     return Response(log_entries, media_type="text/jsonl")
 
 
-@router.get("/{namespace}/{identifier}/did-witness.json")
+@resolver_router.get("/{namespace}/{alias}/did-witness.json")
 async def read_witness_file(
     did_controller: DidControllerRecord = Depends(get_did_controller_dependency),
 ):
@@ -199,7 +162,7 @@ async def read_witness_file(
     return JSONResponse(status_code=200, content=did_controller.witness_file)
 
 
-@router.get("/{namespace}/{identifier}/whois.vp")
+@resolver_router.get("/{namespace}/{alias}/whois.vp")
 async def read_whois(did_controller: DidControllerRecord = Depends(get_did_controller_dependency)):
     """See https://identity.foundation/didwebvh/v1.0/#whois-linkedvp-service."""
     if not did_controller.whois_presentation:

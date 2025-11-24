@@ -7,7 +7,12 @@ across test files.
 
 import time
 from typing import Dict, Any, Tuple, Optional
+
+from aries_askar import Key, KeyAlg
+from aries_askar.bindings import LocalKeyHandle
 from fastapi.testclient import TestClient
+from multiformats import multibase
+
 from did_webvh.core.state import DocumentState
 from tests.mock_agents import ControllerAgent, WitnessAgent
 from tests.mock_agents import sign
@@ -15,7 +20,7 @@ from tests.fixtures import TEST_UPDATE_KEY, TEST_WITNESS_KEY
 
 
 def create_unique_did(
-    test_client: TestClient, namespace: str, identifier: str
+    test_client: TestClient, namespace: str, alias: str
 ) -> Tuple[str, DocumentState]:
     """
     Create a unique DID and return the DID ID and document state.
@@ -23,13 +28,13 @@ def create_unique_did(
     Args:
         test_client: FastAPI test client
         namespace: DID namespace
-        identifier: DID identifier
+        alias: DID alias
 
     Returns:
         Tuple of (did_id, document_state)
     """
     # Get DID template
-    response = test_client.get(f"?namespace={namespace}&identifier={identifier}")
+    response = test_client.get(f"?namespace={namespace}&alias={alias}")
     assert response.status_code == 200
 
     document = response.json().get("state")
@@ -53,7 +58,7 @@ def create_unique_did(
 
     # Create DID
     response = test_client.post(
-        f"/{namespace}/{identifier}",
+        f"/{namespace}/{alias}",
         json={
             "logEntry": initial_log_entry,
             "witnessSignature": witness_signature,
@@ -62,7 +67,7 @@ def create_unique_did(
     assert response.status_code == 201
 
     # Get DID log and extract document state
-    response = test_client.get(f"/{namespace}/{identifier}/did.jsonl")
+    response = test_client.get(f"/{namespace}/{alias}/did.jsonl")
     log_entries_text = response.text.split("\n")[:-1]
     doc_state = None
 
@@ -73,7 +78,7 @@ def create_unique_did(
 
 
 def setup_controller_with_verification_method(
-    test_client: TestClient, namespace: str, identifier: str, doc_state: DocumentState
+    test_client: TestClient, namespace: str, alias: str, doc_state: DocumentState
 ) -> Tuple[ControllerAgent, str]:
     """
     Set up a controller agent and add its verification method to the DID document.
@@ -81,7 +86,7 @@ def setup_controller_with_verification_method(
     Args:
         test_client: FastAPI test client
         namespace: DID namespace
-        identifier: DID identifier
+        alias: DID alias
         doc_state: Current document state
 
     Returns:
@@ -119,7 +124,7 @@ def setup_controller_with_verification_method(
 
     # Submit update
     response = test_client.post(
-        f"/{namespace}/{identifier}",
+        f"/{namespace}/{alias}",
         json={
             "logEntry": next_log_entry,
             "witnessSignature": witness_signature,
@@ -134,6 +139,7 @@ def create_test_resource(
     controller: ControllerAgent,
     resource_name: str = "testResource",
     resource_data: Optional[Dict[str, Any]] = None,
+    witness: Optional[WitnessAgent] = None,
 ) -> Tuple[Dict[str, Any], str]:
     """
     Create a test resource using the controller.
@@ -142,6 +148,7 @@ def create_test_resource(
         controller: Controller agent for signing
         resource_name: Name of the resource
         resource_data: Optional resource data (defaults to {"name": "Test"})
+        witness: Optional witness agent for endorsement (required if endorsement policy is enabled)
 
     Returns:
         Tuple of (attested_resource, resource_id)
@@ -149,24 +156,44 @@ def create_test_resource(
     if resource_data is None:
         resource_data = {"name": "Test"}
 
-    return controller.attest_resource(resource_data, resource_name)
+    attested_resource, resource_id = controller.attest_resource(resource_data, resource_name)
+
+    # Add witness endorsement if witness is provided
+    if witness:
+        # Get controller proof (may be single proof or list)
+        controller_proof = attested_resource.get("proof")
+        if not isinstance(controller_proof, list):
+            controller_proof = [controller_proof]
+
+        # Extract the resource content for witness signing (without proof)
+        resource_for_witness = attested_resource.copy()
+        resource_for_witness.pop("proof", None)
+
+        # Witness signs the resource
+        witness_signed = witness.sign(resource_for_witness)
+        witness_proof = witness_signed.get("proof", [])
+        if not isinstance(witness_proof, list):
+            witness_proof = [witness_proof]
+
+        # Combine both proofs: controller proof first, then witness proof
+        attested_resource["proof"] = controller_proof + witness_proof
+
+    return attested_resource, resource_id
 
 
-def get_current_doc_state(
-    test_client: TestClient, namespace: str, identifier: str
-) -> DocumentState:
+def get_current_doc_state(test_client: TestClient, namespace: str, alias: str) -> DocumentState:
     """
     Get the current document state for a DID.
 
     Args:
         test_client: FastAPI test client
         namespace: DID namespace
-        identifier: DID identifier
+        alias: DID alias
 
     Returns:
         Current document state
     """
-    response = test_client.get(f"/{namespace}/{identifier}/did.jsonl")
+    response = test_client.get(f"/{namespace}/{alias}/did.jsonl")
     log_entries_text = response.text.split("\n")[:-1]
     doc_state = None
 
@@ -208,16 +235,24 @@ def assert_error_response(response, expected_status: int, expected_detail: Optio
         assert expected_detail in detail_text
 
 
-def create_test_namespace_and_identifier(test_name: str) -> Tuple[str, str]:
+def create_test_namespace_and_alias(test_name: str) -> Tuple[str, str]:
     """
-    Create unique namespace and identifier for a test.
+    Create unique namespace and alias for a test.
 
     Args:
         test_name: Name of the test
 
     Returns:
-        Tuple of (namespace, identifier)
+        Tuple of (namespace, alias)
     """
     namespace = f"test-{test_name.lower().replace('_', '-')}"
-    identifier = create_unique_identifier(f"{test_name.lower()}")
-    return namespace, identifier
+    alias = create_unique_identifier(f"{test_name.lower()}")
+    return namespace, alias
+
+
+def generate_multikey_from_seed(seed: str) -> str:
+    """Generate an ed25519 multikey string from a deterministic seed."""
+    key = Key(LocalKeyHandle()).from_seed(KeyAlg.ED25519, seed)
+    public_key = key.get_public_bytes().hex()
+    multikey_bytes = bytes.fromhex(f"ed01{public_key}")
+    return multibase.encode(multikey_bytes, "base58btc")

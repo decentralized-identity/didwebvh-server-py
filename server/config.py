@@ -35,7 +35,9 @@ class Settings(BaseSettings):
     PROJECT_TITLE: str = "DID WebVH Server"
     PROJECT_VERSION: str = "v0"
 
-    API_KEY: str = os.environ.get("WEBVH_API_KEY", os.environ.get("API_KEY", "webvh"))
+    WEBVH_ADMIN_API_KEY: str = os.environ.get(
+        "WEBVH_ADMIN_API_KEY", os.environ.get("WEBVH_API_KEY", os.environ.get("API_KEY", "webvh"))
+    )
     DOMAIN: str = os.environ.get("WEBVH_DOMAIN", "localhost")
 
     SCID_PLACEHOLDER: str = r"{SCID}"
@@ -66,15 +68,15 @@ class Settings(BaseSettings):
 
     # Recommended for production deployments
 
-    KNOWN_WITNESS_KEY: Union[str, None] = os.environ.get("KNOWN_WITNESS_KEY", None)
-    KNOWN_WITNESS_REGISTRY: Union[str, None] = os.environ.get("KNOWN_WITNESS_REGISTRY", None)
+    WEBVH_WITNESS_ID: Union[str, None] = os.environ.get("WEBVH_WITNESS_ID", None)
+    WEBVH_WITNESS_INVITATION: Union[str, None] = os.environ.get("WEBVH_WITNESS_INVITATION", None)
 
     WEBVH_VERSION: str = os.environ.get("WEBVH_VERSION", "1.0")
     WEBVH_WITNESS: bool = eval(os.environ.get("WEBVH_WITNESS", "true").capitalize())
     WEBVH_WATCHER: Union[str, None] = os.environ.get("WEBVH_WATCHER", None)
     WEBVH_PREROTATION: bool = eval(os.environ.get("WEBVH_PREROTATION", "true").capitalize())
     WEBVH_PORTABILITY: bool = eval(os.environ.get("WEBVH_PORTABILITY", "true").capitalize())
-    WEBVH_ENDORSEMENT: bool = eval(os.environ.get("WEBVH_ENDORSEMENT", "false").capitalize())
+    WEBVH_ENDORSEMENT: bool = eval(os.environ.get("WEBVH_ENDORSEMENT", "true").capitalize())
 
     WEBVH_ICON: str = "https://didwebvh.info/latest/assets/favicon.ico"
     WEBVH_LOGO: str = "https://raw.githubusercontent.com/decentralized-identity/didwebvh-info/main/docs/assets/didwebvh.jpg"
@@ -84,8 +86,9 @@ class Settings(BaseSettings):
             "APP_DESCRIPTION",
             "Visual user interface to query DID WebVH logs and Attested Resources.",
         ),
-        "app_icon": os.environ.get("APP_ICON", WEBVH_ICON),
-        "app_logo": os.environ.get("APP_LOGO", WEBVH_LOGO),
+        "icon": os.environ.get("APP_ICON", WEBVH_ICON),
+        "logo_vertical": os.environ.get("APP_LOGO_VERTICAL", WEBVH_LOGO),
+        "logo_horizontal": os.environ.get("APP_LOGO_HORIZONTAL", WEBVH_LOGO),
         "app_url": f"https://{DOMAIN}",
         # Color scheme - Default WebVH Theme
         "primary_color": os.environ.get("APP_PRIMARY_COLOR", "#1a365d"),  # WebVH Deep Blue
@@ -102,7 +105,7 @@ class Settings(BaseSettings):
     }
     UNIRESOLVER_URL: str = "https://dev.uniresolver.io"
 
-    RESERVED_NAMESPACES: list = ["explorer", "admin", "server", "tails"]
+    RESERVED_NAMESPACES: list = ["api", ".well-known"]
 
 
 settings = Settings()

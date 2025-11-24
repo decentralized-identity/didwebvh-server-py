@@ -62,8 +62,11 @@
     background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary) 100%) !important;
     border-bottom: 3px solid var(--brand-secondary) !important;
 }
-.navbar-brand img {
-    filter: brightness(0) invert(1);
+.navbar-brand img.navbar-brand-image {
+    filter: none;
+    object-fit: contain;
+    max-width: 48px;
+    max-height: 48px;
 }
 .nav-link {
     color: white !important;

@@ -23,6 +23,7 @@ Environment Variables:
 
 import argparse
 import asyncio
+import base64
 import json
 import os
 import sys
@@ -57,26 +58,59 @@ logger.add(
 class DidWebVHClient:
     """Client for interacting with DID WebVH Server."""
 
-    def __init__(self, server_url: str):
+    def __init__(self, server_url: str, api_key: Optional[str] = None):
         """Initialize the DID WebVH client.
 
         Args:
             server_url: Base URL of the DID WebVH server
+            api_key: Optional API key for admin endpoints (defaults to env vars or "webvh")
         """
         self.server_url = server_url.rstrip("/")
         self.session = requests.Session()
-        self.api_key = os.getenv("WEBVH_API_KEY", os.getenv("API_KEY", "webvh"))
+        self.api_key = api_key or os.getenv(
+            "WEBVH_API_KEY", os.getenv("API_KEY", "webvh")
+        )
 
-    def register_witness(self, witness_key: Key, label: str = "Load Test Witness") -> Dict:
+    def register_witness(
+        self, witness_key: Key, label: str = "Load Test Witness"
+    ) -> Dict:
         """Register a witness in the known witness registry."""
         witness_multikey = self.key_to_multikey(witness_key)
+        witness_did = f"did:key:{witness_multikey}"
+
+        # Create a simple invitation payload for load testing
+        invitation_payload = {
+            "@type": "https://didcomm.org/out-of-band/1.1/invitation",
+            "@id": f"inv-{uuid.uuid4().hex[:16]}",
+            "label": label,
+            "goal_code": "witness-service",
+            "goal": witness_did,
+            "services": [
+                {
+                    "id": "#inline",
+                    "type": "did-communication",
+                    "serviceEndpoint": f"{self.server_url}/api/invitations",
+                    "recipientKeys": [f"{witness_did}#recipient"],
+                }
+            ],
+        }
+
+        # Encode invitation as base64 URL-safe
+        invitation_json = json.dumps(invitation_payload)
+        invitation_b64 = (
+            base64.urlsafe_b64encode(invitation_json.encode()).decode().rstrip("=")
+        )
+
+        # Create invitation URL
+        invitation_url = f"{self.server_url}/api/invitations?oob={invitation_b64}"
 
         response = self.session.post(
-            f"{self.server_url}/admin/policy/known-witnesses",
+            f"{self.server_url}/api/admin/witnesses",
             headers={"X-API-Key": self.api_key},
             json={
-                "multikey": witness_multikey,
+                "id": witness_did,
                 "label": label,
+                "invitationUrl": invitation_url,
             },
         )
 
@@ -86,7 +120,9 @@ class DidWebVHClient:
             return {"status": "already_exists"}
 
         if response.status_code != 200:
-            logger.warning(f"Failed to register witness: {response.status_code} - {response.text}")
+            logger.warning(
+                f"Failed to register witness: {response.status_code} - {response.text}"
+            )
             return {"status": "failed", "error": response.text}
 
         logger.success(f"✓ Registered witness: {witness_multikey[:20]}...")
@@ -131,10 +167,30 @@ class DidWebVHClient:
     def request_did(self, namespace: str, identifier: str) -> Dict:
         """Request DID creation template from server."""
         response = self.session.get(
-            f"{self.server_url}/?namespace={namespace}&identifier={identifier}"
+            f"{self.server_url}/?namespace={namespace}&alias={identifier}"
         )
-        response.raise_for_status()
-        return response.json()
+
+        if response.status_code != 200:
+            try:
+                error_detail = response.json()
+                error_msg = f"DID template request failed: {response.status_code} - {error_detail}"
+            except (ValueError, json.JSONDecodeError):
+                error_msg = f"DID template request failed: {response.status_code} - {response.text[:500]}"
+            logger.error(error_msg)
+            response.raise_for_status()
+
+        # Check if response has content before parsing JSON
+        if not response.text or not response.text.strip():
+            raise ValueError(
+                f"Empty response from server when requesting DID template (status {response.status_code})"
+            )
+
+        try:
+            return response.json()
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ValueError(
+                f"Invalid JSON response when requesting DID template (status {response.status_code}): {response.text[:500]}"
+            ) from e
 
     def create_did(
         self, namespace: str, identifier: str, update_key: Key, witness_key: Key
@@ -167,12 +223,16 @@ class DidWebVHClient:
         # Sign log entry
         initial_log = initial_state.history_line()
         verification_method = f"did:key:{update_multikey}#{update_multikey}"
-        initial_log_entry = self.sign_document(initial_log, update_key, verification_method)
+        initial_log_entry = self.sign_document(
+            initial_log, update_key, verification_method
+        )
 
         # Create witness signature
         witness_proof_doc = {"versionId": initial_log_entry.get("versionId")}
         witness_vm = f"did:key:{witness_multikey}#{witness_multikey}"
-        witness_signature = self.sign_document(witness_proof_doc, witness_key, witness_vm)
+        witness_signature = self.sign_document(
+            witness_proof_doc, witness_key, witness_vm
+        )
 
         # Submit to server
         response = self.session.post(
@@ -187,16 +247,33 @@ class DidWebVHClient:
         if response.status_code != 201:
             try:
                 error_detail = response.json()
-                logger.error(f"DID creation failed: {response.status_code} - {error_detail}")
-            except Exception:
-                logger.error(f"DID creation failed: {response.status_code} - {response.text}")
+                error_msg = (
+                    f"DID creation failed: {response.status_code} - {error_detail}"
+                )
+            except (ValueError, json.JSONDecodeError):
+                # Response is not JSON, show raw text
+                error_msg = f"DID creation failed: {response.status_code} - {response.text[:500]}"
+            logger.error(error_msg)
+            response.raise_for_status()
 
-        response.raise_for_status()
-        return response.json()
+        # Check if response has content before parsing JSON
+        if not response.text or not response.text.strip():
+            raise ValueError(
+                f"Empty response from server (status {response.status_code})"
+            )
+
+        try:
+            return response.json()
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ValueError(
+                f"Invalid JSON response from server (status {response.status_code}): {response.text[:500]}"
+            ) from e
 
     def get_did_log(self, namespace: str, identifier: str) -> List[Dict]:
         """Get DID log entries."""
-        response = self.session.get(f"{self.server_url}/{namespace}/{identifier}/did.jsonl")
+        response = self.session.get(
+            f"{self.server_url}/{namespace}/{identifier}/did.jsonl"
+        )
         response.raise_for_status()
 
         log_entries = []
@@ -220,13 +297,17 @@ class DidWebVHClient:
         # Reconstruct document state
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         # Create updated document
         if update_document is None:
             update_document = doc_state.document.copy()
             # Add a context to show this is an update
-            if "https://www.w3.org/ns/cid/v1" not in update_document.get("@context", []):
+            if "https://www.w3.org/ns/cid/v1" not in update_document.get(
+                "@context", []
+            ):
                 update_document["@context"].append("https://www.w3.org/ns/cid/v1")
 
         # Create next state
@@ -246,7 +327,9 @@ class DidWebVHClient:
         witness_multikey = self.key_to_multikey(witness_key)
         witness_proof_doc = {"versionId": next_log_entry.get("versionId")}
         witness_vm = f"did:key:{witness_multikey}#{witness_multikey}"
-        witness_signature = self.sign_document(witness_proof_doc, witness_key, witness_vm)
+        witness_signature = self.sign_document(
+            witness_proof_doc, witness_key, witness_vm
+        )
 
         # Submit to server
         response = self.session.post(
@@ -272,7 +355,9 @@ class DidWebVHClient:
 
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         # Get DID ID
         did_id = doc_state.document.get("id")
@@ -287,17 +372,19 @@ class DidWebVHClient:
             "publicKeyMultibase": signing_multikey,
         }
 
-        updated_document["verificationMethod"] = updated_document.get("verificationMethod", []) + [
-            verification_method
-        ]
-        updated_document["assertionMethod"] = updated_document.get("assertionMethod", []) + [
-            verification_method["id"]
-        ]
-        updated_document["authentication"] = updated_document.get("authentication", []) + [
-            verification_method["id"]
-        ]
+        updated_document["verificationMethod"] = updated_document.get(
+            "verificationMethod", []
+        ) + [verification_method]
+        updated_document["assertionMethod"] = updated_document.get(
+            "assertionMethod", []
+        ) + [verification_method["id"]]
+        updated_document["authentication"] = updated_document.get(
+            "authentication", []
+        ) + [verification_method["id"]]
 
-        return self.update_did(namespace, identifier, update_key, witness_key, updated_document)
+        return self.update_did(
+            namespace, identifier, update_key, witness_key, updated_document
+        )
 
     def upload_whois(
         self,
@@ -312,7 +399,9 @@ class DidWebVHClient:
 
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         did_id = doc_state.document.get("id")  # This is the did:webvh version
 
@@ -371,9 +460,13 @@ class DidWebVHClient:
         if response.status_code != 200:
             try:
                 error_detail = response.json()
-                logger.error(f"WHOIS upload failed: {response.status_code} - {error_detail}")
+                logger.error(
+                    f"WHOIS upload failed: {response.status_code} - {error_detail}"
+                )
             except Exception:
-                logger.error(f"WHOIS upload failed: {response.status_code} - {response.text}")
+                logger.error(
+                    f"WHOIS upload failed: {response.status_code} - {response.text}"
+                )
 
         response.raise_for_status()
         return response.json()
@@ -385,6 +478,7 @@ class DidWebVHClient:
         signing_key: Key,
         resource_content: Dict,
         resource_type: str = "genericResource",
+        witness_key: Optional[Key] = None,
     ) -> Dict:
         """Upload an attested resource."""
         # Get DID ID from the log
@@ -392,7 +486,9 @@ class DidWebVHClient:
 
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         did_id = doc_state.document.get("id")
         signing_multikey = self.key_to_multikey(signing_key)
@@ -419,13 +515,43 @@ class DidWebVHClient:
             },
         }
 
-        # Sign the resource
+        # Sign the resource with author's key
         attested_resource = self.sign_document(
             attested_resource,
             signing_key,
             verification_method_id,
             proof_purpose="assertionMethod",
         )
+
+        # Add witness proof if witness_key is provided (required for endorsement)
+        if witness_key:
+            witness_multikey = self.key_to_multikey(witness_key)
+            witness_did = f"did:key:{witness_multikey}"
+            witness_vm = f"{witness_did}#{witness_multikey}"
+
+            # Create witness proof document (resource without proofs)
+            resource_for_witness = attested_resource.copy()
+            resource_for_witness.pop("proof", None)
+
+            # Sign with witness key
+            witness_proof_doc = self.sign_document(
+                resource_for_witness,
+                witness_key,
+                witness_vm,
+                proof_purpose="assertionMethod",
+            )
+
+            # Extract witness proof and add to proofs list
+            author_proof = attested_resource.get("proof", [])
+            if isinstance(author_proof, dict):
+                author_proof = [author_proof]
+
+            witness_proof = witness_proof_doc.get("proof", [])
+            if isinstance(witness_proof, dict):
+                witness_proof = [witness_proof]
+
+            # Combine proofs: author proof first, then witness proof
+            attested_resource["proof"] = author_proof + witness_proof
 
         # Upload to server
         response = self.session.post(
@@ -437,9 +563,13 @@ class DidWebVHClient:
         if response.status_code != 201:
             try:
                 error_detail = response.json()
-                logger.error(f"Resource upload failed: {response.status_code} - {error_detail}")
+                logger.error(
+                    f"Resource upload failed: {response.status_code} - {error_detail}"
+                )
             except Exception:
-                logger.error(f"Resource upload failed: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Resource upload failed: {response.status_code} - {response.text}"
+                )
 
         response.raise_for_status()
         return response.json()
@@ -471,16 +601,16 @@ class DidWebVHClient:
 
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         issuer_did = doc_state.document.get("id")
         signing_multikey = self.key_to_multikey(signing_key)
         verification_method_id = f"{issuer_did}#{signing_multikey}"
 
         # Create credential ID
-        credential_id = (
-            f"http://example.com/credentials/{credential_type.lower()}-{uuid.uuid4().hex[:12]}"
-        )
+        credential_id = f"http://example.com/credentials/{credential_type.lower()}-{uuid.uuid4().hex[:12]}"
 
         if use_enveloped:
             # Create EnvelopedVerifiableCredential (VC-JOSE format)
@@ -510,15 +640,23 @@ class DidWebVHClient:
             # Encode to JWT (simplified - in production use proper JWT library)
             import base64
 
-            header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+            header_b64 = (
+                base64.urlsafe_b64encode(json.dumps(header).encode())
+                .decode()
+                .rstrip("=")
+            )
             payload_b64 = (
-                base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+                base64.urlsafe_b64encode(json.dumps(payload).encode())
+                .decode()
+                .rstrip("=")
             )
 
             # Create signature of header.payload
             to_sign = f"{header_b64}.{payload_b64}".encode()
             signature_bytes = signing_key.sign_message(to_sign)
-            signature_b64 = base64.urlsafe_b64encode(signature_bytes).decode().rstrip("=")
+            signature_b64 = (
+                base64.urlsafe_b64encode(signature_bytes).decode().rstrip("=")
+            )
 
             jwt_token = f"{header_b64}.{payload_b64}.{signature_b64}"
 
@@ -570,9 +708,13 @@ class DidWebVHClient:
         if response.status_code != 201:
             try:
                 error_detail = response.json()
-                logger.error(f"Credential upload failed: {response.status_code} - {error_detail}")
+                logger.error(
+                    f"Credential upload failed: {response.status_code} - {error_detail}"
+                )
             except Exception:
-                logger.error(f"Credential upload failed: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Credential upload failed: {response.status_code} - {response.text}"
+                )
 
         response.raise_for_status()
         return response.json()
@@ -581,16 +723,21 @@ class DidWebVHClient:
 class DidWebVHAsyncClient:
     """Async client for interacting with DID WebVH Server (for concurrent requests)."""
 
-    def __init__(self, server_url: str, session: httpx.AsyncClient):
+    def __init__(
+        self, server_url: str, session: httpx.AsyncClient, api_key: Optional[str] = None
+    ):
         """Initialize the async DID WebVH client.
 
         Args:
             server_url: Base URL of the DID WebVH server
             session: Async HTTP client session
+            api_key: Optional API key for admin endpoints (defaults to env vars or "webvh")
         """
         self.server_url = server_url.rstrip("/")
         self.session = session
-        self.api_key = os.getenv("WEBVH_API_KEY", os.getenv("API_KEY", "webvh"))
+        self.api_key = api_key or os.getenv(
+            "WEBVH_API_KEY", os.getenv("API_KEY", "webvh")
+        )
 
     # Copy all the signing methods from sync client (they don't use HTTP)
     def key_to_multikey(self, key: Key) -> str:
@@ -629,14 +776,47 @@ class DidWebVHAsyncClient:
         document["proof"] = [proof]
         return document
 
-    async def register_witness(self, witness_key: Key, label: str = "Load Test Witness") -> Dict:
+    async def register_witness(
+        self, witness_key: Key, label: str = "Load Test Witness"
+    ) -> Dict:
         """Register a witness in the known witness registry."""
         witness_multikey = self.key_to_multikey(witness_key)
+        witness_did = f"did:key:{witness_multikey}"
+
+        # Create a simple invitation payload for load testing
+        invitation_payload = {
+            "@type": "https://didcomm.org/out-of-band/1.1/invitation",
+            "@id": f"inv-{uuid.uuid4().hex[:16]}",
+            "label": label,
+            "goal_code": "witness-service",
+            "goal": witness_did,
+            "services": [
+                {
+                    "id": "#inline",
+                    "type": "did-communication",
+                    "serviceEndpoint": f"{self.server_url}/api/invitations",
+                    "recipientKeys": [f"{witness_did}#recipient"],
+                }
+            ],
+        }
+
+        # Encode invitation as base64 URL-safe
+        invitation_json = json.dumps(invitation_payload)
+        invitation_b64 = (
+            base64.urlsafe_b64encode(invitation_json.encode()).decode().rstrip("=")
+        )
+
+        # Create invitation URL
+        invitation_url = f"{self.server_url}/api/invitations?oob={invitation_b64}"
 
         response = await self.session.post(
-            f"{self.server_url}/admin/policy/known-witnesses",
+            f"{self.server_url}/api/admin/witnesses",
             headers={"X-API-Key": self.api_key},
-            json={"multikey": witness_multikey, "label": label},
+            json={
+                "id": witness_did,
+                "label": label,
+                "invitationUrl": invitation_url,
+            },
         )
 
         # Ignore 409 (already exists)
@@ -652,10 +832,30 @@ class DidWebVHAsyncClient:
     async def request_did(self, namespace: str, identifier: str) -> Dict:
         """Request DID creation template from server."""
         response = await self.session.get(
-            f"{self.server_url}/?namespace={namespace}&identifier={identifier}"
+            f"{self.server_url}/?namespace={namespace}&alias={identifier}"
         )
-        response.raise_for_status()
-        return response.json()
+
+        if response.status_code != 200:
+            try:
+                error_detail = response.json()
+                error_msg = f"DID template request failed: {response.status_code} - {error_detail}"
+            except (ValueError, json.JSONDecodeError):
+                error_msg = f"DID template request failed: {response.status_code} - {response.text[:500]}"
+            logger.error(error_msg)
+            response.raise_for_status()
+
+        # Check if response has content before parsing JSON
+        if not response.text or not response.text.strip():
+            raise ValueError(
+                f"Empty response from server when requesting DID template (status {response.status_code})"
+            )
+
+        try:
+            return response.json()
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ValueError(
+                f"Invalid JSON response when requesting DID template (status {response.status_code}): {response.text[:500]}"
+            ) from e
 
     async def create_did(
         self, namespace: str, identifier: str, update_key: Key, witness_key: Key
@@ -684,11 +884,15 @@ class DidWebVHAsyncClient:
 
         initial_log = initial_state.history_line()
         verification_method = f"did:key:{update_multikey}#{update_multikey}"
-        initial_log_entry = self.sign_document(initial_log, update_key, verification_method)
+        initial_log_entry = self.sign_document(
+            initial_log, update_key, verification_method
+        )
 
         witness_proof_doc = {"versionId": initial_log_entry.get("versionId")}
         witness_vm = f"did:key:{witness_multikey}#{witness_multikey}"
-        witness_signature = self.sign_document(witness_proof_doc, witness_key, witness_vm)
+        witness_signature = self.sign_document(
+            witness_proof_doc, witness_key, witness_vm
+        )
 
         response = await self.session.post(
             f"{self.server_url}/{namespace}/{identifier}",
@@ -698,16 +902,33 @@ class DidWebVHAsyncClient:
         if response.status_code != 201:
             try:
                 error_detail = response.json()
-                logger.error(f"DID creation failed: {response.status_code} - {error_detail}")
-            except Exception:
-                logger.error(f"DID creation failed: {response.status_code} - {response.text}")
+                error_msg = (
+                    f"DID creation failed: {response.status_code} - {error_detail}"
+                )
+            except (ValueError, json.JSONDecodeError):
+                # Response is not JSON, show raw text
+                error_msg = f"DID creation failed: {response.status_code} - {response.text[:500]}"
+            logger.error(error_msg)
+            response.raise_for_status()
 
-        response.raise_for_status()
-        return response.json()
+        # Check if response has content before parsing JSON
+        if not response.text or not response.text.strip():
+            raise ValueError(
+                f"Empty response from server (status {response.status_code})"
+            )
+
+        try:
+            return response.json()
+        except (ValueError, json.JSONDecodeError) as e:
+            raise ValueError(
+                f"Invalid JSON response from server (status {response.status_code}): {response.text[:500]}"
+            ) from e
 
     async def get_did_log(self, namespace: str, identifier: str) -> List[Dict]:
         """Get DID log entries."""
-        response = await self.session.get(f"{self.server_url}/{namespace}/{identifier}/did.jsonl")
+        response = await self.session.get(
+            f"{self.server_url}/{namespace}/{identifier}/did.jsonl"
+        )
         response.raise_for_status()
 
         log_entries = []
@@ -729,7 +950,9 @@ class DidWebVHAsyncClient:
 
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         if updated_document is None:
             updated_document = doc_state.document.copy()
@@ -750,7 +973,9 @@ class DidWebVHAsyncClient:
 
         witness_proof_doc = {"versionId": next_log_entry.get("versionId")}
         witness_vm = f"did:key:{witness_multikey}#{witness_multikey}"
-        witness_signature = self.sign_document(witness_proof_doc, witness_key, witness_vm)
+        witness_signature = self.sign_document(
+            witness_proof_doc, witness_key, witness_vm
+        )
 
         response = await self.session.post(
             f"{self.server_url}/{namespace}/{identifier}",
@@ -772,7 +997,9 @@ class DidWebVHAsyncClient:
 
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         did_id = doc_state.document.get("id")
         signing_multikey = self.key_to_multikey(signing_key)
@@ -785,15 +1012,15 @@ class DidWebVHAsyncClient:
             "publicKeyMultibase": signing_multikey,
         }
 
-        updated_document["verificationMethod"] = updated_document.get("verificationMethod", []) + [
-            verification_method
-        ]
-        updated_document["assertionMethod"] = updated_document.get("assertionMethod", []) + [
-            verification_method["id"]
-        ]
-        updated_document["authentication"] = updated_document.get("authentication", []) + [
-            verification_method["id"]
-        ]
+        updated_document["verificationMethod"] = updated_document.get(
+            "verificationMethod", []
+        ) + [verification_method]
+        updated_document["assertionMethod"] = updated_document.get(
+            "assertionMethod", []
+        ) + [verification_method["id"]]
+        updated_document["authentication"] = updated_document.get(
+            "authentication", []
+        ) + [verification_method["id"]]
 
         return await self.update_did(
             namespace, identifier, update_key, witness_key, updated_document
@@ -807,7 +1034,9 @@ class DidWebVHAsyncClient:
 
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         did_id = doc_state.document.get("id")
         signing_multikey = self.key_to_multikey(signing_key)
@@ -859,9 +1088,13 @@ class DidWebVHAsyncClient:
         if response.status_code != 200:
             try:
                 error_detail = response.json()
-                logger.error(f"WHOIS upload failed: {response.status_code} - {error_detail}")
+                logger.error(
+                    f"WHOIS upload failed: {response.status_code} - {error_detail}"
+                )
             except Exception:
-                logger.error(f"WHOIS upload failed: {response.status_code} - {response.text}")
+                logger.error(
+                    f"WHOIS upload failed: {response.status_code} - {response.text}"
+                )
 
         response.raise_for_status()
         return response.json()
@@ -873,13 +1106,16 @@ class DidWebVHAsyncClient:
         signing_key: Key,
         resource_content: Dict,
         resource_type: str = "genericResource",
+        witness_key: Optional[Key] = None,
     ) -> Dict:
         """Upload an attested resource."""
         log_entries = await self.get_did_log(namespace, identifier)
 
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         did_id = doc_state.document.get("id")
         signing_multikey = self.key_to_multikey(signing_key)
@@ -901,12 +1137,43 @@ class DidWebVHAsyncClient:
             "metadata": {"resourceId": resource_id, "resourceType": resource_type},
         }
 
+        # Sign the resource with author's key
         attested_resource = self.sign_document(
             attested_resource,
             signing_key,
             verification_method_id,
             proof_purpose="assertionMethod",
         )
+
+        # Add witness proof if witness_key is provided (required for endorsement)
+        if witness_key:
+            witness_multikey = self.key_to_multikey(witness_key)
+            witness_did = f"did:key:{witness_multikey}"
+            witness_vm = f"{witness_did}#{witness_multikey}"
+
+            # Create witness proof document (resource without proofs)
+            resource_for_witness = attested_resource.copy()
+            resource_for_witness.pop("proof", None)
+
+            # Sign with witness key
+            witness_proof_doc = self.sign_document(
+                resource_for_witness,
+                witness_key,
+                witness_vm,
+                proof_purpose="assertionMethod",
+            )
+
+            # Extract witness proof and add to proofs list
+            author_proof = attested_resource.get("proof", [])
+            if isinstance(author_proof, dict):
+                author_proof = [author_proof]
+
+            witness_proof = witness_proof_doc.get("proof", [])
+            if isinstance(witness_proof, dict):
+                witness_proof = [witness_proof]
+
+            # Combine proofs: author proof first, then witness proof
+            attested_resource["proof"] = author_proof + witness_proof
 
         response = await self.session.post(
             f"{self.server_url}/{namespace}/{identifier}/resources",
@@ -916,9 +1183,13 @@ class DidWebVHAsyncClient:
         if response.status_code != 201:
             try:
                 error_detail = response.json()
-                logger.error(f"Resource upload failed: {response.status_code} - {error_detail}")
+                logger.error(
+                    f"Resource upload failed: {response.status_code} - {error_detail}"
+                )
             except Exception:
-                logger.error(f"Resource upload failed: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Resource upload failed: {response.status_code} - {response.text}"
+                )
 
         response.raise_for_status()
         return response.json()
@@ -950,16 +1221,16 @@ class DidWebVHAsyncClient:
 
         doc_state = None
         for log_entry in log_entries:
-            doc_state = DocumentState.load_history_json(json.dumps(log_entry), doc_state)
+            doc_state = DocumentState.load_history_json(
+                json.dumps(log_entry), doc_state
+            )
 
         issuer_did = doc_state.document.get("id")
         signing_multikey = self.key_to_multikey(signing_key)
         verification_method_id = f"{issuer_did}#{signing_multikey}"
 
         # Create credential ID
-        credential_id = (
-            f"http://example.com/credentials/{credential_type.lower()}-{uuid.uuid4().hex[:12]}"
-        )
+        credential_id = f"http://example.com/credentials/{credential_type.lower()}-{uuid.uuid4().hex[:12]}"
 
         if use_enveloped:
             # Create EnvelopedVerifiableCredential (VC-JOSE format)
@@ -987,14 +1258,22 @@ class DidWebVHAsyncClient:
 
             header = {"alg": "EdDSA", "typ": "JWT", "kid": verification_method_id}
 
-            header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+            header_b64 = (
+                base64.urlsafe_b64encode(json.dumps(header).encode())
+                .decode()
+                .rstrip("=")
+            )
             payload_b64 = (
-                base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+                base64.urlsafe_b64encode(json.dumps(payload).encode())
+                .decode()
+                .rstrip("=")
             )
 
             to_sign = f"{header_b64}.{payload_b64}".encode()
             signature_bytes = signing_key.sign_message(to_sign)
-            signature_b64 = base64.urlsafe_b64encode(signature_bytes).decode().rstrip("=")
+            signature_b64 = (
+                base64.urlsafe_b64encode(signature_bytes).decode().rstrip("=")
+            )
 
             jwt_token = f"{header_b64}.{payload_b64}.{signature_b64}"
 
@@ -1044,9 +1323,13 @@ class DidWebVHAsyncClient:
         if response.status_code != 201:
             try:
                 error_detail = response.json()
-                logger.error(f"Credential upload failed: {response.status_code} - {error_detail}")
+                logger.error(
+                    f"Credential upload failed: {response.status_code} - {error_detail}"
+                )
             except Exception:
-                logger.error(f"Credential upload failed: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Credential upload failed: {response.status_code} - {response.text}"
+                )
 
         response.raise_for_status()
         return response.json()
@@ -1077,19 +1360,23 @@ async def create_did_with_updates_async(
     namespace: str,
     identifier: str,
     num_updates: int = 2,
+    witness_key: Optional[Key] = None,
+    shared_witness_key: Optional[Key] = None,
 ) -> Dict:
     """Create a DID and perform multiple updates (async version for concurrent execution)."""
     start_time = time.time()
 
     try:
-        # Generate keys
-        update_key, witness_key, signing_key = generate_keys()
-
-        # Register witness first
-        await client.register_witness(witness_key, label=f"Witness for {identifier}")
+        # Generate keys (witness_key is provided if shared across DIDs)
+        update_key, _, signing_key = generate_keys()
+        if witness_key is None:
+            # Fallback: generate witness key if not provided (shouldn't happen in normal flow)
+            _, witness_key, _ = generate_keys()
 
         # Create initial DID
-        initial_log = await client.create_did(namespace, identifier, update_key, witness_key)
+        initial_log = await client.create_did(
+            namespace, identifier, update_key, witness_key
+        )
         did_id = initial_log.get("state", {}).get("id")
         logger.success(f"✓ [{identifier}] Created DID")
 
@@ -1111,7 +1398,12 @@ async def create_did_with_updates_async(
         # Create and upload AnonCreds schema
         schema_content = create_anoncreds_schema(did_id, f"LoadTestSchema-{identifier}")
         schema_result = await client.upload_resource(
-            namespace, identifier, signing_key, schema_content, "anonCredsSchema"
+            namespace,
+            identifier,
+            signing_key,
+            schema_content,
+            "anonCredsSchema",
+            witness_key=shared_witness_key,
         )
         schema_id = schema_result.get("metadata", {}).get("resourceId", "unknown")
         logger.success(f"  [{identifier}] Schema uploaded: {schema_id[:20]}...")
@@ -1167,17 +1459,18 @@ async def create_did_with_updates(
     namespace: str,
     identifier: str,
     num_updates: int = 2,
+    witness_key: Optional[Key] = None,
+    shared_witness_key: Optional[Key] = None,
 ) -> Dict:
     """Create a DID and perform multiple updates."""
     start_time = time.time()
 
     try:
-        # Generate keys
-        update_key, witness_key, signing_key = generate_keys()
-
-        # Register witness first (required by policy)
-        logger.info(f"Registering witness for {namespace}/{identifier}")
-        client.register_witness(witness_key, label=f"Witness for {identifier}")
+        # Generate keys (witness_key is provided if shared across DIDs)
+        update_key, _, signing_key = generate_keys()
+        if witness_key is None:
+            # Fallback: generate witness key if not provided (shouldn't happen in normal flow)
+            _, witness_key, _ = generate_keys()
 
         logger.info(f"Creating DID {namespace}/{identifier}")
 
@@ -1209,7 +1502,12 @@ async def create_did_with_updates(
         logger.info(f"  Creating AnonCreds schema for {identifier}")
         schema_content = create_anoncreds_schema(did_id, f"LoadTestSchema-{identifier}")
         schema_result = client.upload_resource(
-            namespace, identifier, signing_key, schema_content, "anonCredsSchema"
+            namespace,
+            identifier,
+            signing_key,
+            schema_content,
+            "anonCredsSchema",
+            witness_key=shared_witness_key,
         )
         schema_id = schema_result.get("metadata", {}).get("resourceId", "unknown")
         logger.success(f"  ✓ Schema uploaded: {schema_id[:20]}...")
@@ -1268,6 +1566,7 @@ async def run_load_test(
     namespace: str,
     updates_per_did: int,
     concurrent: bool = False,
+    api_key: Optional[str] = None,
 ) -> Dict:
     """Run the load test."""
     logger.info(
@@ -1282,9 +1581,26 @@ async def run_load_test(
         f"{'=' * 70}"
     )
 
-    client = DidWebVHClient(server_url)
+    client = DidWebVHClient(server_url, api_key=api_key)
     start_time = time.time()
     results = []
+
+    # Generate a single witness key for all DIDs in this test run
+    _, shared_witness_key, _ = generate_keys()
+    witness_multikey = client.key_to_multikey(shared_witness_key)
+    witness_did = f"did:key:{witness_multikey}"
+
+    # Register witness once for the entire test run
+    logger.info(f"Registering shared witness: {witness_did[:30]}...")
+    witness_result = client.register_witness(
+        shared_witness_key, label="Load Test Witness"
+    )
+    if witness_result.get("status") == "failed":
+        logger.warning(
+            "Witness registration failed, but continuing (may already exist)"
+        )
+    else:
+        logger.success("✓ Witness registered successfully")
 
     # Generate unique identifiers using timestamp + counter to avoid conflicts
     run_id = uuid.uuid4().hex[:8]  # Short unique run ID
@@ -1299,7 +1615,9 @@ async def run_load_test(
         # Create async client
         async with httpx.AsyncClient(timeout=60.0) as async_session:
             # Create async wrapper for the client
-            async_client = DidWebVHAsyncClient(server_url, async_session)
+            async_client = DidWebVHAsyncClient(
+                server_url, async_session, api_key=api_key
+            )
 
             # Run with concurrency limit to avoid overwhelming server
             max_concurrent = min(10, count)  # Max 10 concurrent requests
@@ -1318,12 +1636,19 @@ async def run_load_test(
                 # Run batch concurrently
                 batch_tasks = [
                     create_did_with_updates_async(
-                        async_client, namespace, identifier, num_updates=updates_per_did
+                        async_client,
+                        namespace,
+                        identifier,
+                        num_updates=updates_per_did,
+                        witness_key=shared_witness_key,
+                        shared_witness_key=shared_witness_key,
                     )
                     for identifier in batch_identifiers
                 ]
 
-                batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+                batch_results = await asyncio.gather(
+                    *batch_tasks, return_exceptions=True
+                )
 
                 # Process results
                 for i, result in enumerate(batch_results):
@@ -1340,20 +1665,29 @@ async def run_load_test(
                         results.append(result)
 
                 successful = sum(1 for r in results if r.get("success"))
-                logger.info(f"Progress: {len(results)}/{count} completed ({successful} successful)")
+                logger.info(
+                    f"Progress: {len(results)}/{count} completed ({successful} successful)"
+                )
     else:
         # Run sequentially
         for i, identifier in enumerate(identifiers, 1):
             logger.info(f"\n[{i}/{count}] Processing DID {identifier}")
             result = await create_did_with_updates(
-                client, namespace, identifier, num_updates=updates_per_did
+                client,
+                namespace,
+                identifier,
+                num_updates=updates_per_did,
+                witness_key=shared_witness_key,
+                shared_witness_key=shared_witness_key,
             )
             results.append(result)
 
             # Progress update
             if i % 10 == 0:
                 successful = sum(1 for r in results if r.get("success"))
-                logger.info(f"Progress: {i}/{count} completed ({successful} successful)")
+                logger.info(
+                    f"Progress: {i}/{count} completed ({successful} successful)"
+                )
 
     # Calculate statistics
     total_time = time.time() - start_time
@@ -1468,6 +1802,14 @@ Examples:
         help="Run tests concurrently (experimental)",
     )
 
+    parser.add_argument(
+        "-k",
+        "--api-key",
+        type=str,
+        default=None,
+        help="API key for admin endpoints (default: env WEBVH_API_KEY or 'webvh')",
+    )
+
     args = parser.parse_args()
 
     # Validate arguments
@@ -1488,6 +1830,7 @@ Examples:
                 args.namespace,
                 args.updates,
                 args.concurrent,
+                args.api_key,
             )
         )
 
