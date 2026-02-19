@@ -70,10 +70,12 @@ async def upload_tails_file(
         logger.warning("Expecting multipart/form-data content-type.")
         raise HTTPException(status_code=400, detail="Expecting multipart/form-data content-type.")
 
-    # Find multipart boundary
-    if not (boundary := re.search(r"boundary=(.+)", content_type).group(1).encode()):
+    # Find multipart boundary (strip whitespace, quotes, semicolon so split matches body)
+    match = re.search(r"boundary=(.+)", content_type)
+    if not match:
         logger.warning("Invalid multipart boundary.")
         raise HTTPException(status_code=400, detail="Invalid multipart boundary.")
+    boundary = match.group(1).strip().strip('"').strip("'").rstrip(";").encode()
 
     # Process request body to get tails file
     if not (file_content := multipart_reader(request_body, boundary)):

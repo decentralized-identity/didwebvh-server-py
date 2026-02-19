@@ -29,7 +29,12 @@ def multipart_reader(request_body, boundary):
     for part in parts:
         header_split = part.split(b"\r\n\r\n", 1)
         if len(header_split) == 2:
-            file_content = header_split[1].rstrip(b"\r\n--")
+            # Take only content before closing boundary (do not rstrip; file may end with \\r\\n or -)
+            raw = header_split[1]
+            if b"\r\n--" in raw:
+                file_content = raw.split(b"\r\n--", 1)[0]
+            else:
+                file_content = raw.rstrip(b"\r\n--")
             break
     return file_content
 
