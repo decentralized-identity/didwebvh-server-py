@@ -3,7 +3,7 @@ name: didwebvh-server-py
 icon: https://identity.foundation/didwebvh/didwebvh.jpg
 description: An api server to register and serve web dids with verifiable history.
 type: application
-version: 0.5.0
+version: 0.6.0
 appVersion: 0.5.0
 
 maintainers:
@@ -12,12 +12,7 @@ maintainers:
     url: https://github.com/PatStLouis
 
 dependencies:
-  - name: postgresql
-    version: 11.9.13
-    repository: https://charts.bitnami.com/bitnami/
-    condition: postgresql.enabled
-  - name: common
-    version: 2.x.x
-    repository: https://charts.bitnami.com/bitnami/
-    tags:
-      - bitnami-common
+  - name: postgres
+    version: "0.16.0"
+    repository: oci://registry-1.docker.io/cloudpirates
+    condition: postgres.enabled

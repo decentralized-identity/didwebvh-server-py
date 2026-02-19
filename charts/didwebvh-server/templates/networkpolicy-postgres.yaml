@@ -1,21 +1,23 @@
+{{- if .Values.postgres.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "global.postgresql.fullname" . }}
+  name: {{ include "global.postgres.fullname" . }}
   labels:
-    {{- include "postgresql.labels" . | nindent 4 }}
+    {{- include "postgres.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "postgresql.selectorLabels" . | nindent 6 }}
+      {{- include "postgres.selectorLabels" . | nindent 6 }}
   ingress:
     - ports:
         - protocol: TCP
-          port: {{ .Values.postgresql.primary.service.ports.postgresql }}
+          port: {{ .Values.postgres.service.port }}
       from:
         - podSelector:
             matchLabels:
               {{- include "server.selectorLabels" . | nindent 14 }}
   policyTypes:
     - Ingress
+{{- end }}

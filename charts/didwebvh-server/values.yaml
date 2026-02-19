@@ -60,34 +60,38 @@ server:
     ingress:
       podSelector: {}
 
-postgresql:
+# CloudPirates Postgres subchart (replaces Bitnami PostgreSQL)
+# Uses official postgres image; see README for migration from Bitnami.
+postgres:
   enabled: true
-  fullnameOverride: "didwebvh-server-postgresql"
-  nameOverride: "didwebvh-server-postgresql"
-  architecture: standalone
+  fullnameOverride: "didwebvh-server-postgres"
+
   auth:
-    enablePostgresUser: true
-    existingSecret: ""
-    secretKeys:
-      adminPasswordKey: admin-password
-      userPasswordKey: database-password
     username: "didwebvh-server"
+    database: "didwebvh-server"
+    # password left empty: chart generates and stores in secret (key: postgres-password)
+    existingSecret: ""
 
-  ## PostgreSQL Primary parameters
-  primary:
-    persistence:
-      enabled: true
-      size: 1Gi
-    containerSecurityContext:
-      enabled: false
-    podSecurityContext:
-      enabled: false
-    service:
-      ports:
-        postgresql: 5432
-    extendedConfiguration: |
-      max_connections = 500
+  config:
+    postgresql:
+      max_connections: 500
 
-  networkPolicy:
-    ingress:
-      podSelector: {}
+  service:
+    port: 5432
+
+  persistence:
+    enabled: true
+    size: 1Gi
+
+  # Relax security context for compatibility; tighten as needed
+  podSecurityContext:
+    fsGroup: 999
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
