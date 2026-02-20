@@ -38,12 +38,14 @@ spec:
                   key: api-key
             {{- if .Values.postgres.enabled }}
             - name: POSTGRES_USER
-              value: {{ .Values.postgres.auth.username }}
+              value: {{ .Values.postgres.customUser.name | quote }}
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "global.postgres.fullname" . }}
-                  key: postgres-password
+                  key: {{ .Values.postgres.customUser.secretKeys.password | default "password" }}
+            - name: POSTGRES_DB
+              value: {{ (.Values.postgres.customUser.database | default .Values.postgres.auth.database) | quote }}
             - name: POSTGRES_SERVER_NAME
               value: {{ include "global.postgres.fullname" . }}
             - name: POSTGRES_SERVER_PORT

@@ -62,6 +62,7 @@ server:
 
 # CloudPirates Postgres subchart (replaces Bitnami PostgreSQL)
 # Uses official postgres image; see README for migration from Bitnami.
+# Application connects as custom user webvh-admin (not the superuser).
 postgres:
   enabled: true
   fullnameOverride: "didwebvh-server-postgres"
@@ -69,8 +70,20 @@ postgres:
   auth:
     username: "didwebvh-server"
     database: "didwebvh-server"
-    # password left empty: chart generates and stores in secret (key: postgres-password)
-    existingSecret: ""
+    # Chart-managed secret (see templates/server/database-secret.yaml)
+    existingSecret: "didwebvh-server-postgres"
+    secretKeys:
+      adminPasswordKey: postgres-password
+
+  # Dedicated application user and DB (chart creates both; we add schema grants in initdb.scripts)
+  customUser:
+    name: "webvh-admin"
+    database: "webvh"
+    existingSecret: "didwebvh-server-postgres"
+    secretKeys:
+      name: user
+      database: database
+      password: password
 
   config:
     postgresql:
@@ -82,6 +95,24 @@ postgres:
   persistence:
     enabled: true
     size: 1Gi
+
+  initdb:
+    scripts:
+      01-init.sh: |
+        #!/bin/bash
+        set -e
+        echo "Initializing database permissions for user: $CUSTOM_USER"
+        export PGPASSWORD="$POSTGRES_PASSWORD"
+        psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$CUSTOM_DB" <<-EOSQL
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+            ALTER DATABASE "$CUSTOM_DB" OWNER TO "$CUSTOM_USER";
+            REVOKE ALL ON SCHEMA public FROM PUBLIC;
+            GRANT ALL ON SCHEMA public TO "$CUSTOM_USER";
+            ALTER DEFAULT PRIVILEGES FOR USER "$CUSTOM_USER" IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "$CUSTOM_USER";
+            ALTER DEFAULT PRIVILEGES FOR USER "$CUSTOM_USER" IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO "$CUSTOM_USER";
+            ALTER DEFAULT PRIVILEGES FOR USER "$CUSTOM_USER" IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO "$CUSTOM_USER";
+        EOSQL
+        echo "Database initialization complete for user: $CUSTOM_USER"
 
   # Relax security context for compatibility; tighten as needed
   podSecurityContext:
