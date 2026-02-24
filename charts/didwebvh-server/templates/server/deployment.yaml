@@ -36,21 +36,19 @@ spec:
                 secretKeyRef:
                   name: {{ include "server.fullname" . }}
                   key: api-key
-            {{- if .Values.postgres.enabled }}
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.customUser.database | quote }}
             - name: POSTGRES_USER
               value: {{ .Values.postgres.customUser.name | quote }}
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "global.postgres.fullname" . }}
-                  key: {{ .Values.postgres.customUser.secretKeys.password | default "password" }}
-            - name: POSTGRES_DB
-              value: {{ (.Values.postgres.customUser.database | default .Values.postgres.auth.database) | quote }}
+                  name: {{ include "global.postgres.fullname" . | quote }}
+                  key: password
             - name: POSTGRES_SERVER_NAME
-              value: {{ include "global.postgres.fullname" . }}
+              value: {{ include "global.postgres.fullname" . | quote }}
             - name: POSTGRES_SERVER_PORT
               value: {{ .Values.postgres.service.port | quote }}
-            {{- end }}
           ports:
             - name: api
               containerPort: {{ .Values.server.service.apiPort }}

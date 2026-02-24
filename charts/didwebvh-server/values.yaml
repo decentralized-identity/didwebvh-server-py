@@ -6,8 +6,8 @@ selectorLabels: {}
 
 ingress:
   tls: []
-  labels: []
-  annotations: []
+  labels: {}
+  annotations: {}
 
 networkPolicy:
   ingress:
@@ -47,6 +47,11 @@ server:
 
   replicaCount: 1
 
+  resources: {}
+  nodeSelector: {}
+  affinity: {}
+  tolerations: {}
+
   podAnnotations: {}
   podSecurityContext: {}
   containerSecurityContext: {}
@@ -60,18 +65,23 @@ server:
     ingress:
       podSelector: {}
 
-# CloudPirates Postgres subchart (replaces Bitnami PostgreSQL)
-# Uses official postgres image; see README for migration from Bitnami.
-# Application connects as custom user webvh-admin (not the superuser).
+
+
 postgres:
   enabled: true
-  fullnameOverride: "didwebvh-server-postgres"
+
+  ingress:
+    enabled: false
+    annotations: {}
+    labels: {}
+
+  image:
+    registry: docker.io
+    repository: postgres
+    tag: "18.1"
 
   auth:
-    username: "didwebvh-server"
-    database: "didwebvh-server"
-    # Chart-managed secret (see templates/server/database-secret.yaml)
-    existingSecret: "didwebvh-server-postgres"
+    existingSecret: '{{ printf "%s-postgres" .Release.Name }}'
     secretKeys:
       adminPasswordKey: postgres-password
 
@@ -79,15 +89,11 @@ postgres:
   customUser:
     name: "webvh-admin"
     database: "webvh"
-    existingSecret: "didwebvh-server-postgres"
+    existingSecret: '{{ printf "%s-postgres" .Release.Name }}'
     secretKeys:
       name: user
       database: database
       password: password
-
-  config:
-    postgresql:
-      max_connections: 500
 
   service:
     port: 5432
@@ -95,6 +101,20 @@ postgres:
   persistence:
     enabled: true
     size: 1Gi
+
+  # Relax security context for compatibility; tighten as needed
+  podSecurityContext:
+    fsGroup: 999
+
+  containerSecurityContext:
+    runAsUser: 999
+    runAsGroup: 999
+
+  config:
+    postgresql:
+      max_connections: 500
+
+  resources: {}
 
   initdb:
     scripts:
@@ -113,16 +133,3 @@ postgres:
             ALTER DEFAULT PRIVILEGES FOR USER "$CUSTOM_USER" IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO "$CUSTOM_USER";
         EOSQL
         echo "Database initialization complete for user: $CUSTOM_USER"
-
-  # Relax security context for compatibility; tighten as needed
-  podSecurityContext:
-    fsGroup: 999
-  containerSecurityContext:
-    allowPrivilegeEscalation: false
-    runAsNonRoot: true
-    runAsUser: 999
-    runAsGroup: 999
-    readOnlyRootFilesystem: false
-    capabilities:
-      drop:
-        - ALL

@@ -14,11 +14,14 @@ data:
   {{- if .Values.server.workers }}
   APP_WORKERS: {{ .Values.server.workers | quote }}
   {{- end }}
-  {{- if .Values.server.known_witness_key }}
-  KNOWN_WITNESS_KEY: {{ .Values.server.known_witness_key | quote }}
+  {{- $policies := .Values.server.policies | default dict }}
+  {{- $knownKey := .Values.server.known_witness_key | default (get $policies "webvh_known_witness_key") }}
+  {{- $knownRegistry := .Values.server.known_witness_registry | default (get $policies "webvh_known_registry_url") }}
+  {{- if $knownKey }}
+  KNOWN_WITNESS_KEY: {{ $knownKey | quote }}
   {{- end }}
-  {{- if .Values.server.known_witness_registry }}
-  KNOWN_WITNESS_REGISTRY: {{ .Values.server.known_witness_registry | quote }}
+  {{- if $knownRegistry }}
+  KNOWN_WITNESS_REGISTRY: {{ $knownRegistry | quote }}
   {{- end }}
   {{- if .Values.server.policies }}
   WEBVH_VERSION: {{ .Values.server.policies.webvh_version | default "1.0" | quote }}
