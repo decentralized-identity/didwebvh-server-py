@@ -1,9 +1,6 @@
 dependencies:
-- name: postgresql
-  repository: https://charts.bitnami.com/bitnami/
-  version: 11.9.13
-- name: common
-  repository: https://charts.bitnami.com/bitnami/
-  version: 2.24.0
-digest: sha256:ebb431d33620262dddc5402877d6403aaaa1e20754a3d14c7c47d7e87660132d
-generated: "2024-10-08T13:49:49.494172968Z"
+- name: postgres
+  repository: oci://registry-1.docker.io/cloudpirates
+  version: 0.16.0
+digest: sha256:212753cd21a1293a2054b44f4c39c3571580ba737e82c0c00874cf44b5f20c75
+generated: "2026-02-19T10:38:48.733028792-05:00"

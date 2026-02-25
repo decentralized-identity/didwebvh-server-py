@@ -65,22 +65,22 @@ app.kubernetes.io/name: {{ include "server.fullname" . }}
 {{ include "server.selectorLabels" . }}
 {{- end -}}
 
-{{/* POSTGRESQL */}}
-{{- define "global.postgresql.fullname" -}}
-{{- if .Values.postgresql.fullnameOverride }}
-{{- .Values.postgresql.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{/* POSTGRES (CloudPirates subchart) */}}
+{{- define "global.postgres.fullname" -}}
+{{- if .Values.postgres.fullnameOverride }}
+{{- .Values.postgres.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $postgresContext := dict "Values" .Values.postgresql "Release" .Release "Chart" (dict "Name" "postgresql") -}}
-{{ template "postgresql.primary.fullname" $postgresContext }}
-{{- end -}}
-{{- end -}}
-
-{{- define "postgresql.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "global.postgresql.fullname" . }}
-{{ include "common.selectorLabels" . }}
+{{- printf "%s-postgres" .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- end }}
 {{- end -}}
 
-{{- define "postgresql.labels" -}}
+{{/* Match CloudPirates postgres subchart pod labels (app.kubernetes.io/name is chart name "postgres") */}}
+{{- define "postgres.selectorLabels" -}}
+app.kubernetes.io/name: postgres
+app.kubernetes.io/instance: {{ .Release.Name | quote }}
+{{- end -}}
+
+{{- define "postgres.labels" -}}
 {{ include "common.labels" . }}
-{{ include "postgresql.selectorLabels" . }}
+{{ include "postgres.selectorLabels" . }}
 {{- end -}}
