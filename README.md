@@ -12,8 +12,8 @@ A Web Server component for a DID WebVH implementation built with FastAPI.
 
 | | |
 | --- | --- |
-| **Charts repository** | [decentralized-identity/helm-charts-dif](https://github.com/decentralized-identity/helm-charts-dif) |
-| **Helm repo (add / install)** | `helm repo add dif https://decentralized-identity.github.io/helm-charts-dif` then e.g. `helm install my-release dif/didwebvh-server-py` |
+| **Charts repository** | [decentralized-identity/helm-charts](https://github.com/decentralized-identity/helm-charts) |
+| **Helm repo (add / install)** | `helm repo add dif https://decentralized-identity.github.io/helm-charts` then e.g. `helm install my-release dif/didwebvh-server-py` |
 
 Use that project for chart development, versioning, and releases. This repo is **application source only** (server, demo, docs).
 
