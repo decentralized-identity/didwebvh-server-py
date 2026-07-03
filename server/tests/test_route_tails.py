@@ -125,8 +125,9 @@ class TestGetTailsFile:
             )
             assert upload_response.status_code == 201
 
-            # Try to retrieve with different hash
-            different_hash = "9" + tails_hash[1:]
+            # Try to retrieve with a hash that is guaranteed to differ
+            different_hash = ("8" if tails_hash[0] == "9" else "9") + tails_hash[1:]
+            assert different_hash != tails_hash
             response = test_client.get(f"/api/tails/hash/{different_hash}")
 
         assert response.status_code == 404
@@ -141,10 +142,15 @@ class TestTailsFileIntegration:
         """Test uploading and retrieving multiple tails files."""
         # Generate multiple unique tails files (use full UUID for better uniqueness)
         files = []
-        for _ in range(3):
-            # Use 12 hex chars from UUID to ensure uniqueness across test runs
-            unique_suffix = str(uuid.uuid4()).replace("-", "")[:12]
-            tails_file_hex = TAILS_FILE_HEX[:-12] + unique_suffix
+        for i in range(3):
+            if i == 0:
+                # Edge case: tails bytes ending in CRLF must not be truncated during parsing
+                unique_prefix = str(uuid.uuid4()).replace("-", "")[:8]
+                tails_file_hex = TAILS_FILE_HEX[:-12] + unique_prefix + "0d0a"
+            else:
+                # Use 12 hex chars from UUID to ensure uniqueness across test runs
+                unique_suffix = str(uuid.uuid4()).replace("-", "")[:12]
+                tails_file_hex = TAILS_FILE_HEX[:-12] + unique_suffix
             tails_file_bytes = bytes.fromhex(tails_file_hex)
             tails_file = io.BytesIO(tails_file_bytes)
             tails_hash = create_tails_hash(tails_file)
