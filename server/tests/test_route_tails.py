@@ -141,10 +141,15 @@ class TestTailsFileIntegration:
         """Test uploading and retrieving multiple tails files."""
         # Generate multiple unique tails files (use full UUID for better uniqueness)
         files = []
-        for _ in range(3):
-            # Use 12 hex chars from UUID to ensure uniqueness across test runs
-            unique_suffix = str(uuid.uuid4()).replace("-", "")[:12]
-            tails_file_hex = TAILS_FILE_HEX[:-12] + unique_suffix
+        for i in range(3):
+            if i == 0:
+                # Edge case: tails bytes ending in CRLF must not be truncated during parsing
+                unique_prefix = str(uuid.uuid4()).replace("-", "")[:8]
+                tails_file_hex = TAILS_FILE_HEX[:-12] + unique_prefix + "0d0a"
+            else:
+                # Use 12 hex chars from UUID to ensure uniqueness across test runs
+                unique_suffix = str(uuid.uuid4()).replace("-", "")[:12]
+                tails_file_hex = TAILS_FILE_HEX[:-12] + unique_suffix
             tails_file_bytes = bytes.fromhex(tails_file_hex)
             tails_file = io.BytesIO(tails_file_bytes)
             tails_hash = create_tails_hash(tails_file)

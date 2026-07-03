@@ -23,18 +23,24 @@ MULTIKEY_PARAMS = {"ed25519": {"length": 48, "prefix": "z6M"}}
 
 
 def multipart_reader(request_body, boundary):
-    """Read multipart header."""
+    """Read multipart file content from a multipart/form-data body."""
     file_content = None
     parts = request_body.split(b"--" + boundary)
     for part in parts:
-        header_split = part.split(b"\r\n\r\n", 1)
-        if len(header_split) == 2:
-            # Take only content before closing boundary (do not rstrip; file may end with \\r\\n or -)
+        for header_sep in (b"\r\n\r\n", b"\n\n"):
+            header_split = part.split(header_sep, 1)
+            if len(header_split) != 2:
+                continue
             raw = header_split[1]
-            if b"\r\n--" in raw:
-                file_content = raw.split(b"\r\n--", 1)[0]
-            else:
-                file_content = raw.rstrip(b"\r\n--")
+            # After splitting on --boundary, the payload part ends with the opening
+            # bytes of the closing delimiter (\r\n-- or \n--), not the full boundary.
+            for suffix in (b"\r\n--", b"\n--", b"\r\n", b"\n"):
+                if raw.endswith(suffix):
+                    raw = raw[: -len(suffix)]
+                    break
+            file_content = raw
+            break
+        if file_content is not None:
             break
     return file_content
 
