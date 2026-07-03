@@ -125,8 +125,9 @@ class TestGetTailsFile:
             )
             assert upload_response.status_code == 201
 
-            # Try to retrieve with different hash
-            different_hash = "9" + tails_hash[1:]
+            # Try to retrieve with a hash that is guaranteed to differ
+            different_hash = ("8" if tails_hash[0] == "9" else "9") + tails_hash[1:]
+            assert different_hash != tails_hash
             response = test_client.get(f"/api/tails/hash/{different_hash}")
 
         assert response.status_code == 404
