@@ -31,7 +31,7 @@ nav = [
 
 [project.theme]
 variant = "classic"
-name = "default"
+name = "material"
 scheme = "default"
 font.text = "Inter"
 font.code = "JetBrains Mono"
